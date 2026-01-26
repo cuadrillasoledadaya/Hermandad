@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Trash2, Save, User } from 'lucide-react';
+import { toast } from 'sonner';
+import { Trash2, Save } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -57,13 +58,13 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
     }, [hermano]);
 
     const updateMutation = useMutation({
-        mutationFn: (updates: any) => updateHermano(id, updates),
+        mutationFn: (updates: Partial<Hermano>) => updateHermano(id, updates),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['hermanos'] });
             queryClient.invalidateQueries({ queryKey: ['hermano', id] });
             toast.success('Datos actualizados correctamente');
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error('Error al actualizar: ' + error.message);
         }
     });
@@ -75,7 +76,7 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
             toast.success('Hermano eliminado y censo recalibrado');
             router.push('/hermanos');
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error('Error al eliminar: ' + error.message);
         }
     });
