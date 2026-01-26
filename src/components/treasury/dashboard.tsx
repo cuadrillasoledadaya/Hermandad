@@ -10,11 +10,13 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table';
-import { getHermanos, type Hermano } from '@/lib/brothers';
+import { getHermanos } from '@/lib/brothers';
 import { getMonthStatusForYear } from '@/lib/treasury';
 import { cn } from '@/lib/utils';
-import { AddPaymentDialog } from './add-payment-dialog';
 import { useAuth } from '@/components/providers/auth-provider';
+import Link from 'next/link';
+import { PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Pago {
     id_hermano: string;
@@ -102,10 +104,11 @@ export function TreasuryDashboard() {
                                 })}
                                 {canPay && (
                                     <TableCell className="text-center p-1">
-                                        <AddPaymentDialog
-                                            id_hermano={hermano.id}
-                                            nombre_hermano={`${hermano.nombre} ${hermano.apellidos}`}
-                                        />
+                                        <Link href={`/tesoreria/pago/${hermano.id}`}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10">
+                                                <PlusCircle className="h-4 w-4" />
+                                            </Button>
+                                        </Link>
                                     </TableCell>
                                 )}
                             </TableRow>

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getHermanos, recalibrarNumeros, type Hermano } from '@/lib/brothers';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, Mail, Phone, Calendar } from 'lucide-react';
-import { AddBrotherDialog } from './add-brother-dialog';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -51,7 +51,12 @@ export function BrothersList() {
                             <RefreshCcw className={recalibrateMutation.isPending ? "animate-spin mr-2 h-4 w-4" : "mr-2 h-4 w-4"} />
                             Recalibrar Números
                         </Button>
-                        <AddBrotherDialog />
+                        <Link href="/hermanos/nuevo">
+                            <Button size="sm">
+                                <Phone className="mr-2 h-4 w-4" />
+                                Nuevo Hermano
+                            </Button>
+                        </Link>
                     </div>
                 )}
             </div>

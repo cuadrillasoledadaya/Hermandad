@@ -51,3 +51,14 @@ export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_herman
 
     return data;
 }
+
+export async function getHermanoById(id: string) {
+    const { data, error } = await supabase
+        .from('hermanos')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) throw error;
+    return data as Hermano;
+}

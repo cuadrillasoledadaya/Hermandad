@@ -1,25 +1,34 @@
-'use client';
-
-import { Menu } from 'lucide-react';
+import { Menu, ChevronLeft } from 'lucide-react';
 import { useAppStore } from '@/store/use-app-store';
+import Link from 'next/link';
 
 interface HeaderProps {
     title: string;
+    backHref?: string;
 }
 
-export function Header({ title }: HeaderProps) {
+export function Header({ title, backHref }: HeaderProps) {
     const { toggleSidebar } = useAppStore();
 
     return (
         <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur border-b">
             <div className="flex h-16 items-center px-4 relative">
-                <button
-                    onClick={toggleSidebar}
-                    className="p-2 hover:bg-muted rounded-lg absolute left-4"
-                >
-                    <Menu className="w-6 h-6" />
-                </button>
-                <h1 className="flex-1 text-center text-lg font-semibold tracking-tight">
+                {backHref ? (
+                    <Link
+                        href={backHref}
+                        className="p-2 hover:bg-muted rounded-lg absolute left-4"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
+                    </Link>
+                ) : (
+                    <button
+                        onClick={toggleSidebar}
+                        className="p-2 hover:bg-muted rounded-lg absolute left-4"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+                )}
+                <h1 className="flex-1 text-center text-lg font-semibold tracking-tight uppercase">
                     {title}
                 </h1>
             </div>
