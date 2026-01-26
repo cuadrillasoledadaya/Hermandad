@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use, useEffect } from 'react';
+import { useState, use } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getHermanoById, updateHermano, deleteHermano, type Hermano } from '@/lib/brothers';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Trash2, Save } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,16 +33,7 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
         queryFn: () => getHermanoById(id),
     });
 
-    const [formData, setFormData] = useState({
-        nombre: '',
-        apellidos: '',
-        email: '',
-        telefono: '',
-        direccion: '',
-        fecha_alta: '',
-        activo: true,
-    });
-
+    const [isEditing, setIsEditing] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
 
     if (hermano && !isInitialized) {
@@ -63,6 +55,7 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
             queryClient.invalidateQueries({ queryKey: ['hermanos'] });
             queryClient.invalidateQueries({ queryKey: ['hermano', id] });
             toast.success('Datos actualizados correctamente');
+            setIsEditing(false);
         },
         onError: (error: Error) => {
             toast.error('Error al actualizar: ' + error.message);
@@ -116,27 +109,34 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
                             </div>
                         </div>
 
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                    <Trash2 className="w-5 h-5" />
+                        <div className="flex items-center space-x-2">
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                        <Trash2 className="w-5 h-5" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta acción eliminará al hermano del censo permanentemente. Los números de los demás hermanos se recalibrarán automáticamente.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-red-600 hover:bg-red-700">
+                                            Eliminar
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            {!isEditing && (
+                                <Button onClick={() => setIsEditing(true)} variant="outline">
+                                    Editar Perfil
                                 </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta acción eliminará al hermano del censo permanentemente. Los números de los demás hermanos se recalibrarán automáticamente.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-red-600 hover:bg-red-700">
-                                        Eliminar
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                            )}
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="pt-8">
@@ -149,7 +149,8 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
                                     value={formData.nombre}
                                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                                     required
-                                    className="border-primary/20"
+                                    disabled={!isEditing}
+                                    className={cn("border-primary/20", !isEditing && "bg-muted/50 cursor-not-allowed border-transparent")}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -159,7 +160,8 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
                                     value={formData.apellidos}
                                     onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
                                     required
-                                    className="border-primary/20"
+                                    disabled={!isEditing}
+                                    className={cn("border-primary/20", !isEditing && "bg-muted/50 cursor-not-allowed border-transparent")}
                                 />
                             </div>
                         </div>
@@ -172,7 +174,8 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
                                     type="tel"
                                     value={formData.telefono}
                                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                                    className="border-primary/20"
+                                    disabled={!isEditing}
+                                    className={cn("border-primary/20", !isEditing && "bg-muted/50 cursor-not-allowed border-transparent")}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -182,7 +185,8 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="border-primary/20"
+                                    disabled={!isEditing}
+                                    className={cn("border-primary/20", !isEditing && "bg-muted/50 cursor-not-allowed border-transparent")}
                                 />
                             </div>
                         </div>
@@ -193,7 +197,8 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
                                 id="direccion"
                                 value={formData.direccion}
                                 onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                                className="border-primary/20"
+                                disabled={!isEditing}
+                                className={cn("border-primary/20", !isEditing && "bg-muted/50 cursor-not-allowed border-transparent")}
                             />
                         </div>
 
@@ -205,20 +210,44 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
                                 value={formData.fecha_alta}
                                 onChange={(e) => setFormData({ ...formData, fecha_alta: e.target.value })}
                                 required
-                                className="border-primary/20"
+                                disabled={!isEditing}
+                                className={cn("border-primary/20", !isEditing && "bg-muted/50 cursor-not-allowed border-transparent")}
                             />
                         </div>
 
-                        <div className="flex justify-end pt-4">
-                            <Button
-                                type="submit"
-                                disabled={updateMutation.isPending}
-                                className="min-w-[150px]"
-                            >
-                                <Save className="w-4 h-4 mr-2" />
-                                {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
-                            </Button>
-                        </div>
+                        {isEditing && (
+                            <div className="flex justify-end gap-3 pt-4 animate-in fade-in slide-in-from-bottom-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setIsEditing(false);
+                                        // Reset form data to original values
+                                        if (hermano) {
+                                            setFormData({
+                                                nombre: hermano.nombre,
+                                                apellidos: hermano.apellidos,
+                                                email: hermano.email || '',
+                                                telefono: hermano.telefono || '',
+                                                direccion: hermano.direccion || '',
+                                                fecha_alta: hermano.fecha_alta,
+                                                activo: hermano.activo,
+                                            });
+                                        }
+                                    }}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={updateMutation.isPending}
+                                    className="min-w-[150px]"
+                                >
+                                    <Save className="w-4 h-4 mr-2" />
+                                    {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
+                                </Button>
+                            </div>
+                        )}
                     </form>
                 </CardContent>
             </Card>
