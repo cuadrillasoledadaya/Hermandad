@@ -66,7 +66,7 @@ export function BrothersList() {
                         <div key={hermano.id} className="bg-card border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-3">
                                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                                    Nº {hermano.numero_hermano}
+                                    Nº {hermano.numero_hermano || '---'}
                                 </Badge>
                                 {hermano.activo ? (
                                     <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-none">Activo</Badge>
@@ -75,23 +75,24 @@ export function BrothersList() {
                                 )}
                             </div>
                             <h4 className="font-bold text-lg mb-1">{hermano.nombre} {hermano.apellidos}</h4>
-                            <div className="flex items-center">
-                                <Mail className="h-3.5 w-3.5 mr-2" />
-                                {hermano.email || 'Sin email'}
-                            </div>
-                            <div className="flex items-center">
-                                <Phone className="h-3.5 w-3.5 mr-2" />
-                                {hermano.telefono || 'Sin teléfono'}
-                            </div>
-                            <div className="flex items-center">
-                                <Calendar className="h-3.5 w-3.5 mr-2" />
-                                Alta: {format(new Date(hermano.fecha_alta), 'd MMM yyyy', { locale: es })}
+                            <div className="space-y-1.5 text-sm text-muted-foreground">
+                                <div className="flex items-center">
+                                    <Mail className="h-3.5 w-3.5 mr-2" />
+                                    {hermano.email || 'Sin email'}
+                                </div>
+                                <div className="flex items-center">
+                                    <Phone className="h-3.5 w-3.5 mr-2" />
+                                    {hermano.telefono || 'Sin teléfono'}
+                                </div>
+                                <div className="flex items-center">
+                                    <Calendar className="h-3.5 w-3.5 mr-2" />
+                                    Alta: {format(new Date(hermano.fecha_alta), 'd MMM yyyy', { locale: es })}
+                                </div>
                             </div>
                         </div>
-                        </div>
-            ))
+                    ))
                 )}
+            </div>
         </div>
-        </div >
     );
 }
