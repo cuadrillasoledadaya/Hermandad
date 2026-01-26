@@ -62,3 +62,33 @@ export async function getHermanoById(id: string) {
     if (error) throw error;
     return data as Hermano;
 }
+
+export async function updateHermano(id: string, updates: Partial<Hermano>) {
+    const { data, error } = await supabase
+        .from('hermanos')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // If seniority relevant fields change, recalibrate
+    if (updates.fecha_alta) {
+        await recalibrarNumeros();
+    }
+
+    return data;
+}
+
+export async function deleteHermano(id: string) {
+    const { error } = await supabase
+        .from('hermanos')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+
+    // Recalibrate after deletion
+    await recalibrarNumeros();
+}

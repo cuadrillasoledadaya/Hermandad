@@ -27,6 +27,7 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
 
     const getHeaderData = (path: string) => {
         if (path === '/hermanos/nuevo') return { title: 'NUEVO HERMANO', back: '/hermanos' };
+        if (path.startsWith('/hermanos/')) return { title: 'PERFIL DEL HERMANO', back: '/hermanos' };
         if (path === '/hermanos') return { title: 'CENSO DE HERMANOS' };
         if (path.startsWith('/tesoreria/pago')) return { title: 'REGISTRAR PAGO', back: '/tesoreria' };
         if (path === '/tesoreria') return { title: 'TESORERÍA' };
