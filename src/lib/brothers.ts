@@ -12,6 +12,14 @@ export interface Hermano {
     activo: boolean;
 }
 
+export interface Pago {
+    id_hermano: string;
+    fecha_pago: string;
+    cantidad: number;
+    concepto: string;
+    anio: number;
+}
+
 export async function getHermanos() {
     const { data, error } = await supabase
         .from('hermanos')

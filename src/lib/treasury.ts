@@ -1,22 +1,7 @@
 import { differenceInMonths, startOfMonth, format } from 'date-fns';
+import { type Hermano, type Pago } from './brothers';
 
 export type PaymentStatus = 'PAID' | 'PENDING' | 'OVERDUE';
-
-export interface Hermano {
-    id: string;
-    nombre: string;
-    apellidos: string;
-    fecha_alta: string;
-    numero_hermano: number;
-}
-
-export interface Pago {
-    id_hermano: string;
-    fecha_pago: string;
-    cantidad: number;
-    concepto: string;
-    anio: number;
-}
 
 const CUOTA_MENSUAL = 10; // This should be configurable later
 
