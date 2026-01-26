@@ -2,13 +2,12 @@
 
 import { useState, use, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getHermanoById, updateHermano, deleteHermano } from '@/lib/brothers';
+import { getHermanoById, updateHermano, deleteHermano, type Hermano } from '@/lib/brothers';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { toast } from 'sonner';
 import { toast } from 'sonner';
 import { Trash2, Save } from 'lucide-react';
 import {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getHermanos, recalibrarNumeros, type Hermano } from '@/lib/brothers';
+import { getHermanos, recalibrarNumeros } from '@/lib/brothers';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, Mail, Phone, Calendar, UserPlus } from 'lucide-react';
 import Link from 'next/link';
