@@ -13,6 +13,7 @@ export interface Hermano {
 }
 
 export interface Pago {
+    id: string;
     id_hermano: string;
     fecha_pago: string;
     cantidad: number;
@@ -91,4 +92,29 @@ export async function deleteHermano(id: string) {
 
     // Recalibrate after deletion
     await recalibrarNumeros();
+}
+
+export async function getPagosByHermano(id_hermano: string, anio?: number) {
+    let query = supabase
+        .from('pagos')
+        .select('*')
+        .eq('id_hermano', id_hermano)
+        .order('fecha_pago', { ascending: false });
+
+    if (anio) {
+        query = query.eq('anio', anio);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as Pago[];
+}
+
+export async function deletePago(id: string) {
+    const { error } = await supabase
+        .from('pagos')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
 }

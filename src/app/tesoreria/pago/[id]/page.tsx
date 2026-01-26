@@ -3,14 +3,16 @@
 import { useState, use } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { getHermanoById } from '@/lib/brothers';
+import { getHermanoById, getPagosByHermano, deletePago } from '@/lib/brothers';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Wallet } from 'lucide-react';
+import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -23,6 +25,11 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
         queryFn: () => getHermanoById(id),
+    });
+
+    const { data: pagosBrother = [], isLoading: loadingPagosBrother } = useQuery({
+        queryKey: ['pagos-brother', id],
+        queryFn: () => getPagosByHermano(id),
     });
 
     const paymentMutation = useMutation({
@@ -41,11 +48,24 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pagos'] });
+            queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
             toast.success('Pago registrado correctamente');
-            router.push('/tesoreria');
+            setConcepto('');
         },
         onError: () => {
             toast.error('Error al registrar el pago');
+        }
+    });
+
+    const deletePaymentMutation = useMutation({
+        mutationFn: (pagoId: string) => deletePago(pagoId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pagos'] });
+            queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
+            toast.success('Pago eliminado correctamente');
+        },
+        onError: () => {
+            toast.error('Error al eliminar el pago');
         }
     });
 
