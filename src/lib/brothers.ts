@@ -2,10 +2,11 @@ import { supabase } from './supabase';
 
 export interface Hermano {
     id: string;
-    numero_hermano: number;
+    numero_hermano: number | null;
     nombre: string;
     apellidos: string;
     email: string | null;
+    telefono: string | null;
     direccion: string | null;
     fecha_alta: string;
     activo: boolean;
@@ -28,6 +29,7 @@ export async function recalibrarNumeros() {
 }
 
 export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_hermano' | 'activo'>) {
+    // 1. Insert the new brother
     const { data, error } = await supabase
         .from('hermanos')
         .insert([hermano])
@@ -36,10 +38,8 @@ export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_herman
 
     if (error) throw error;
 
-    // After adding a new brother, we should probably recalibrate or just assign the next number.
-    // The requirement says "recalibración anual", so maybe just assigning the next number for now.
-    const { count } = await supabase.from('hermanos').select('*', { count: 'exact', head: true });
-    await supabase.from('hermanos').update({ numero_hermano: (count || 0) + 1 }).eq('id', data.id);
+    // 2. Trigger a recalibration to ensure the number is correct by seniority
+    await recalibrarNumeros();
 
     return data;
 }

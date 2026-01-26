@@ -3,7 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getHermanos, recalibrarNumeros, type Hermano } from '@/lib/brothers';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, UserPlus, Mail, Phone, Calendar } from 'lucide-react';
+import { RefreshCcw, Mail, Phone, Calendar } from 'lucide-react';
+import { AddBrotherDialog } from './add-brother-dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -50,10 +51,7 @@ export function BrothersList() {
                             <RefreshCcw className={recalibrateMutation.isPending ? "animate-spin mr-2 h-4 w-4" : "mr-2 h-4 w-4"} />
                             Recalibrar Números
                         </Button>
-                        <Button size="sm">
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Nuevo Hermano
-                        </Button>
+                        <AddBrotherDialog />
                     </div>
                 )}
             </div>
@@ -77,20 +75,23 @@ export function BrothersList() {
                                 )}
                             </div>
                             <h4 className="font-bold text-lg mb-1">{hermano.nombre} {hermano.apellidos}</h4>
-                            <div className="space-y-1.5 text-sm text-muted-foreground">
-                                <div className="flex items-center">
-                                    <Mail className="h-3.5 w-3.5 mr-2" />
-                                    {hermano.email || 'Sin email'}
-                                </div>
-                                <div className="flex items-center">
-                                    <Calendar className="h-3.5 w-3.5 mr-2" />
-                                    Alta: {format(new Date(hermano.fecha_alta), 'd MMM yyyy', { locale: es })}
-                                </div>
+                            <div className="flex items-center">
+                                <Mail className="h-3.5 w-3.5 mr-2" />
+                                {hermano.email || 'Sin email'}
+                            </div>
+                            <div className="flex items-center">
+                                <Phone className="h-3.5 w-3.5 mr-2" />
+                                {hermano.telefono || 'Sin teléfono'}
+                            </div>
+                            <div className="flex items-center">
+                                <Calendar className="h-3.5 w-3.5 mr-2" />
+                                Alta: {format(new Date(hermano.fecha_alta), 'd MMM yyyy', { locale: es })}
                             </div>
                         </div>
-                    ))
+                        </div>
+            ))
                 )}
-            </div>
         </div>
+        </div >
     );
 }
