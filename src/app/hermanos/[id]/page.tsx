@@ -33,6 +33,15 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
         queryFn: () => getHermanoById(id),
     });
 
+    const [formData, setFormData] = useState({
+        nombre: '',
+        apellidos: '',
+        email: '',
+        telefono: '',
+        direccion: '',
+        fecha_alta: '',
+        activo: true,
+    });
     const [isEditing, setIsEditing] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
 
