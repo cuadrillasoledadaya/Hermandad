@@ -19,19 +19,24 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        console.log('Attempting login for:', email);
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
         if (error) {
+            console.error('Login error:', error.message);
             toast.error('Error al iniciar sesión: ' + error.message);
             setLoading(false);
         } else {
+            console.log('Login successful:', data.user?.email);
             toast.success('Sesión iniciada correctamente');
             router.push('/');
-            router.refresh();
+            setTimeout(() => {
+                router.refresh();
+            }, 500);
         }
     };
 
