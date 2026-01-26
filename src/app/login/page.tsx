@@ -32,11 +32,9 @@ export default function LoginPage() {
             setLoading(false);
         } else {
             console.log('Login successful:', data.user?.email);
-            toast.success('Sesión iniciada correctamente');
-            router.push('/');
-            setTimeout(() => {
-                router.refresh();
-            }, 500);
+            toast.success('Sesión iniciada correctamente. Redirigiendo...');
+            // Use hard reload to ensure middleware and all providers sync perfectly
+            window.location.href = '/';
         }
     };
 
