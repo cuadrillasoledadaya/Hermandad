@@ -10,8 +10,13 @@ import { Send, Share2 } from 'lucide-react';
 import { sendToSocialMedia } from '@/lib/notifications';
 import { toast } from 'sonner';
 
+import { useAuth } from '@/components/providers/auth-provider';
+
 export function AvisoCreator() {
+    const { role } = useAuth();
     const [loading, setLoading] = useState(false);
+
+    if (role === 'HERMANO') return null;
     const [formData, setFormData] = useState({
         title: '',
         content: '',

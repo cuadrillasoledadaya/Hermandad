@@ -14,6 +14,7 @@ import { getHermanos, type Hermano } from '@/lib/brothers';
 import { getMonthStatusForYear } from '@/lib/treasury';
 import { cn } from '@/lib/utils';
 import { AddPaymentDialog } from './add-payment-dialog';
+import { useAuth } from '@/components/providers/auth-provider';
 
 interface Pago {
     id_hermano: string;
@@ -27,6 +28,8 @@ const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', '
 
 export function TreasuryDashboard() {
     const currentYear = new Date().getFullYear();
+    const { role } = useAuth();
+    const canPay = role === 'SUPERADMIN' || role === 'JUNTA';
 
     const { data: hermanos = [], isLoading: loadingHermanos } = useQuery({
         queryKey: ['hermanos'],
@@ -63,7 +66,7 @@ export function TreasuryDashboard() {
                         {MONTHS.map((month) => (
                             <TableHead key={month} className="text-center min-w-[60px] font-bold">{month}</TableHead>
                         ))}
-                        <TableHead className="text-center font-bold">Acción</TableHead>
+                        {canPay && <TableHead className="text-center font-bold">Acción</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -97,12 +100,14 @@ export function TreasuryDashboard() {
                                         />
                                     );
                                 })}
-                                <TableCell className="text-center p-1">
-                                    <AddPaymentDialog
-                                        id_hermano={hermano.id}
-                                        nombre_hermano={`${hermano.nombre} ${hermano.apellidos}`}
-                                    />
-                                </TableCell>
+                                {canPay && (
+                                    <TableCell className="text-center p-1">
+                                        <AddPaymentDialog
+                                            id_hermano={hermano.id}
+                                            nombre_hermano={`${hermano.nombre} ${hermano.apellidos}`}
+                                        />
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))
                     )}

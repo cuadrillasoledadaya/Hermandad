@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
-import { Sidebar } from "@/components/layout/sidebar";
-import { BottomNav } from "@/components/layout/bottom-nav";
-import { Header } from "@/components/layout/header";
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,14 +37,15 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${inter.className} antialiased pb-20`}>
         <QueryProvider>
-          <div className="flex flex-col min-h-screen">
-            <Sidebar />
-            <Header title="HERMANDAD SAN BENITO" />
-            <main className="flex-1 p-4 lg:pl-64">
-              {children}
-            </main>
-            <BottomNav />
-          </div>
+          <AuthProvider>
+            <div className="flex flex-col min-h-screen">
+              <SidebarWrapper>
+                <main className="flex-1 p-4 lg:pl-64">
+                  {children}
+                </main>
+              </SidebarWrapper>
+            </div>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

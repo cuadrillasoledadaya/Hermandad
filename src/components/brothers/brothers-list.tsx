@@ -8,9 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/components/providers/auth-provider';
 
 export function BrothersList() {
     const queryClient = useQueryClient();
+    const { role } = useAuth();
+    const canManage = role === 'SUPERADMIN' || role === 'JUNTA';
 
     const { data: hermanos = [], isLoading } = useQuery({
         queryKey: ['hermanos'],
@@ -36,21 +39,23 @@ export function BrothersList() {
         <div className="space-y-4">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold">Listado General</h3>
-                <div className="flex space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => recalibrateMutation.mutate()}
-                        disabled={recalibrateMutation.isPending}
-                    >
-                        <RefreshCcw className={recalibrateMutation.isPending ? "animate-spin mr-2 h-4 w-4" : "mr-2 h-4 w-4"} />
-                        Recalibrar Números
-                    </Button>
-                    <Button size="sm">
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Nuevo Hermano
-                    </Button>
-                </div>
+                {canManage && (
+                    <div className="flex space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => recalibrateMutation.mutate()}
+                            disabled={recalibrateMutation.isPending}
+                        >
+                            <RefreshCcw className={recalibrateMutation.isPending ? "animate-spin mr-2 h-4 w-4" : "mr-2 h-4 w-4"} />
+                            Recalibrar Números
+                        </Button>
+                        <Button size="sm">
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Nuevo Hermano
+                        </Button>
+                    </div>
+                )}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
