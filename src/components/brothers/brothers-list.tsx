@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getHermanos, recalibrarNumeros, type Hermano } from '@/lib/brothers';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw, Mail, Phone, Calendar } from 'lucide-react';
+import { RefreshCcw, Mail, Phone, Calendar, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -53,7 +53,7 @@ export function BrothersList() {
                         </Button>
                         <Link href="/hermanos/nuevo">
                             <Button size="sm">
-                                <Phone className="mr-2 h-4 w-4" />
+                                <UserPlus className="mr-2 h-4 w-4" />
                                 Nuevo Hermano
                             </Button>
                         </Link>
