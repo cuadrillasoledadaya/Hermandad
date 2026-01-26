@@ -10,21 +10,7 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table';
-import { getHermanos } from '@/lib/brothers';
-import { getMonthStatusForYear } from '@/lib/treasury';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/components/providers/auth-provider';
-import Link from 'next/link';
-import { PlusCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-interface Pago {
-    id_hermano: string;
-    fecha_pago: string;
-    cantidad: number;
-    concepto: string;
-    anio: number;
-}
+import { getHermanos, type Pago } from '@/lib/brothers';
 
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
