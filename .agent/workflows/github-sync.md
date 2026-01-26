@@ -12,8 +12,10 @@ Este workflow debe ejecutarse tras cada cambio significativo para asegurar que V
 
 1. **Actualizar Versión**:
    - Lee la versión actual de `package.json`.
-   - Incrementa los dos últimos dígitos.
-   - Si llegan a `99`, incrementa el dígito central y resetea a `00`.
+   - Incrementa SOLO los dos últimos dígitos (XX).
+   - **SOLO** si los dos últimos dígitos llegan a `99`, el siguiente cambio incrementará el dígito central (X) y los últimos volverán a `00`.
+   - Ejemplo: `1.0.12` -> `1.0.13`.
+   - Ejemplo: `1.0.99` -> `1.1.00`.
    - Actualiza `package.json`.
 
 2. **Commit de Cambios**:
