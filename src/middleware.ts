@@ -55,6 +55,7 @@ export async function middleware(request: NextRequest) {
     )
 
     const { data: { session } } = await supabase.auth.getSession()
+    console.log('Middleware Path:', request.nextUrl.pathname, 'Session exists:', !!session);
 
     // Protected routes logic
     const isProtectedPath = ['/', '/tesoreria', '/hermanos', '/avisos', '/config'].some(path =>
@@ -62,10 +63,12 @@ export async function middleware(request: NextRequest) {
     )
 
     if (!session && isProtectedPath && request.nextUrl.pathname !== '/login') {
+        console.log('Middleware: Redirecting to /login (no session)');
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
     if (session && request.nextUrl.pathname === '/login') {
+        console.log('Middleware: Redirecting to / (already logged in)');
         return NextResponse.redirect(new URL('/', request.url))
     }
 
