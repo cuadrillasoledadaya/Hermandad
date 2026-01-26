@@ -15,12 +15,12 @@ import { useAuth } from '@/components/providers/auth-provider';
 export function AvisoCreator() {
     const { role } = useAuth();
     const [loading, setLoading] = useState(false);
-
-    if (role === 'HERMANO') return null;
     const [formData, setFormData] = useState({
         title: '',
         content: '',
     });
+
+    if (role === 'HERMANO') return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
