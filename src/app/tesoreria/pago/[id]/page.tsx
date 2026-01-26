@@ -132,13 +132,55 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                             <Button
                                 type="button"
                                 variant="ghost"
-                                onClick={() => router.back()}
+                                onClick={() => router.push('/tesoreria')}
                                 className="w-full"
                             >
-                                Cancelar
+                                Volver a Tesorería
                             </Button>
                         </div>
                     </form>
+
+                    <div className="mt-8 pt-8 border-t">
+                        <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Pagos Recientes
+                        </h4>
+
+                        <div className="space-y-3">
+                            {pagosBrother.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-lg italic">
+                                    No hay pagos registrados para este hermano.
+                                </p>
+                            ) : (
+                                pagosBrother.slice(0, 5).map((pago) => (
+                                    <div key={pago.id} className="flex items-center justify-between p-3 border rounded-lg bg-card group hover:border-primary/30 transition-all">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700">
+                                                <Euro className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">{pago.cantidad}€ <span className="text-xs font-normal text-muted-foreground ml-2">— {pago.concepto}</span></p>
+                                                <p className="text-[10px] text-muted-foreground">{format(new Date(pago.fecha_pago), "d 'de' MMMM, yyyy", { locale: es })}</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                if (confirm('¿Estás seguro de que deseas eliminar este pago?')) {
+                                                    deletePaymentMutation.mutate(pago.id);
+                                                }
+                                            }}
+                                            disabled={deletePaymentMutation.isPending}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>
