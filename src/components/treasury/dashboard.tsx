@@ -11,6 +11,7 @@ import {
     TableRow
 } from '@/components/ui/table';
 import { getHermanos, type Hermano } from '@/lib/brothers';
+import { getMonthStatusForYear } from '@/lib/treasury';
 import { cn } from '@/lib/utils';
 import { AddPaymentDialog } from './add-payment-dialog';
 
