@@ -29,7 +29,7 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
     return (
         <>
             <Sidebar />
-            <Header title="HERMANDAD SAN BENITO" />
+            <Header title="HERMANDAD DE LA SOLEDAD" />
             {children}
             <BottomNav />
         </>

@@ -47,7 +47,7 @@ export default function LoginPage() {
                     </div>
                     <CardTitle className="text-2xl">Acceso Gestión</CardTitle>
                     <CardDescription>
-                        Sistema Integral - Hermandad San Benito
+                        Sistema Integral - Hermandad de la Soledad
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

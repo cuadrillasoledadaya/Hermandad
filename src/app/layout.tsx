@@ -8,7 +8,7 @@ import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Hermandad San Benito - Gestión",
+  title: "Hermandad de la Soledad - Gestión",
   description: "Sistema de gestión integral para la Hermandad",
   manifest: "/manifest.json",
   appleWebApp: {
