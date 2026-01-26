@@ -27,7 +27,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
         queryFn: () => getHermanoById(id),
     });
 
-    const { data: pagosBrother = [], isLoading: loadingPagosBrother } = useQuery({
+    const { data: pagosBrother = [] } = useQuery({
         queryKey: ['pagos-brother', id],
         queryFn: () => getPagosByHermano(id),
     });

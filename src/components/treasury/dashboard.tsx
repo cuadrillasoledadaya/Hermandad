@@ -38,7 +38,7 @@ export function TreasuryDashboard() {
                 .select('*')
                 .eq('anio', currentYear);
             if (error) throw error;
-            return data;
+            return data as Pago[];
         },
     });
 
