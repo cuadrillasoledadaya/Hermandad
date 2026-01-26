@@ -42,19 +42,20 @@ export default function FichaHermanoPage({ params }: { params: Promise<{ id: str
         activo: true,
     });
 
-    useEffect(() => {
-        if (hermano) {
-            setFormData({
-                nombre: hermano.nombre,
-                apellidos: hermano.apellidos,
-                email: hermano.email || '',
-                telefono: hermano.telefono || '',
-                direccion: hermano.direccion || '',
-                fecha_alta: hermano.fecha_alta,
-                activo: hermano.activo,
-            });
-        }
-    }, [hermano]);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    if (hermano && !isInitialized) {
+        setFormData({
+            nombre: hermano.nombre,
+            apellidos: hermano.apellidos,
+            email: hermano.email || '',
+            telefono: hermano.telefono || '',
+            direccion: hermano.direccion || '',
+            fecha_alta: hermano.fecha_alta,
+            activo: hermano.activo,
+        });
+        setIsInitialized(true);
+    }
 
     const updateMutation = useMutation({
         mutationFn: (updates: Partial<Hermano>) => updateHermano(id, updates),
