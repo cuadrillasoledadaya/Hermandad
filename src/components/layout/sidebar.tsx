@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/store/use-app-store';
-import { Menu, X, Home, Users, Wallet, Share2, Settings } from 'lucide-react';
+import { X, Home, Users, Wallet, Share2, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -23,7 +23,7 @@ export function Sidebar() {
         <>
             <aside
                 className={cn(
-                    'fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-300 ease-in-out',
+                    'fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-300 ease-in-out',
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 )}
             >
@@ -69,7 +69,7 @@ export function Sidebar() {
 
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/20 z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/40 z-40 lg:hidden"
                     onClick={toggleSidebar}
                 />
             )}
