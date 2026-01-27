@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -44,6 +45,7 @@ export default function RootLayout({
                   {children}
                 </main>
               </SidebarWrapper>
+              <Toaster />
             </div>
           </AuthProvider>
         </QueryProvider>

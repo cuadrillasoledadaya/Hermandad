@@ -57,7 +57,10 @@ export function Sidebar() {
                             </p>
                         </div>
                         <button
-                            onClick={() => signOut()}
+                            onClick={() => {
+                                toggleSidebar();
+                                signOut();
+                            }}
                             className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
                         >
                             <LogOut className="w-5 h-5" />
