@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 type UserRole = 'SUPERADMIN' | 'JUNTA' | 'HERMANO';
 
@@ -26,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [role, setRole] = useState<UserRole | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         // 1. Get initial session
@@ -81,7 +84,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        try {
+            await supabase.auth.signOut();
+            setSession(null);
+            setRole(null);
+            toast.success('Sesión cerrada correctamente');
+            router.push('/login');
+        } catch (error) {
+            console.error('Error signing out:', error);
+            toast.error('Error al cerrar sesión');
+        }
     };
 
     return (
