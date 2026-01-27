@@ -1,4 +1,5 @@
 ---
+// turbo-all
 description: Sincronización con GitHub y Versionado Automático (X.X.XX)
 ---
 Este workflow debe ejecutarse tras cada cambio significativo para asegurar que Vercel despliegue la última versión con el tag correcto.
