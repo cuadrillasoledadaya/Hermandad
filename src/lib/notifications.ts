@@ -29,8 +29,9 @@ export async function sendToSocialMedia(payload: NotificationPayload) {
         }
 
         return { success: true };
-    } catch (error: any) {
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
         console.error('Failed to send notification via Make.com:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: errorMessage };
     }
 }

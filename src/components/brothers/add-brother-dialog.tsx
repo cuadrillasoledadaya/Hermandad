@@ -46,7 +46,7 @@ export function AddBrotherDialog() {
                 fecha_alta: new Date().toISOString().split('T')[0],
             });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error('Error al registrar: ' + error.message);
         },
     });

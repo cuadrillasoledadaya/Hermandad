@@ -12,8 +12,9 @@ export function QueryProvider({ children }: { children: ReactNode }) {
                         staleTime: 1000 * 60 * 5, // 5 minutes
                         gcTime: 1000 * 60 * 60 * 24, // 24 hours
                         refetchOnWindowFocus: false,
-                        retry: (failureCount, error: any) => {
-                            if (error?.status === 404) return false;
+                        retry: (failureCount, error: unknown) => {
+                            const status = (error as { status?: number })?.status;
+                            if (status === 404) return false;
                             if (failureCount < 3) return true;
                             return false;
                         },
