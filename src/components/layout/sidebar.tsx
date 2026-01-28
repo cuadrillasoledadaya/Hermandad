@@ -77,7 +77,7 @@ export function Sidebar() {
                             <span>Cerrar Sesión</span>
                         </button>
                         <div className="px-3 py-1 text-center">
-                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.49</span>
+                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.50</span>
                         </div>
                     </div>
                 </div>
