@@ -66,7 +66,8 @@ export function TreasuryDashboard() {
         );
     }
 
-    const currentMonthIndex = new Date().getMonth();
+    const realMonth = new Date().getMonth();
+    const currentSeasonMonthIndex = (realMonth + 12 - 2) % 12;
 
     return (
         <div className="space-y-4">
@@ -75,7 +76,7 @@ export function TreasuryDashboard() {
                 {hermanos.map((hermano) => {
                     const isExpanded = expandedBrotherId === hermano.id;
                     const brotherPagos = pagos.filter(p => p.id_hermano === hermano.id);
-                    const isOverdue = MONTHS.slice(0, currentMonthIndex + 1).some((_, idx) =>
+                    const isOverdue = MONTHS.slice(0, currentSeasonMonthIndex + 1).some((_, idx) =>
                         getMonthStatusForYear(hermano, brotherPagos, effectiveYear, idx) !== 'PAID'
                     );
 
@@ -166,7 +167,7 @@ export function TreasuryDashboard() {
                     <TableBody>
                         {hermanos.map((hermano) => {
                             const brotherPagos = pagos.filter(p => p.id_hermano === hermano.id);
-                            const isOverdue = MONTHS.slice(0, currentMonthIndex + 1).some((_, idx) =>
+                            const isOverdue = MONTHS.slice(0, currentSeasonMonthIndex + 1).some((_, idx) =>
                                 getMonthStatusForYear(hermano, brotherPagos, effectiveYear, idx) !== 'PAID'
                             );
 

@@ -2,6 +2,14 @@ import { differenceInMonths, startOfMonth } from 'date-fns';
 import { type Hermano, type Pago } from './brothers';
 import { supabase } from './supabase';
 
+// Helper to get formatted concept string for a season month
+export function getConceptString(seasonYear: number, seasonMonthIdx: number) {
+    const { calendarYear } = getCalendarMonthAndYear(seasonYear, seasonMonthIdx);
+    const shortMonth = MONTHS[seasonMonthIdx];
+    const fullMonth = MONTHS_FULL[seasonMonthIdx];
+    return `Cuota ${fullMonth} (${shortMonth}-${calendarYear})`;
+}
+
 export async function getActiveSeason() {
     const { data, error } = await supabase
         .from('temporadas')
@@ -13,8 +21,15 @@ export async function getActiveSeason() {
     return data;
 }
 
-export const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-export const MONTHS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+export const MONTHS = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb'];
+export const MONTHS_FULL = ['Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre', 'Enero', 'Febrero'];
+
+// Helper to convert season index (0=Mar, 11=Feb) to calendar month and year offset
+export function getCalendarMonthAndYear(seasonYear: number, seasonMonthIdx: number) {
+    const calendarMonth = (seasonMonthIdx + 2) % 12;
+    const yearOffset = seasonMonthIdx >= 10 ? 1 : 0;
+    return { calendarMonth, calendarYear: seasonYear + yearOffset };
+}
 
 export type PaymentStatus = 'PAID' | 'PENDING' | 'OVERDUE';
 
@@ -43,19 +58,24 @@ export function calculateHermanoStatus(hermano: Hermano, pagos: Pago[]): Payment
     }
 }
 
-export function getMonthStatusForYear(hermano: Hermano, pagos: Pago[], year: number, month: number): PaymentStatus {
-    // Logic to determine status for a specific month/year cell in the grid
-    // This is slightly different from the global status
-    const cellDate = new Date(year, month);
+export function getMonthStatusForYear(hermano: Hermano, pagos: Pago[], seasonYear: number, seasonMonthIdx: number): PaymentStatus {
+    const { calendarMonth, calendarYear } = getCalendarMonthAndYear(seasonYear, seasonMonthIdx);
+    const cellDate = new Date(calendarYear, calendarMonth);
     const altaDate = startOfMonth(new Date(hermano.fecha_alta));
 
-    if (cellDate < altaDate) return 'PAID'; // Before registration, essentially "not applicable" but shown as paid/neutral
+    if (cellDate < altaDate) return 'PAID';
 
-    const conceptString = `${MONTHS[month]}-${year}`;
-    const hasPaidThisMonth = pagos.find(p =>
-        p.concepto.includes(conceptString) ||
-        (p.anio === year && p.concepto.toLowerCase().includes(MONTHS_FULL[month].toLowerCase()))
-    );
+    const shortMonth = MONTHS[seasonMonthIdx];
+    const fullMonth = MONTHS_FULL[seasonMonthIdx];
+
+    // Check if there's a payment for this specific season month
+    // We search by concept or by the base season year + specific month
+    const hasPaidThisMonth = pagos.find(p => {
+        const concept = p.concepto.toLowerCase();
+        const matchesConcept = concept.includes(`${shortMonth.toLowerCase()}-${seasonYear}`) ||
+            concept.includes(`${fullMonth.toLowerCase()}`);
+        return matchesConcept && p.anio === seasonYear;
+    });
 
     if (hasPaidThisMonth) return 'PAID';
 

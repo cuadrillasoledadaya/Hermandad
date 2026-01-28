@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MONTHS, MONTHS_FULL } from '@/lib/treasury';
+import { MONTHS, MONTHS_FULL, getActiveSeason } from '@/lib/treasury';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -21,8 +21,25 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     const queryClient = useQueryClient();
 
     const [amount, setAmount] = useState('10');
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+
+    // Initial month index in season (Mar=0)
+    const realMonth = new Date().getMonth();
+    const initialSeasonMonthIdx = (realMonth + 12 - 2) % 12;
+
+    const [selectedMonth, setSelectedMonth] = useState(initialSeasonMonthIdx);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+    const { data: activeSeason } = useQuery({
+        queryKey: ['active-season'],
+        queryFn: getActiveSeason,
+    });
+
+    // Update year when active season is loaded
+    useEffect(() => {
+        if (activeSeason) {
+            setSelectedYear(activeSeason.anio);
+        }
+    }, [activeSeason]);
 
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
@@ -36,8 +53,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
 
     const paymentMutation = useMutation({
         mutationFn: async () => {
-            const shortMonth = MONTHS[selectedMonth];
-            const conceptoStandard = `Cuota ${MONTHS_FULL[selectedMonth]} (${shortMonth}-${selectedYear})`;
+            const conceptoStandard = getConceptString(selectedYear, selectedMonth);
 
             const { data, error } = await supabase
                 .from('pagos')
