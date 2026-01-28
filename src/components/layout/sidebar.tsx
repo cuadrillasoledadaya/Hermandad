@@ -3,6 +3,7 @@
 import { useAppStore } from '@/store/use-app-store';
 import { X, Home, Users, Wallet, Share2, Settings } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
 import { LogOut } from 'lucide-react';
@@ -10,6 +11,7 @@ import { LogOut } from 'lucide-react';
 export function Sidebar() {
     const { isSidebarOpen, toggleSidebar } = useAppStore();
     const { role, signOut, user } = useAuth();
+    const pathname = usePathname();
 
     const menuItems = [
         { name: 'Inicio', icon: Home, href: '/' },
@@ -23,7 +25,7 @@ export function Sidebar() {
         <>
             <aside
                 className={cn(
-                    'fixed inset-y-0 left-0 z-[60] w-64 bg-white border-r transform transition-transform duration-300 ease-in-out',
+                    'fixed inset-y-0 left-0 z-[60] w-64 bg-white border-r-2 border-slate-200 transform transition-transform duration-300 ease-in-out shadow-2xl',
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 )}
             >
@@ -34,18 +36,26 @@ export function Sidebar() {
                             <X className="w-6 h-6" />
                         </button>
                     </div>
-                    <nav className="flex-1 p-4 space-y-2">
-                        {menuItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                                onClick={() => toggleSidebar()}
-                            >
-                                <item.icon className="w-5 h-5" />
-                                <span>{item.name}</span>
-                            </Link>
-                        ))}
+                    <nav className="flex-1 p-4 space-y-3">
+                        {menuItems.map((item) => {
+                            const isActive = pathname === item.href;
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={cn(
+                                        "flex items-center space-x-3 p-3 rounded-xl transition-all border-2",
+                                        isActive
+                                            ? "bg-primary text-primary-foreground border-primary shadow-md font-bold scale-[1.02]"
+                                            : "bg-white border-transparent text-slate-600 hover:border-slate-100 hover:bg-slate-50"
+                                    )}
+                                    onClick={() => toggleSidebar()}
+                                >
+                                    <item.icon className={cn("w-5 h-5", isActive ? "text-primary-foreground" : "text-slate-400")} />
+                                    <span>{item.name}</span>
+                                </Link>
+                            );
+                        })}
                     </nav>
 
                     <div className="p-4 border-t space-y-2">
