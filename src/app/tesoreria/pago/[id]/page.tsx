@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { getHermanoById, getPagosByHermano, deletePago } from '@/lib/brothers';
@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MONTHS, MONTHS_FULL, getActiveSeason } from '@/lib/treasury';
+import { MONTHS, MONTHS_FULL, getActiveSeason, getConceptString } from '@/lib/treasury';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
