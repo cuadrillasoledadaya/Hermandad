@@ -1,6 +1,9 @@
 import { differenceInMonths, startOfMonth, format } from 'date-fns';
 import { type Hermano, type Pago } from './brothers';
 
+export const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+export const MONTHS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
 export type PaymentStatus = 'PAID' | 'PENDING' | 'OVERDUE';
 
 const CUOTA_MENSUAL = 10; // This should be configurable later
@@ -36,8 +39,11 @@ export function getMonthStatusForYear(hermano: Hermano, pagos: Pago[], year: num
 
     if (cellDate < altaDate) return 'PAID'; // Before registration, essentially "not applicable" but shown as paid/neutral
 
-    const conceptString = `${format(cellDate, 'MMM')}-${year}`;
-    const hasPaidThisMonth = pagos.find(p => p.concepto.includes(conceptString) || (p.anio === year && new Date(p.fecha_pago).getMonth() === month));
+    const conceptString = `${MONTHS[month]}-${year}`;
+    const hasPaidThisMonth = pagos.find(p =>
+        p.concepto.includes(conceptString) ||
+        (p.anio === year && p.concepto.toLowerCase().includes(MONTHS_FULL[month].toLowerCase()))
+    );
 
     if (hasPaidThisMonth) return 'PAID';
 

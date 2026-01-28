@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { MONTHS, MONTHS_FULL } from '@/lib/treasury';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -20,7 +21,8 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     const queryClient = useQueryClient();
 
     const [amount, setAmount] = useState('10');
-    const [concepto, setConcepto] = useState('');
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
@@ -34,13 +36,16 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
 
     const paymentMutation = useMutation({
         mutationFn: async () => {
+            const shortMonth = MONTHS[selectedMonth];
+            const conceptoStandard = `Cuota ${MONTHS_FULL[selectedMonth]} (${shortMonth}-${selectedYear})`;
+
             const { data, error } = await supabase
                 .from('pagos')
                 .insert([{
                     id_hermano: id,
                     cantidad: parseFloat(amount),
-                    concepto: concepto || `Cuota ${new Date().getFullYear()}`,
-                    anio: new Date().getFullYear(),
+                    concepto: conceptoStandard,
+                    anio: selectedYear,
                     fecha_pago: new Date().toISOString().split('T')[0]
                 }]);
             if (error) throw error;
@@ -50,7 +55,6 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
             queryClient.invalidateQueries({ queryKey: ['pagos'] });
             queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
             toast.success('Pago registrado correctamente');
-            setConcepto('');
         },
         onError: () => {
             toast.error('Error al registrar el pago');
@@ -97,7 +101,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
                             <Label htmlFor="amount">Cantidad (€)</Label>
                             <Input
@@ -106,19 +110,36 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                 step="0.01"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
-                                className="text-center text-xl font-bold border-primary/20 focus-visible:ring-primary"
+                                className="text-center text-xl font-bold border-primary/20 focus-visible:ring-primary h-12"
                                 required
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="concepto">Concepto</Label>
-                            <Input
-                                id="concepto"
-                                placeholder={`Ej. Cuota ${new Date().toLocaleString('es-ES', { month: 'long' })}`}
-                                value={concepto}
-                                onChange={(e) => setConcepto(e.target.value)}
-                                className="border-primary/20 focus-visible:ring-primary"
-                            />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="month">Mes</Label>
+                                <select
+                                    id="month"
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                    className="flex h-12 w-full rounded-md border border-primary/20 bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 appearance-none cursor-pointer"
+                                >
+                                    {MONTHS_FULL.map((month, idx) => (
+                                        <option key={idx} value={idx}>{month}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="year">Año</Label>
+                                <Input
+                                    id="year"
+                                    type="number"
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                    className="border-primary/20 focus-visible:ring-primary h-12 text-center"
+                                    required
+                                />
+                            </div>
                         </div>
 
                         <div className="flex flex-col gap-3 pt-4">
