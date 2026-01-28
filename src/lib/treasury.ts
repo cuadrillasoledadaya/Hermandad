@@ -1,4 +1,4 @@
-import { differenceInMonths, startOfMonth, format } from 'date-fns';
+import { differenceInMonths, startOfMonth } from 'date-fns';
 import { type Hermano, type Pago } from './brothers';
 
 export const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];

@@ -13,6 +13,11 @@ import {
 } from '@/components/ui/table';
 import { getHermanos, type Pago } from '@/lib/brothers';
 import { getMonthStatusForYear, MONTHS } from '@/lib/treasury';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/components/providers/auth-provider';
+import Link from 'next/link';
+import { PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function TreasuryDashboard() {
     const currentYear = new Date().getFullYear();
