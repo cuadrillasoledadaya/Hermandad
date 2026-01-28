@@ -80,26 +80,28 @@ export function TreasuryDashboard() {
                                     <span className="text-primary/60 mr-2 text-xs font-mono">{hermano.numero_hermano?.toString().padStart(3, '0')}</span>
                                     {hermano.nombre} {hermano.apellidos}
                                 </TableCell>
-                                return (
-                                <TableCell
-                                    key={index}
-                                    className={cn(
-                                        "w-[60px] h-12 transition-colors border-r border-slate-100 last:border-r-0 text-center p-0",
-                                        status === 'PAID' && "bg-green-50",
-                                        status === 'PENDING' && "bg-white",
-                                        status === 'OVERDUE' && "bg-red-50"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-full h-full flex items-center justify-center",
-                                        status === 'PAID' && "text-green-700 font-bold",
-                                        status === 'OVERDUE' && "text-red-700 font-bold"
-                                    )}>
-                                        {status === 'PAID' && "✓"}
-                                        {status === 'OVERDUE' && "!"}
-                                    </div>
-                                </TableCell>
-                                );
+                                {MONTHS.map((_, index) => {
+                                    const status = getMonthStatusForYear(hermano, pagos.filter(p => p.id_hermano === hermano.id), currentYear, index);
+                                    return (
+                                        <TableCell
+                                            key={index}
+                                            className={cn(
+                                                "w-[60px] h-12 transition-colors border-r border-slate-100 last:border-r-0 text-center p-0",
+                                                status === 'PAID' && "bg-green-50",
+                                                status === 'PENDING' && "bg-white",
+                                                status === 'OVERDUE' && "bg-red-50"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "w-full h-full flex items-center justify-center",
+                                                status === 'PAID' && "text-green-700 font-bold",
+                                                status === 'OVERDUE' && "text-red-700 font-bold"
+                                            )}>
+                                                {status === 'PAID' && "✓"}
+                                                {status === 'OVERDUE' && "!"}
+                                            </div>
+                                        </TableCell>
+                                    );
                                 })}
                                 {canPay && (
                                     <TableCell className="text-center p-0 sticky right-0 bg-white z-10 border-l-2 border-slate-200 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
