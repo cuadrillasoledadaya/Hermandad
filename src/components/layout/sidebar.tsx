@@ -76,6 +76,9 @@ export function Sidebar() {
                             <LogOut className="w-5 h-5" />
                             <span>Cerrar Sesión</span>
                         </button>
+                        <div className="px-3 py-1 text-center">
+                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.41</span>
+                        </div>
                     </div>
                 </div>
             </aside>
