@@ -62,10 +62,9 @@ export function Sidebar() {
                         <div className="px-3 py-2">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Usuario</p>
                             <p className="text-sm font-medium truncate">{user?.email}</p>
-                            -                            <p className="text-[10px] text-primary bg-slate-100 px-2 py-0.5 rounded-full inline-block mt-1 font-bold">
-                                +                            <p className="text-[10px] text-primary bg-[hsl(var(--accent-pastel))] px-2 py-0.5 rounded-full inline-block mt-1 font-bold">
-                                    {role}
-                                </p>
+                            <p className="text-[10px] text-primary bg-[hsl(var(--accent-pastel))] px-2 py-0.5 rounded-full inline-block mt-1 font-bold">
+                                {role}
+                            </p>
                         </div>
                         <button
                             onClick={() => {
