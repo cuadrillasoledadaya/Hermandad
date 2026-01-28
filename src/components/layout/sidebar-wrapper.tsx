@@ -45,7 +45,7 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col min-h-screen">
             <Sidebar />
             <div className={cn(
-                "flex-1 flex flex-col transition-all duration-300 ease-in-out",
+                "flex-1 flex flex-col transition-all duration-300 ease-in-out min-w-0",
                 isSidebarOpen ? "lg:pl-64" : "lg:pl-0"
             )}>
                 <Header title={headerData.title} backHref={headerData.back} />
