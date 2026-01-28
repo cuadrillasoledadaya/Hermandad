@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 export function SidebarWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { loading } = useAuth();
+    const { isSidebarOpen } = useAppStore();
 
     const isLoginPage = pathname === '/login';
 
