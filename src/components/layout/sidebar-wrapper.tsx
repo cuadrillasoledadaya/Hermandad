@@ -39,7 +39,6 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
         return { title: 'HERMANDAD DE LA SOLEDAD' };
     };
 
-    const { isSidebarOpen } = useAppStore();
     const headerData = getHeaderData(pathname);
 
     return (

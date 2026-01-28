@@ -1,4 +1,23 @@
+'use client';
+
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/components/ui/table';
+import { getHermanos, type Pago } from '@/lib/brothers';
+import { getMonthStatusForYear } from '@/lib/treasury';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/components/providers/auth-provider';
+import Link from 'next/link';
+import { PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
