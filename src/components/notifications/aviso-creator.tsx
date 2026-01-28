@@ -42,7 +42,7 @@ export function AvisoCreator() {
     };
 
     return (
-        <Card className="border-primary/10">
+        <Card className="border-slate-200">
             <CardHeader>
                 <CardTitle className="text-lg flex items-center">
                     <Share2 className="mr-2 h-5 w-5 text-primary" />
