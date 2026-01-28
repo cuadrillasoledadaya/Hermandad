@@ -32,7 +32,7 @@ export function Sidebar() {
                 <div className="flex flex-col h-full">
                     <div className="p-6 flex justify-between items-center border-b">
                         <h2 className="text-xl font-bold text-primary">Hermandad</h2>
-                        <button onClick={toggleSidebar} className="p-2 lg:hidden">
+                        <button onClick={toggleSidebar} className="p-2">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
@@ -77,7 +77,7 @@ export function Sidebar() {
                             <span>Cerrar Sesión</span>
                         </button>
                         <div className="px-3 py-1 text-center">
-                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.42</span>
+                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.43</span>
                         </div>
                     </div>
                 </div>

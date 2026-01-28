@@ -5,6 +5,8 @@ import { Sidebar } from './sidebar';
 import { Header } from './header';
 import { BottomNav } from './bottom-nav';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useAppStore } from '@/store/use-app-store';
+import { cn } from '@/lib/utils';
 
 export function SidebarWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -36,14 +38,22 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
         return { title: 'HERMANDAD DE LA SOLEDAD' };
     };
 
+    const { isSidebarOpen } = useAppStore();
     const headerData = getHeaderData(pathname);
 
     return (
-        <>
+        <div className="flex flex-col min-h-screen">
             <Sidebar />
-            <Header title={headerData.title} backHref={headerData.back} />
-            {children}
+            <div className={cn(
+                "flex-1 flex flex-col transition-all duration-300 ease-in-out",
+                isSidebarOpen ? "lg:pl-64" : "lg:pl-0"
+            )}>
+                <Header title={headerData.title} backHref={headerData.back} />
+                <main className="flex-1 p-4 pb-20">
+                    {children}
+                </main>
+            </div>
             <BottomNav />
-        </>
+        </div>
     );
 }
