@@ -77,7 +77,7 @@ export function TreasuryStats() {
 
             <Card className="bg-red-50/50 border-red-100 shadow-sm">
                 <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-xs font-bold uppercase text-red-700 tracking-wider">Morosos</CardTitle>
+                    <CardTitle className="text-xs font-bold uppercase text-red-700 tracking-wider">Cuotas Pendientes</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                     <div className="text-3xl font-black text-red-600">{overduePercentage}%</div>
