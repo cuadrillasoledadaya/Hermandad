@@ -67,7 +67,7 @@ export function TreasuryDashboard() {
     return (
         <div className="space-y-4">
             {/* VISTA MÓVIL: Tarjetas Expansibles */}
-            <div className="block md:hidden space-y-3">
+            <div className="block md:hidden space-y-3 p-1">
                 {hermanos.map((hermano) => {
                     const isExpanded = expandedBrotherId === hermano.id;
                     const brotherPagos = pagos.filter(p => p.id_hermano === hermano.id);
@@ -79,21 +79,21 @@ export function TreasuryDashboard() {
                         <div
                             key={hermano.id}
                             className={cn(
-                                "relative bg-white border-2 rounded-xl transition-all overflow-hidden",
+                                "relative bg-white border-2 rounded-xl transition-all",
                                 isExpanded ? "border-primary shadow-md" : "border-slate-100 shadow-sm",
                                 isOverdue && !isExpanded && "border-red-100"
                             )}
                         >
                             {/* Indicador de Morosidad Flotante */}
                             {isOverdue && (
-                                <div className="absolute -top-1 -left-1 z-30">
-                                    <div className="flex items-center justify-center w-5 h-5 bg-red-600 text-white rounded-full shadow-lg border-2 border-white animate-pulse">
-                                        <span className="text-[10px] font-black">!</span>
+                                <div className="absolute -top-2.5 -left-2.5 z-40">
+                                    <div className="flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-full shadow-md border-2 border-white animate-pulse">
+                                        <span className="text-xs font-black">!</span>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex items-center p-3 gap-3">
+                            <div className="flex items-center p-3 gap-3 relative z-10">
                                 <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
                                     {hermano.numero_hermano?.toString().padStart(3, '0')}
                                 </span>
@@ -113,7 +113,7 @@ export function TreasuryDashboard() {
                             </div>
 
                             {isExpanded && (
-                                <div className="border-t-2 border-primary/10 bg-slate-50/50 p-3 pt-0">
+                                <div className="border-t-2 border-primary/10 bg-slate-50/50 p-3 pt-0 overflow-hidden rounded-b-xl">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-3">Estado Mensual {currentYear}</p>
                                     <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-none snap-x">
                                         {MONTHS.map((month, index) => {
