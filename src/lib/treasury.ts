@@ -1,5 +1,17 @@
 import { differenceInMonths, startOfMonth } from 'date-fns';
 import { type Hermano, type Pago } from './brothers';
+import { supabase } from './supabase';
+
+export async function getActiveSeason() {
+    const { data, error } = await supabase
+        .from('temporadas')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle();
+
+    if (error) throw error;
+    return data;
+}
 
 export const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 export const MONTHS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];

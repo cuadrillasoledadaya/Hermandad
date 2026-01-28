@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/store/use-app-store';
-import { X, Home, Users, Wallet, Share2, Settings } from 'lucide-react';
+import { X, Home, Users, Wallet, Share2, Settings, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,12 @@ export function Sidebar() {
         { name: 'Avisos', icon: Share2, href: '/avisos' },
         { name: 'Configuración', icon: Settings, href: '/config' },
     ];
+
+    const adminItems = [
+        { name: 'Temporadas', icon: Calendar, href: '/configuracion/temporadas' },
+    ];
+
+    const canSeeAdmin = role === 'SUPERADMIN' || role === 'JUNTA';
 
     return (
         <>
@@ -56,6 +62,33 @@ export function Sidebar() {
                                 </Link>
                             );
                         })}
+
+                        {canSeeAdmin && (
+                            <>
+                                <div className="pt-4 pb-2 px-3">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administración</p>
+                                </div>
+                                {adminItems.map((item) => {
+                                    const isActive = pathname === item.href;
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            className={cn(
+                                                "flex items-center space-x-3 p-3 rounded-xl transition-all border-2",
+                                                isActive
+                                                    ? "bg-primary text-primary-foreground border-primary shadow-md font-bold scale-[1.02]"
+                                                    : "bg-white border-transparent text-slate-600 hover:border-slate-100 hover:bg-slate-50"
+                                            )}
+                                            onClick={() => toggleSidebar()}
+                                        >
+                                            <item.icon className={cn("w-5 h-5", isActive ? "text-primary-foreground" : "text-slate-500")} />
+                                            <span>{item.name}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </>
+                        )}
                     </nav>
 
                     <div className="p-4 border-t space-y-2">
@@ -77,7 +110,7 @@ export function Sidebar() {
                             <span>Cerrar Sesión</span>
                         </button>
                         <div className="px-3 py-1 text-center">
-                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.53</span>
+                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.54</span>
                         </div>
                     </div>
                 </div>

@@ -12,7 +12,7 @@ import {
     TableRow
 } from '@/components/ui/table';
 import { getHermanos, type Pago } from '@/lib/brothers';
-import { getMonthStatusForYear, MONTHS } from '@/lib/treasury';
+import { getMonthStatusForYear, MONTHS, getActiveSeason } from '@/lib/treasury';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
 import Link from 'next/link';
@@ -20,10 +20,16 @@ import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function TreasuryDashboard() {
-    const currentYear = new Date().getFullYear();
     const { role } = useAuth();
     const canPay = role === 'SUPERADMIN' || role === 'JUNTA';
     const [expandedBrotherId, setExpandedBrotherId] = useState<string | null>(null);
+
+    const { data: activeSeason } = useQuery({
+        queryKey: ['active-season'],
+        queryFn: getActiveSeason,
+    });
+
+    const effectiveYear = activeSeason?.anio || new Date().getFullYear();
 
     const { data: hermanos = [], isLoading: loadingHermanos } = useQuery({
         queryKey: ['hermanos'],
@@ -31,12 +37,12 @@ export function TreasuryDashboard() {
     });
 
     const { data: pagos = [], isLoading: loadingPagos } = useQuery<Pago[]>({
-        queryKey: ['pagos', currentYear],
+        queryKey: ['pagos', effectiveYear],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('pagos')
                 .select('*')
-                .eq('anio', currentYear);
+                .eq('anio', effectiveYear);
             if (error) throw error;
             return data as Pago[];
         },
@@ -70,7 +76,7 @@ export function TreasuryDashboard() {
                     const isExpanded = expandedBrotherId === hermano.id;
                     const brotherPagos = pagos.filter(p => p.id_hermano === hermano.id);
                     const isOverdue = MONTHS.slice(0, currentMonthIndex + 1).some((_, idx) =>
-                        getMonthStatusForYear(hermano, brotherPagos, currentYear, idx) !== 'PAID'
+                        getMonthStatusForYear(hermano, brotherPagos, effectiveYear, idx) !== 'PAID'
                     );
 
                     return (
@@ -112,10 +118,10 @@ export function TreasuryDashboard() {
 
                             {isExpanded && (
                                 <div className="border-t-2 border-primary/10 bg-slate-50/50 p-3 pt-0 overflow-hidden rounded-b-xl">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-3">Estado Mensual {currentYear}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-3">Estado Mensual {effectiveYear}</p>
                                     <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-none snap-x">
                                         {MONTHS.map((month, index) => {
-                                            const status = getMonthStatusForYear(hermano, brotherPagos, currentYear, index);
+                                            const status = getMonthStatusForYear(hermano, brotherPagos, effectiveYear, index);
                                             return (
                                                 <div
                                                     key={index}
@@ -161,7 +167,7 @@ export function TreasuryDashboard() {
                         {hermanos.map((hermano) => {
                             const brotherPagos = pagos.filter(p => p.id_hermano === hermano.id);
                             const isOverdue = MONTHS.slice(0, currentMonthIndex + 1).some((_, idx) =>
-                                getMonthStatusForYear(hermano, brotherPagos, currentYear, idx) !== 'PAID'
+                                getMonthStatusForYear(hermano, brotherPagos, effectiveYear, idx) !== 'PAID'
                             );
 
                             return (
@@ -178,7 +184,7 @@ export function TreasuryDashboard() {
                                         </div>
                                     </TableCell>
                                     {MONTHS.map((_, index) => {
-                                        const status = getMonthStatusForYear(hermano, brotherPagos, currentYear, index);
+                                        const status = getMonthStatusForYear(hermano, brotherPagos, effectiveYear, index);
                                         return (
                                             <TableCell
                                                 key={index}
