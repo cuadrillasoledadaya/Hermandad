@@ -12,7 +12,8 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground shadow-md hover:translate-y-[-1px] hover:shadow-lg active:translate-y-[1px] active:shadow-inner border-b-4 border-primary/20",
         destructive: "bg-destructive text-white shadow-md hover:translate-y-[-1px] hover:shadow-lg active:translate-y-[1px] active:shadow-inner border-b-4 border-destructive/20",
         outline: "border-2 bg-background shadow-sm hover:bg-slate-50 hover:text-accent-foreground border-b-4",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:translate-y-[-1px] border-b-4",
+        secondary:
+          "bg-[hsl(var(--accent-pastel))] text-[hsl(var(--accent-pastel-foreground))] shadow-sm hover:translate-y-[-1px] border-b-4 border-primary/10",
         ghost: "hover:bg-slate-100 hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

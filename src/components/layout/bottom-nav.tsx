@@ -25,7 +25,7 @@ export function BottomNav() {
                         className={cn(
                             'flex flex-col items-center justify-center space-y-1 transition-all w-20 h-12 rounded-xl',
                             isActive
-                                ? 'text-primary bg-slate-100 font-bold border-b-2 border-primary'
+                                ? 'text-primary bg-[hsl(var(--accent-pastel))] font-bold border-b-2 border-primary'
                                 : 'text-slate-500 hover:text-primary hover:bg-slate-50'
                         )}
                     >

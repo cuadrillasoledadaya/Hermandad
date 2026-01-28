@@ -104,6 +104,10 @@
   --accent: 210 40% 96.1%;
   --accent-foreground: 222 47% 11.2%;
 
+  /* Verde Pastel Corporativo */
+  --accent-pastel: 142 45% 90%;
+  --accent-pastel-foreground: 142 80% 20%;
+
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
