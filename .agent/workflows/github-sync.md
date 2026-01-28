@@ -2,14 +2,16 @@
 // turbo-all
 description: Sincronización con GitHub y Versionado Automático (X.X.XX)
 ---
+# Sincronización con GitHub
+
 Este workflow debe ejecutarse tras cada cambio significativo para asegurar que Vercel despliegue la última versión con el tag correcto.
 
-### Sistema de Versiones
+## Sistema de Versiones
 
 - Formato: `X.X.XX` (Ej: `1.0.00`, `1.0.01`, ..., `1.0.99` -> `1.1.00`)
 - La versión debe actualizarse en `package.json`.
 
-### Pasos para la subida
+## Pasos para la subida
 
 1. **Actualizar Versión**:
    - Lee la versión actual de `package.json`.

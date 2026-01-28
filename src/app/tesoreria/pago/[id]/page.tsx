@@ -187,7 +187,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
                                             onClick={() => {
                                                 if (confirm('¿Estás seguro de que deseas eliminar este pago?')) {
                                                     deletePaymentMutation.mutate(pago.id);
