@@ -52,15 +52,15 @@ export function TreasuryDashboard() {
     }
 
     return (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-            <Table>
+        <div className="overflow-x-auto rounded-lg border bg-white shadow-inner">
+            <Table className="min-w-[1100px] border-collapse">
                 <TableHeader>
-                    <TableRow className="bg-muted/30">
-                        <TableHead className="w-[200px] sticky left-0 bg-card z-10 font-bold border-r">Hermano</TableHead>
+                    <TableRow className="bg-slate-50">
+                        <TableHead className="w-[200px] sticky left-0 bg-white z-20 font-bold border-r-2 border-slate-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Hermano</TableHead>
                         {MONTHS.map((month) => (
-                            <TableHead key={month} className="text-center min-w-[60px] font-bold">{month}</TableHead>
+                            <TableHead key={month} className="text-center w-[60px] font-bold border-r border-slate-100">{month}</TableHead>
                         ))}
-                        {canPay && <TableHead className="text-center font-bold">Acción</TableHead>}
+                        {canPay && <TableHead className="text-center font-bold bg-white sticky right-0 z-20 border-l-2 border-slate-200 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">Acción</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -76,29 +76,36 @@ export function TreasuryDashboard() {
                     ) : (
                         hermanos.map((hermano) => (
                             <TableRow key={hermano.id} className="hover:bg-muted/20">
-                                <TableCell className="font-medium sticky left-0 bg-card z-10 border-r whitespace-nowrap">
-                                    <span className="text-primary/60 mr-2">{hermano.numero_hermano}.</span>
+                                <TableCell className="font-semibold sticky left-0 bg-white z-10 border-r-2 border-slate-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)] whitespace-nowrap px-4">
+                                    <span className="text-primary/60 mr-2 text-xs font-mono">{hermano.numero_hermano?.toString().padStart(3, '0')}</span>
                                     {hermano.nombre} {hermano.apellidos}
                                 </TableCell>
-                                {MONTHS.map((_, index) => {
-                                    const status = getMonthStatusForYear(hermano, pagos.filter(p => p.id_hermano === hermano.id), currentYear, index);
-                                    return (
-                                        <TableCell
-                                            key={index}
-                                            className={cn(
-                                                "w-12 h-10 transition-colors border-r last:border-r-0 text-center p-0",
-                                                status === 'PAID' && "bg-green-100/40",
-                                                status === 'PENDING' && "bg-white",
-                                                status === 'OVERDUE' && "bg-red-100/40"
-                                            )}
-                                        />
-                                    );
+                                return (
+                                <TableCell
+                                    key={index}
+                                    className={cn(
+                                        "w-[60px] h-12 transition-colors border-r border-slate-100 last:border-r-0 text-center p-0",
+                                        status === 'PAID' && "bg-green-50",
+                                        status === 'PENDING' && "bg-white",
+                                        status === 'OVERDUE' && "bg-red-50"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-full h-full flex items-center justify-center",
+                                        status === 'PAID' && "text-green-700 font-bold",
+                                        status === 'OVERDUE' && "text-red-700 font-bold"
+                                    )}>
+                                        {status === 'PAID' && "✓"}
+                                        {status === 'OVERDUE' && "!"}
+                                    </div>
+                                </TableCell>
+                                );
                                 })}
                                 {canPay && (
-                                    <TableCell className="text-center p-1">
+                                    <TableCell className="text-center p-0 sticky right-0 bg-white z-10 border-l-2 border-slate-200 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
                                         <Link href={`/tesoreria/pago/${hermano.id}`}>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10">
-                                                <PlusCircle className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" className="h-12 w-full text-primary hover:bg-primary/5 rounded-none">
+                                                <PlusCircle className="h-5 w-5" />
                                             </Button>
                                         </Link>
                                     </TableCell>
