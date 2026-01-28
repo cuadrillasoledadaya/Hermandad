@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Share2 } from "lucide-react";
 import { AvisoCreator } from "@/components/notifications/aviso-creator";
+import { TreasuryStats } from "@/components/treasury/treasury-stats";
 
 export default function Home() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 md:pb-6">
       <section>
         <h2 className="text-xl font-bold mb-4 text-primary">Gestión de Avisos</h2>
         <div className="grid gap-6 md:grid-cols-2">
@@ -30,24 +31,7 @@ export default function Home() {
 
       <section>
         <h2 className="text-xl font-bold mb-4 text-primary">Estado de Tesorería</h2>
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          <Card className="bg-green-50/50 border-green-100">
-            <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-medium uppercase text-green-700">Al día</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="text-2xl font-bold text-green-600">85%</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-red-50/50 border-red-100">
-            <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-medium uppercase text-red-700">Morosos</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="text-2xl font-bold text-red-600">5%</div>
-            </CardContent>
-          </Card>
-        </div>
+        <TreasuryStats />
       </section>
     </div>
   );
