@@ -51,7 +51,7 @@ export function Sidebar() {
                                     )}
                                     onClick={() => toggleSidebar()}
                                 >
-                                    <item.icon className={cn("w-5 h-5", isActive ? "text-primary-foreground" : "text-slate-400")} />
+                                    <item.icon className={cn("w-5 h-5", isActive ? "text-primary-foreground" : "text-slate-500")} />
                                     <span>{item.name}</span>
                                 </Link>
                             );
@@ -62,7 +62,7 @@ export function Sidebar() {
                         <div className="px-3 py-2">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Usuario</p>
                             <p className="text-sm font-medium truncate">{user?.email}</p>
-                            <p className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded-full inline-block mt-1 font-bold">
+                            <p className="text-[10px] text-primary bg-slate-100 px-2 py-0.5 rounded-full inline-block mt-1 font-bold">
                                 {role}
                             </p>
                         </div>
