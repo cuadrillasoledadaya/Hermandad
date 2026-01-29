@@ -86,14 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signOut = async () => {
         try {
             console.log('Initiating sign out...');
-            // Clear local state first for immediate UI feedback
+            // Full reset: sign out from Supabase and force page reload to /login
+            await supabase.auth.signOut();
             setSession(null);
             setRole(null);
             toast.success('Sesión cerrada correctamente');
-            router.push('/login');
-
-            // Execute Supabase sign out
-            await supabase.auth.signOut();
+            window.location.href = '/login';
         } catch (error) {
             console.error('Error signing out:', error);
             toast.error('Error al cerrar sesión');
