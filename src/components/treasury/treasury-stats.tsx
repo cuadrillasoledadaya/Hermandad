@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { getHermanos, type Pago } from '@/lib/brothers';
 import { getActiveSeason, getMonthStatusForYear, MONTHS } from '@/lib/treasury';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from '@/lib/utils';
 
 export function TreasuryStats() {
     const { data: activeSeason, isLoading: loadingSeason } = useQuery({

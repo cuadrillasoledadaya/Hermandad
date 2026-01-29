@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MONTHS, MONTHS_FULL, getActiveSeason, getConceptString } from '@/lib/treasury';
+import { MONTHS_FULL, getActiveSeason, getConceptString } from '@/lib/treasury';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -34,12 +34,12 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
         queryFn: getActiveSeason,
     });
 
-    // Update year when active season is loaded
+    // Initialize year when active season is loaded
     useEffect(() => {
-        if (activeSeason) {
+        if (activeSeason?.anio && selectedYear !== activeSeason.anio) {
             setSelectedYear(activeSeason.anio);
         }
-    }, [activeSeason]);
+    }, [activeSeason, selectedYear]);
 
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
