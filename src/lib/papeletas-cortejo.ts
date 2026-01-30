@@ -30,7 +30,7 @@ export interface PapeletaCortejo {
     estado: EstadoPapeleta;
     importe: number;
     fecha_pago: string;
-    id_pago: string | null;
+    id_ingreso: string | null;
     id_posicion_asignada: string | null;
     fecha_asignacion: string | null;
     created_at: string;
@@ -49,7 +49,7 @@ export interface PapeletaConDetalles extends PapeletaCortejo {
         tipo: string;
         tipo_insignia?: string;
     };
-    pago?: {
+    ingreso?: {
         id: string;
         tipo_pago?: string;
     };
@@ -111,7 +111,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
             anio: year,
             tipo: input.tipo,
             importe,
-            id_pago: pago.id,
+            id_ingreso: pago.id,
             estado: 'pagada'
         })
         .select()
@@ -156,7 +156,7 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
             *,
             hermano:hermanos(id, nombre, apellidos),
             posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
-            pago:pagos(id, tipo_pago)
+            ingreso:pagos(id, tipo_pago)
         `)
         .eq('anio', year)
         .order('numero', { ascending: true });

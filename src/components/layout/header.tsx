@@ -1,5 +1,6 @@
-import { Menu, ChevronLeft } from 'lucide-react';
+import { Menu, ChevronLeft, LogOut } from 'lucide-react';
 import { useAppStore } from '@/store/use-app-store';
+import { useAuth } from '@/components/providers/auth-provider';
 import Link from 'next/link';
 
 interface HeaderProps {
@@ -9,6 +10,7 @@ interface HeaderProps {
 
 export function Header({ title, backHref }: HeaderProps) {
     const { toggleSidebar } = useAppStore();
+    const { signOut } = useAuth();
 
     return (
         <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur border-b">
@@ -31,6 +33,18 @@ export function Header({ title, backHref }: HeaderProps) {
                 <h1 className="flex-1 text-center text-lg font-semibold tracking-tight uppercase">
                     {title}
                 </h1>
+                {!backHref && (
+                    <button
+                        onClick={() => {
+                            if (confirm('¿Cerrar sesión?')) {
+                                signOut();
+                            }
+                        }}
+                        className="p-2 hover:bg-red-50 text-red-600 rounded-lg absolute right-4"
+                    >
+                        <LogOut className="w-5 h-5" />
+                    </button>
+                )}
             </div>
         </header>
     );

@@ -1,12 +1,11 @@
 'use client';
 
 import { useAppStore } from '@/store/use-app-store';
-import { X, Home, Users, Wallet, Share2, Settings, Calendar, Receipt, Church } from 'lucide-react';
+import { X, Home, Users, Wallet, Share2, Settings, Calendar, Receipt, Church, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
-import { LogOut } from 'lucide-react';
 
 export function Sidebar() {
     const { isSidebarOpen, toggleSidebar } = useAppStore();
@@ -113,7 +112,7 @@ export function Sidebar() {
                             <span>Cerrar Sesión</span>
                         </button>
                         <div className="px-3 py-1 text-center">
-                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.88</span>
+                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.89</span>
                         </div>
                     </div>
                 </div>
