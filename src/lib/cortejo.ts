@@ -350,7 +350,7 @@ export async function getHermanosConPapeletas(anio?: number): Promise<HermanoCon
         const asig = asignacionesMap.get(hermano.id);
 
         let estado: 'asignado' | 'pendiente' | 'sin_papeleta';
-        if (asig && asig.posicion) {
+        if (asig && asig.posicion && asig.posicion.length > 0) {
             estado = 'asignado';
         } else if (asig && asig.numero_papeleta !== null) {
             estado = 'pendiente';
