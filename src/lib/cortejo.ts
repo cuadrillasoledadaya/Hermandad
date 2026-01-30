@@ -164,10 +164,16 @@ export async function getPosicionesPorTipo(
 /**
  * Obtiene todas las asignaciones de un año con detalles
  */
-export async function getAsignacionesDelAnio(anio?: number): Promise<(CortejoAsignacion & {
-    hermano: any;
+export interface AsignacionConDetalles extends CortejoAsignacion {
+    hermano: {
+        id: string;
+        nombre: string;
+        apellidos: string;
+    };
     posicion: CortejoEstructura;
-})[]> {
+}
+
+export async function getAsignacionesDelAnio(anio?: number): Promise<AsignacionConDetalles[]> {
     const year = anio || new Date().getFullYear();
 
     const { data, error } = await supabase
@@ -181,7 +187,7 @@ export async function getAsignacionesDelAnio(anio?: number): Promise<(CortejoAsi
         .order('numero_papeleta', { ascending: true, nullsFirst: false });
 
     if (error) throw error;
-    return data as any;
+    return data as AsignacionConDetalles[];
 }
 
 // =====================================================
@@ -304,6 +310,12 @@ export interface HermanoConPapeleta {
     estado: 'asignado' | 'pendiente' | 'sin_papeleta';
 }
 
+interface AsignacionConPosicion {
+    id_hermano: string;
+    numero_papeleta: number | null;
+    posicion: { nombre: string } | null;
+}
+
 /**
  * Obtiene todos los hermanos con su estado de papeleta
  */
@@ -330,22 +342,27 @@ export async function getHermanosConPapeletas(anio?: number): Promise<HermanoCon
 
     if (asigError) throw asigError;
 
-    const asignacionesMap = new Map(
-        asignaciones?.map(a => [a.id_hermano, a]) || []
+    const asignacionesMap = new Map<string, AsignacionConPosicion>(
+        (asignaciones as AsignacionConPosicion[])?.map(a => [a.id_hermano, a]) || []
     );
 
     return (hermanos || []).map(hermano => {
         const asig = asignacionesMap.get(hermano.id);
 
+        let estado: 'asignado' | 'pendiente' | 'sin_papeleta';
+        if (asig && asig.posicion) {
+            estado = 'asignado';
+        } else if (asig && asig.numero_papeleta !== null) {
+            estado = 'pendiente';
+        } else {
+            estado = 'sin_papeleta';
+        }
+
         return {
             ...hermano,
             numero_papeleta: asig?.numero_papeleta || null,
-            posicion_asignada: (asig as any)?.posicion?.nombre || null,
-            estado: asig
-                ? 'asignado'
-                : asig?.numero_papeleta
-                    ? 'pendiente'
-                    : 'sin_papeleta'
+            posicion_asignada: asig?.posicion?.nombre || null,
+            estado
         };
     });
 }
