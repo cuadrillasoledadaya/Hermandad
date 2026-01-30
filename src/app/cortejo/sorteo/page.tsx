@@ -130,7 +130,7 @@ export default function SorteoPage() {
                                 <CardContent className="space-y-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium">Criterio de Prioridad</label>
-                                        <Select value={criterio} onValueChange={(v: any) => setCriterio(v)}>
+                                        <Select value={criterio} onValueChange={(v: 'antiguedad' | 'orden_llegada') => setCriterio(v)}>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
