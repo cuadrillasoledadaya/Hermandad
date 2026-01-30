@@ -204,7 +204,7 @@ export async function getPapeleta(id: string): Promise<PapeletaConDetalles> {
             *,
             hermano:hermanos(id, nombre, apellidos),
             posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
-            pago:pagos(id, tipo_pago)
+            ingreso:pagos(id, tipo_pago)
         `)
         .eq('id', id)
         .single();
@@ -247,10 +247,12 @@ export async function asignarPosicionAPapeleta(
     if (posError) throw posError;
 
     // 3. Verificar que el tipo coincide
-    if (papeleta.tipo === 'insignia' && posicion.tipo !== 'insignia') {
-        throw new Error('El tipo de papeleta no coincide con la posición');
-    }
-    if (papeleta.tipo === 'nazareno' && posicion.tipo !== 'nazareno') {
+    const matchesType =
+        (papeleta.tipo === 'insignia' && (posicion.tipo === 'insignia' || posicion.tipo === 'cruz_guia')) ||
+        (papeleta.tipo === 'nazareno' && (posicion.tipo === 'nazareno' || posicion.tipo === 'cruz_guia')) ||
+        (papeleta.tipo === 'costalero' && posicion.tipo === 'nazareno'); // Fallback
+
+    if (!matchesType) {
         throw new Error('El tipo de papeleta no coincide con la posición');
     }
 
@@ -278,7 +280,8 @@ export async function asignarPosicionAPapeleta(
             id_hermano: papeletaCompleta.id_hermano,
             id_posicion,
             anio: papeletaCompleta.anio,
-            numero_papeleta: papeletaCompleta.numero
+            numero_papeleta: papeletaCompleta.numero,
+            id_papeleta: id_papeleta
         });
 
     if (createError) throw createError;
