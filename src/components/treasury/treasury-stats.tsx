@@ -6,7 +6,7 @@ import { getHermanos, type Pago } from '@/lib/brothers';
 import { getActiveSeason, getMonthStatusForYear, MONTHS } from '@/lib/treasury';
 import { getCurrentMonthExpenseStats } from '@/lib/expenses';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { TrendingUp, DollarSign } from 'lucide-react';
 
 export function TreasuryStats() {
     const { data: activeSeason, isLoading: loadingSeason } = useQuery({
