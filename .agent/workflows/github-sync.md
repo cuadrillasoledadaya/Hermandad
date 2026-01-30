@@ -4,34 +4,27 @@ description: Sincronización con GitHub y Versionado Automático (X.X.XX)
 ---
 # Sincronización con GitHub
 
-Este workflow debe ejecutarse tras cada cambio significativo para asegurar que Vercel despliegue la última versión con el tag correcto.
+Este workflow ejecuta un script automático que sincroniza con GitHub sin confirmación del usuario.
 
 ## Sistema de Versiones
 
 - Formato: `X.X.XX` (Ej: `1.0.00`, `1.0.01`, ..., `1.0.99` -> `1.1.00`)
-- La versión debe actualizarse en `package.json`.
+- La versión debe actualizarse en `package.json` y `sidebar.tsx` ANTES de ejecutar este workflow.
 
-## Pasos para la subida
-
-1. **Actualizar Versión**:
-   - Lee la versión actual de `package.json`.
-   - Incrementa SOLO los dos últimos dígitos (XX).
-   - **SOLO** si los dos últimos dígitos llegan a `99`, el siguiente cambio incrementará el dígito central (X) y los últimos volverán a `00`.
-   - Ejemplo: `1.0.12` -> `1.0.13`.
-   - Ejemplo: `1.0.99` -> `1.1.00`.
-   - Actualiza `package.json`.
-
-2. **Commit de Cambios**:
-   - `git add .`
-   - `git commit -m "Version X.X.XX: [Descripción breve]"`
-
-3. **Etiquetado (Tagging)**:
-   - `git tag vX.X.XX`
-
-4. **Sincronización**:
-   - `git push origin main --tags`
+## Ejecución Automática
 
 // turbo
-5. Ejecutar subida:
+Ejecutar el siguiente comando para sincronizar automáticamente:
 
-- Proporcionar un mensaje descriptivo para el commit.
+```powershell
+.\scripts\sync-github.ps1 -Message "Version X.X.XX: Descripción del cambio"
+```
+
+El script hace automáticamente:
+
+1. `git add .`
+2. `git commit -m "..."`
+3. `git tag vX.X.XX`
+4. `git push origin main --tags`
+
+**IMPORTANTE**: Ya NO es necesario aprobar comandos. El script se ejecuta completamente en automático.
