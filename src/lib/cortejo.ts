@@ -343,7 +343,7 @@ export async function getHermanosConPapeletas(anio?: number): Promise<HermanoCon
     if (asigError) throw asigError;
 
     const asignacionesMap = new Map<string, AsignacionConPosicion>(
-        (asignaciones as AsignacionConPosicion[])?.map(a => [a.id_hermano, a]) || []
+        (asignaciones as unknown as AsignacionConPosicion[])?.map(a => [a.id_hermano, a]) || []
     );
 
     return (hermanos || []).map(hermano => {
