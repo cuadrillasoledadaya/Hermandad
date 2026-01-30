@@ -73,7 +73,7 @@ export function AddExpenseDialog() {
                     Añadir Gasto
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] bg-white">
                 <DialogHeader>
                     <DialogTitle>Registrar Nuevo Gasto</DialogTitle>
                     <DialogDescription>
