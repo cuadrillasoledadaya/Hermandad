@@ -33,10 +33,9 @@ export function AsignarPapeletaDialog({
     const mapTipoPosicionToPapeleta = (tipo: PosicionTipo): TipoPapeleta | null => {
         if (tipo === 'insignia') return 'insignia'
         if (tipo === 'nazareno') return 'nazareno'
-        // Cruz de guía suele llevar papeleta de nazareno o específica? Asumiremos nazareno por defecto o insignia si es una cruz importante.
-        // Por simplicidad del MVP, si es cruz_guia buscamos nazareno o insignia?
-        // El requisito decía tipos: insignia, nazareno, costalero.
-        if (tipo === 'cruz_guia') return 'nazareno'
+        // Para Cruz de Guía devolvemos null para que la query no filtre por tipo 
+        // y permita elegir cualquiera de las disponibles (nazareno o insignia)
+        if (tipo === 'cruz_guia') return null
         return null
     }
 
@@ -45,7 +44,7 @@ export function AsignarPapeletaDialog({
     const { data: papeletas, isLoading } = useQuery({
         queryKey: ['papeletas-pendientes', tipoPapeleta],
         queryFn: () => getPapeletasPendientes(tipoPapeleta || undefined),
-        enabled: open && !!tipoPapeleta
+        enabled: open && (!!tipoPapeleta || posicionTipo === 'cruz_guia')
     })
 
     const asignarMutation = useMutation({
@@ -105,7 +104,7 @@ export function AsignarPapeletaDialog({
                                 ) : filteredPapeletas?.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-[150px] text-muted-foreground">
                                         <User className="h-8 w-8 mb-2 opacity-20" />
-                                        <p className="text-sm">No hay papeletas de {tipoPapeleta} pendientes.</p>
+                                        <p className="text-sm">No hay papeletas {tipoPapeleta ? `de ${tipoPapeleta}` : 'disponibles'} pendientes.</p>
                                     </div>
                                 ) : (
                                     filteredPapeletas?.map((papeleta) => (

@@ -247,13 +247,18 @@ export async function asignarPosicionAPapeleta(
     if (posError) throw posError;
 
     // 3. Verificar que el tipo coincide
-    const matchesType =
-        (papeleta.tipo === 'insignia' && (posicion.tipo === 'insignia' || posicion.tipo === 'cruz_guia')) ||
-        (papeleta.tipo === 'nazareno' && (posicion.tipo === 'nazareno' || posicion.tipo === 'cruz_guia')) ||
-        (papeleta.tipo === 'costalero' && posicion.tipo === 'nazareno'); // Fallback
+    let matchesType = false;
+
+    // Cruz de Guía puede aceptar Nazareno o Insignia (es especial)
+    if (posicion.tipo === 'cruz_guia') {
+        matchesType = papeleta.tipo === 'nazareno' || papeleta.tipo === 'insignia';
+    } else {
+        // Para el resto, el tipo debe coincidir exactamente
+        matchesType = papeleta.tipo === posicion.tipo;
+    }
 
     if (!matchesType) {
-        throw new Error('El tipo de papeleta no coincide con la posición');
+        throw new Error(`El tipo de papeleta (${papeleta.tipo}) no coincide con el tipo de posición (${posicion.tipo})`);
     }
 
     // 4. Verificar que no está ya ocupada
