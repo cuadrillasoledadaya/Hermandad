@@ -313,7 +313,7 @@ export interface HermanoConPapeleta {
 interface AsignacionConPosicion {
     id_hermano: string;
     numero_papeleta: number | null;
-    posicion: { nombre: string } | null;
+    posicion: Array<{ nombre: string }> | null;
 }
 
 /**
@@ -361,7 +361,7 @@ export async function getHermanosConPapeletas(anio?: number): Promise<HermanoCon
         return {
             ...hermano,
             numero_papeleta: asig?.numero_papeleta || null,
-            posicion_asignada: asig?.posicion?.nombre || null,
+            posicion_asignada: asig?.posicion?.[0]?.nombre || null,
             estado
         };
     });
