@@ -61,7 +61,7 @@ export function AsignarPapeletaDialog({
             onOpenChange(false)
             setSelectedPapeletaId(null)
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message || "Error al asignar la posición")
         }
     })
@@ -113,8 +113,8 @@ export function AsignarPapeletaDialog({
                                             key={papeleta.id}
                                             onClick={() => setSelectedPapeletaId(papeleta.id)}
                                             className={`w-full text-left p-3 rounded-md transition-colors flex items-center justify-between group border ${selectedPapeletaId === papeleta.id
-                                                    ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300'
-                                                    : 'bg-white border-transparent hover:bg-slate-50'
+                                                ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300'
+                                                : 'bg-white border-transparent hover:bg-slate-50'
                                                 }`}
                                         >
                                             <div>

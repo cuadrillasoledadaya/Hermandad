@@ -16,7 +16,7 @@ export function VenderPapeletaDialog() {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState<'hermano' | 'detalles'>('hermano');
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedHermano, setSelectedHermano] = useState<any>(null);
+    const [selectedHermano, setSelectedHermano] = useState<{ id: string; nombre: string; apellidos: string } | null>(null);
     const [tipo, setTipo] = useState<TipoPapeleta>('nazareno');
     const [importe, setImporte] = useState(PRECIO_PAPELETA_DEFAULT);
 
@@ -46,7 +46,7 @@ export function VenderPapeletaDialog() {
             setOpen(false);
             resetForm();
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             console.error('Error al vender papeleta:', error);
             toast.error(error.message || 'Error al procesar la venta');
         },
@@ -60,7 +60,7 @@ export function VenderPapeletaDialog() {
         setImporte(PRECIO_PAPELETA_DEFAULT);
     };
 
-    const handleSelectHermano = (hermano: any) => {
+    const handleSelectHermano = (hermano: { id: string; nombre: string; apellidos: string }) => {
         setSelectedHermano(hermano);
         setStep('detalles');
     };
@@ -142,7 +142,7 @@ export function VenderPapeletaDialog() {
                             <div className="p-3 bg-slate-50 rounded-md border flex justify-between items-center">
                                 <div>
                                     <p className="text-xs text-muted-foreground uppercase font-bold">Hermano</p>
-                                    <p className="font-medium text-lg">{selectedHermano.nombre} {selectedHermano.apellidos}</p>
+                                    <p className="font-medium text-lg">{selectedHermano?.nombre} {selectedHermano?.apellidos}</p>
                                 </div>
                                 <Button variant="ghost" size="sm" onClick={() => setStep('hermano')}>
                                     Cambiar

@@ -40,7 +40,7 @@ export default function CortejoPage() {
             queryClient.invalidateQueries({ queryKey: ['papeletas-pendientes'] });
             setPapeletaToUnassign(null);
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message || "Error al eliminar asignación");
         }
     });
@@ -220,7 +220,7 @@ export default function CortejoPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Quitar asignación?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Esta acción liberará la posición. La papeleta del hermano volverá a estar en estado "Pagada" y podrá ser asignada de nuevo.
+                            Esta acción liberará la posición. La papeleta del hermano volverá a estar en estado &quot;Pagada&quot; y podrá ser asignada de nuevo.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
