@@ -5,12 +5,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getExpenses, deleteExpense, type Expense, EXPENSE_CATEGORIES } from '@/lib/expenses';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Calendar, Euro } from 'lucide-react';
+import { Trash2, Calendar, Euro, Flower2, Flame, Wrench, PartyPopper, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/providers/auth-provider';
 import { cn } from '@/lib/utils';
+
+// Helper para obtener el icono de cada categoría
+const getCategoryIcon = (categoria: string) => {
+    switch (categoria) {
+        case 'Flores': return Flower2;
+        case 'Velas': return Flame;
+        case 'Mantenimiento': return Wrench;
+        case 'Eventos': return PartyPopper;
+        case 'Otros': return Package;
+        default: return Package;
+    }
+};
 
 export function ExpensesList() {
     const { role } = useAuth();
@@ -108,13 +120,17 @@ export function ExpensesList() {
                                     <div className="flex-1 space-y-2">
                                         <div className="flex items-center gap-2">
                                             <span className={cn(
-                                                "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                                                "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1",
                                                 expense.categoria === 'Flores' && "bg-pink-100 text-pink-700",
                                                 expense.categoria === 'Velas' && "bg-amber-100 text-amber-700",
                                                 expense.categoria === 'Mantenimiento' && "bg-blue-100 text-blue-700",
                                                 expense.categoria === 'Eventos' && "bg-purple-100 text-purple-700",
                                                 expense.categoria === 'Otros' && "bg-slate-100 text-slate-700"
                                             )}>
+                                                {(() => {
+                                                    const Icon = getCategoryIcon(expense.categoria);
+                                                    return <Icon className="w-3 h-3" />;
+                                                })()}
                                                 {expense.categoria}
                                             </span>
                                             <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -173,13 +189,17 @@ export function ExpensesList() {
                                         </td>
                                         <td className="p-4">
                                             <span className={cn(
-                                                "px-3 py-1 rounded-full text-xs font-bold uppercase inline-block",
+                                                "px-3 py-1 rounded-full text-xs font-bold uppercase inline-flex items-center gap-1.5",
                                                 expense.categoria === 'Flores' && "bg-pink-100 text-pink-700",
                                                 expense.categoria === 'Velas' && "bg-amber-100 text-amber-700",
                                                 expense.categoria === 'Mantenimiento' && "bg-blue-100 text-blue-700",
                                                 expense.categoria === 'Eventos' && "bg-purple-100 text-purple-700",
                                                 expense.categoria === 'Otros' && "bg-slate-100 text-slate-700"
                                             )}>
+                                                {(() => {
+                                                    const Icon = getCategoryIcon(expense.categoria);
+                                                    return <Icon className="w-3.5 h-3.5" />;
+                                                })()}
                                                 {expense.categoria}
                                             </span>
                                         </td>
