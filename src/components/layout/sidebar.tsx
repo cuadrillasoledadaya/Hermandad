@@ -44,7 +44,7 @@ export function Sidebar() {
                             <X className="w-6 h-6" />
                         </button>
                     </div>
-                    <nav className="flex-1 p-4 space-y-3">
+                    <nav className="flex-1 p-4 space-y-3 overflow-y-auto custom-scrollbar">
                         {menuItems.map((item) => {
                             const isActive = pathname === item.href;
                             return (
@@ -93,27 +93,27 @@ export function Sidebar() {
                         )}
                     </nav>
 
-                    <div className="p-4 border-t space-y-2">
-                        <div className="px-3 py-2">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Usuario</p>
-                            <p className="text-sm font-medium truncate">{user?.email}</p>
-                            <p className="text-[10px] text-primary bg-[hsl(var(--accent-pastel))] px-2 py-0.5 rounded-full inline-block mt-1 font-bold">
-                                {role}
-                            </p>
+                    <div className="mt-auto p-4 border-t bg-slate-50/50">
+                        <div className="px-3 py-3 bg-white border border-slate-200 rounded-xl shadow-sm mb-3">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sesión Activa</p>
+                            <p className="text-sm font-bold text-slate-900 truncate">{user?.email}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                    {role}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-bold ml-auto opacity-70">v1.0.95</span>
+                            </div>
                         </div>
                         <button
                             onClick={() => {
                                 toggleSidebar();
                                 signOut();
                             }}
-                            className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                            className="w-full flex items-center justify-center space-x-3 p-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-all font-bold group"
                         >
-                            <LogOut className="w-5 h-5" />
-                            <span>Cerrar Sesión</span>
+                            <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <span>Finalizar Sesión</span>
                         </button>
-                        <div className="px-3 py-1 text-center">
-                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.93</span>
-                        </div>
                     </div>
                 </div>
             </aside>
