@@ -20,7 +20,7 @@ export const TIPOS_INSIGNIA = {
 export type PasoId = keyof typeof PASO_NOMBRES;
 export type TipoInsignia = keyof typeof TIPOS_INSIGNIA;
 
-export type PosicionTipo = 'cruz_guia' | 'insignia' | 'nazareno' | 'paso';
+export type PosicionTipo = 'cruz_guia' | 'insignia' | 'nazareno' | 'paso' | 'bocina';
 export type Lado = 'centro' | 'derecha' | 'izquierda';
 
 export interface CortejoEstructura {

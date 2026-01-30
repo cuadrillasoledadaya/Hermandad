@@ -5,7 +5,8 @@ import { supabase } from './supabase';
 // =====================================================
 
 export const TIPOS_PAPELETA = {
-    insignia: 'Insignia',
+    vara: 'Vara / Insignia',
+    bocina: 'Bocina',
     nazareno: 'Nazareno',
     costalero: 'Costalero'
 } as const;
@@ -249,12 +250,18 @@ export async function asignarPosicionAPapeleta(
     // 3. Verificar que el tipo coincide
     let matchesType = false;
 
-    // Cruz de Guía puede aceptar Nazareno o Insignia (es especial)
+    // Cruz de Guía puede aceptar Nazareno, Vara o Insignia (es especial)
     if (posicion.tipo === 'cruz_guia') {
-        matchesType = papeleta.tipo === 'nazareno' || papeleta.tipo === 'insignia';
+        matchesType = papeleta.tipo === 'nazareno' || papeleta.tipo === 'vara';
     } else {
         // Para el resto, el tipo debe coincidir exactamente
-        matchesType = papeleta.tipo === posicion.tipo;
+        // Nota: en la estructura aún usamos 'insignia' como tipo de posición, 
+        // lo mapeamos a la papeleta de tipo 'vara'
+        if (posicion.tipo === 'insignia') {
+            matchesType = papeleta.tipo === 'vara';
+        } else {
+            matchesType = papeleta.tipo === posicion.tipo;
+        }
     }
 
     if (!matchesType) {

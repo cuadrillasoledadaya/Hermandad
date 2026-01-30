@@ -137,13 +137,15 @@ export default function PapeletasPage() {
                                             {papeleta.hermano?.nombre} {papeleta.hermano?.apellidos}
                                         </td>
                                         <td className="px-4 py-3 capitalize">
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${papeleta.tipo === 'insignia'
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${papeleta.tipo === 'vara'
                                                 ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                : papeleta.tipo === 'costalero'
-                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                : papeleta.tipo === 'bocina'
+                                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                                    : papeleta.tipo === 'costalero'
+                                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
                                                 }`}>
-                                                {papeleta.tipo}
+                                                {papeleta.tipo === 'vara' ? 'Vara / Insignia' : papeleta.tipo}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 font-medium">

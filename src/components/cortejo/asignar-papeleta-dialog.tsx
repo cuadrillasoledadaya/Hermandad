@@ -31,10 +31,10 @@ export function AsignarPapeletaDialog({
 
     // Mapear tipo de posición a tipo de papeleta
     const mapTipoPosicionToPapeleta = (tipo: PosicionTipo): TipoPapeleta | null => {
-        if (tipo === 'insignia') return 'insignia'
+        if (tipo === 'insignia') return 'vara'
         if (tipo === 'nazareno') return 'nazareno'
-        // Para Cruz de Guía devolvemos null para que la query no filtre por tipo 
-        // y permita elegir cualquiera de las disponibles (nazareno o insignia)
+        if (tipo === 'bocina' as any) return 'bocina'
+        // Cruz de Guía es flexible
         if (tipo === 'cruz_guia') return null
         return null
     }
@@ -79,7 +79,7 @@ export function AsignarPapeletaDialog({
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
-                    {!tipoPapeleta ? (
+                    {(!tipoPapeleta && posicionTipo !== 'cruz_guia') ? (
                         <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-4 rounded-md">
                             <AlertCircle className="w-5 h-5" />
                             <p className="text-sm font-medium">No se pueden asignar papeletas a este tipo de posición automáticamente.</p>
