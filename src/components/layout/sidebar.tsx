@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/store/use-app-store';
-import { X, Home, Users, Wallet, Share2, Settings, Calendar, Receipt } from 'lucide-react';
+import { X, Home, Users, Wallet, Share2, Settings, Calendar, Receipt, Church } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ export function Sidebar() {
     const adminItems = [
         { name: 'Temporadas', icon: Calendar, href: '/configuracion/temporadas' },
         { name: 'Gastos', icon: Receipt, href: '/tesoreria/gastos' },
+        { name: 'Cortejo', icon: Church, href: '/cortejo' },
     ];
 
     const canSeeAdmin = role === 'SUPERADMIN' || role === 'JUNTA';
@@ -111,7 +112,7 @@ export function Sidebar() {
                             <span>Cerrar Sesión</span>
                         </button>
                         <div className="px-3 py-1 text-center">
-                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.76</span>
+                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.77</span>
                         </div>
                     </div>
                 </div>
