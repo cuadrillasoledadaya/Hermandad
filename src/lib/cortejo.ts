@@ -13,6 +13,7 @@ export const PASO_NOMBRES = {
 export const TIPOS_INSIGNIA = {
     cirio: '🕯️ Cirio',
     vara: '🎋 Vara',
+    insignia: '🚩 Insignia',
     bocina: '📯 Bocina',
     estandarte: '🚩 Estandarte'
 } as const;
@@ -20,7 +21,7 @@ export const TIPOS_INSIGNIA = {
 export type PasoId = keyof typeof PASO_NOMBRES;
 export type TipoInsignia = keyof typeof TIPOS_INSIGNIA;
 
-export type PosicionTipo = 'cruz_guia' | 'insignia' | 'nazareno' | 'paso' | 'bocina';
+export type PosicionTipo = 'cruz_guia' | 'vara' | 'insignia' | 'nazareno' | 'paso' | 'bocina';
 export type Lado = 'centro' | 'derecha' | 'izquierda';
 
 export interface CortejoEstructura {

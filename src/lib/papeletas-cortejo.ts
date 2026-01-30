@@ -5,7 +5,9 @@ import { supabase } from './supabase';
 // =====================================================
 
 export const TIPOS_PAPELETA = {
-    vara: 'Vara / Insignia',
+    cruz_guia: 'Cruz de Guía',
+    vara: 'Vara',
+    insignia: 'Insignia',
     bocina: 'Bocina',
     nazareno: 'Nazareno',
     costalero: 'Costalero'
@@ -247,25 +249,12 @@ export async function asignarPosicionAPapeleta(
 
     if (posError) throw posError;
 
-    // 3. Verificar que el tipo coincide
-    let matchesType = false;
-
-    // Cruz de Guía puede aceptar Nazareno, Vara o Insignia (es especial)
-    if (posicion.tipo === 'cruz_guia') {
-        matchesType = papeleta.tipo === 'nazareno' || papeleta.tipo === 'vara';
-    } else {
-        // Para el resto, el tipo debe coincidir exactamente
-        // Nota: en la estructura aún usamos 'insignia' como tipo de posición, 
-        // lo mapeamos a la papeleta de tipo 'vara'
-        if (posicion.tipo === 'insignia') {
-            matchesType = papeleta.tipo === 'vara';
-        } else {
-            matchesType = papeleta.tipo === posicion.tipo;
-        }
-    }
+    // 3. Verificar que el tipo coincide (1:1 Estricto)
+    const matchesType = papeleta.tipo === (posicion.tipo as any);
 
     if (!matchesType) {
-        throw new Error(`El tipo de papeleta (${papeleta.tipo}) no coincide con el tipo de posición (${posicion.tipo})`);
+        const tipoLabel = (TIPOS_PAPELETA as any)[papeleta.tipo] || papeleta.tipo;
+        throw new Error(`El tipo de papeleta (${tipoLabel}) no coincide con el tipo de posición (${posicion.tipo})`);
     }
 
     // 4. Verificar que no está ya ocupada
