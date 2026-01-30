@@ -36,10 +36,10 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
 
     // Initialize year when active season is loaded
     useEffect(() => {
-        if (activeSeason?.anio) {
+        if (activeSeason?.anio && selectedYear === new Date().getFullYear()) {
             setSelectedYear(activeSeason.anio);
         }
-    }, [activeSeason]);
+    }, [activeSeason, selectedYear]);
 
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
