@@ -1,0 +1,181 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { getPapeletasDelAnio, getEstadisticasPapeletas } from '@/lib/papeletas-cortejo';
+import { Card } from '@/components/ui/card';
+import { Loader2, Receipt, Search, Filter } from 'lucide-react';
+import { useAuth } from '@/components/providers/auth-provider';
+import { VenderPapeletaDialog } from '@/components/cortejo/vender-papeleta-dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+export default function PapeletasPage() {
+    const { role } = useAuth();
+    const canManage = role === 'SUPERADMIN' || role === 'JUNTA';
+    const [filterEstado, setFilterEstado] = useState<string>('all');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const { data: papeletas, isLoading } = useQuery({
+        queryKey: ['papeletas-cortejo'],
+        queryFn: () => getPapeletasDelAnio(),
+    });
+
+    const { data: stats } = useQuery({
+        queryKey: ['papeletas-stats'],
+        queryFn: () => getEstadisticasPapeletas(),
+    });
+
+    const filteredPapeletas = papeletas?.filter(p => {
+        const matchesSearch =
+            p.hermano?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.hermano?.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.numero.toString().includes(searchTerm);
+
+        const matchesEstado = filterEstado === 'all' || p.estado === filterEstado;
+
+        return matchesSearch && matchesEstado;
+    });
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">🎫 Papeletas de Sitio</h2>
+                    <p className="text-muted-foreground">
+                        Gestión de venta y control de papeletas para el cortejo.
+                    </p>
+                </div>
+                {canManage && <VenderPapeletaDialog />}
+            </div>
+
+            {/* Estadísticas */}
+            {stats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="p-4 bg-white border-l-4 border-l-blue-500">
+                        <p className="text-xs font-bold uppercase text-muted-foreground">Total Vendidas</p>
+                        <p className="text-2xl font-black">{stats.total_vendidas}</p>
+                    </Card>
+                    <Card className="p-4 bg-white border-l-4 border-l-green-500">
+                        <p className="text-xs font-bold uppercase text-muted-foreground">Recaudado</p>
+                        <p className="text-2xl font-black text-green-600">
+                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(stats.ingresos_totales)}
+                        </p>
+                    </Card>
+                    <Card className="p-4 bg-white border-l-4 border-l-amber-500">
+                        <p className="text-xs font-bold uppercase text-muted-foreground">Pendientes Asignar</p>
+                        <p className="text-2xl font-black text-amber-600">{stats.total_pendientes}</p>
+                    </Card>
+                    <Card className="p-4 bg-white border-l-4 border-l-purple-500">
+                        <p className="text-xs font-bold uppercase text-muted-foreground">Insignias</p>
+                        <p className="text-2xl font-black text-purple-600">{stats.por_tipo.insignia}</p>
+                    </Card>
+                </div>
+            )}
+
+            {/* Filtros y Lista */}
+            <Card className="p-4 bg-white">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Buscar por hermano o número..."
+                            className="pl-9"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <Select value={filterEstado} onValueChange={setFilterEstado}>
+                        <SelectTrigger className="w-[180px]">
+                            <Filter className="w-4 h-4 mr-2" />
+                            <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos los estados</SelectItem>
+                            <SelectItem value="pagada">Pagada (Pendiente)</SelectItem>
+                            <SelectItem value="asignada">Asignada</SelectItem>
+                            <SelectItem value="cancelada">Cancelada</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 border-b">
+                            <tr>
+                                <th className="px-4 py-3 font-medium">Nº</th>
+                                <th className="px-4 py-3 font-medium">Hermano</th>
+                                <th className="px-4 py-3 font-medium">Tipo</th>
+                                <th className="px-4 py-3 font-medium">Importe</th>
+                                <th className="px-4 py-3 font-medium">Estado</th>
+                                <th className="px-4 py-3 font-medium">Posición Asignada</th>
+                                <th className="px-4 py-3 font-medium">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {filteredPapeletas?.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                                        No se encontraron papeletas.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredPapeletas?.map((papeleta) => (
+                                    <tr key={papeleta.id} className="hover:bg-slate-50/50">
+                                        <td className="px-4 py-3 font-bold text-slate-700">#{papeleta.numero}</td>
+                                        <td className="px-4 py-3">
+                                            {papeleta.hermano?.nombre} {papeleta.hermano?.apellidos}
+                                        </td>
+                                        <td className="px-4 py-3 capitalize">
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${papeleta.tipo === 'insignia'
+                                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                    : papeleta.tipo === 'costalero'
+                                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                }`}>
+                                                {papeleta.tipo}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 font-medium">
+                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(papeleta.importe)}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${papeleta.estado === 'asignada'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : papeleta.estado === 'pagada'
+                                                        ? 'bg-yellow-100 text-yellow-700'
+                                                        : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                {papeleta.estado === 'pagada' ? 'Pendiente' : papeleta.estado}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {papeleta.posicion ? (
+                                                <span className="text-slate-700 font-medium">{papeleta.posicion.nombre}</span>
+                                            ) : (
+                                                <span className="text-xs italic">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                                            {format(new Date(papeleta.fecha_pago), 'dd MMM yyyy', { locale: es })}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
+        </div>
+    );
+}

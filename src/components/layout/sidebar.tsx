@@ -24,6 +24,7 @@ export function Sidebar() {
     const adminItems = [
         { name: 'Temporadas', icon: Calendar, href: '/configuracion/temporadas' },
         { name: 'Gastos', icon: Receipt, href: '/tesoreria/gastos' },
+        { name: 'Papeletas', icon: Receipt, href: '/tesoreria/papeletas-cortejo' },
         { name: 'Cortejo', icon: Church, href: '/cortejo' },
     ];
 
@@ -112,7 +113,7 @@ export function Sidebar() {
                             <span>Cerrar Sesión</span>
                         </button>
                         <div className="px-3 py-1 text-center">
-                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.77</span>
+                            <span className="text-[10px] text-muted-foreground font-medium opacity-50">v1.0.78</span>
                         </div>
                     </div>
                 </div>

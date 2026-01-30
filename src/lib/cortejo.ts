@@ -10,7 +10,15 @@ export const PASO_NOMBRES = {
     soledad: 'María Santísima en su Soledad'
 } as const;
 
+export const TIPOS_INSIGNIA = {
+    cirio: '🕯️ Cirio',
+    vara: '🎋 Vara',
+    bocina: '📯 Bocina',
+    estandarte: '🚩 Estandarte'
+} as const;
+
 export type PasoId = keyof typeof PASO_NOMBRES;
+export type TipoInsignia = keyof typeof TIPOS_INSIGNIA;
 
 export type PosicionTipo = 'cruz_guia' | 'insignia' | 'nazareno' | 'paso';
 export type Lado = 'centro' | 'derecha' | 'izquierda';
@@ -23,6 +31,8 @@ export interface CortejoEstructura {
     posicion: number;
     lado: Lado | null;
     paso_asociado: PasoId | null;
+    tipo_insignia?: TipoInsignia | null;
+    nombre_especifico?: string | null;
     created_at: string;
 }
 
