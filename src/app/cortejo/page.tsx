@@ -5,10 +5,54 @@ import { getCortejoCompleto, getEstadisticasCortejo } from '@/lib/cortejo';
 import { Card } from '@/components/ui/card';
 import { Loader2, Church, User, Users } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { AsignarPapeletaDialog } from '@/components/cortejo/asignar-papeleta-dialog';
+import { useState } from 'react';
+import { PosicionTipo } from '@/lib/cortejo';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { quitarAsignacionDePapeleta } from '@/lib/papeletas-cortejo';
+import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function CortejoPage() {
     const { role } = useAuth();
     const canManage = role === 'SUPERADMIN' || role === 'JUNTA';
+    const queryClient = useQueryClient();
+
+    const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+    const [selectedPosicion, setSelectedPosicion] = useState<{ id: string, nombre: string, tipo: PosicionTipo } | null>(null);
+    const [papeletaToUnassign, setPapeletaToUnassign] = useState<string | null>(null);
+
+    const quitarAsignacionMutation = useMutation({
+        mutationFn: quitarAsignacionDePapeleta,
+        onSuccess: () => {
+            toast.success("Asignación eliminada correctamente");
+            queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
+            queryClient.invalidateQueries({ queryKey: ['cortejo-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas-pendientes'] });
+            setPapeletaToUnassign(null);
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Error al eliminar asignación");
+        }
+    });
+
+    const handleAssignClick = (pos: { id: string, nombre: string, tipo: PosicionTipo }) => {
+        setSelectedPosicion(pos);
+        setAssignDialogOpen(true);
+    };
+
+    const handleUnassignClick = (papeletaId: string) => {
+        setPapeletaToUnassign(papeletaId);
+    };
 
     const { data: cortejo, isLoading: loadingCortejo } = useQuery({
         queryKey: ['cortejo-completo'],
@@ -95,8 +139,8 @@ export default function CortejoPage() {
                                     <Card
                                         key={pos.id}
                                         className={`p-4 ${tieneAsignacion
-                                                ? 'bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-300'
-                                                : 'bg-gradient-to-r from-slate-50 to-slate-100/50 border-slate-300'
+                                            ? 'bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-300'
+                                            : 'bg-gradient-to-r from-slate-50 to-slate-100/50 border-slate-300'
                                             }`}
                                     >
                                         <div className="flex justify-between items-center">
@@ -125,11 +169,24 @@ export default function CortejoPage() {
                                             {canManage && (
                                                 <div className="flex gap-2">
                                                     {tieneAsignacion ? (
-                                                        <button className="text-xs px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (pos.asignacion?.id_papeleta) {
+                                                                    handleUnassignClick(pos.asignacion.id_papeleta);
+                                                                } else {
+                                                                    toast.error("No se encontró ID de papeleta asociada");
+                                                                }
+                                                            }}
+                                                            className="text-xs px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition"
+                                                        >
                                                             Quitar
                                                         </button>
                                                     ) : (
-                                                        <button className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition">
+                                                        <button
+                                                            onClick={() => handleAssignClick(pos)}
+                                                            className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition"
+                                                        >
                                                             Asignar
                                                         </button>
                                                     )}
@@ -143,6 +200,47 @@ export default function CortejoPage() {
                     </Card>
                 ))}
             </div>
+
+            {/* Diálogo de Asignación */}
+            {
+                selectedPosicion && (
+                    <AsignarPapeletaDialog
+                        open={assignDialogOpen}
+                        onOpenChange={setAssignDialogOpen}
+                        posicionId={selectedPosicion.id}
+                        posicionNombre={selectedPosicion.nombre}
+                        posicionTipo={selectedPosicion.tipo}
+                    />
+                )
+            }
+
+            {/* Diálogo de confirmación para quitar asignación */}
+            <AlertDialog open={!!papeletaToUnassign} onOpenChange={(open) => !open && setPapeletaToUnassign(null)}>
+                <AlertDialogContent className="bg-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Quitar asignación?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción liberará la posición. La papeleta del hermano volverá a estar en estado "Pagada" y podrá ser asignada de nuevo.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={() => {
+                                if (papeletaToUnassign) {
+                                    quitarAsignacionMutation.mutate(papeletaToUnassign);
+                                }
+                            }}
+                        >
+                            {quitarAsignacionMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : null}
+                            Confirmar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -57,9 +57,9 @@ CREATE POLICY "Solo JUNTA y SUPERADMIN pueden modificar estructura"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('SUPERADMIN', 'JUNTA')
+      SELECT 1 FROM hermanos
+      WHERE hermanos.id = auth.uid()
+      AND hermanos.rol IN ('SUPERADMIN', 'JUNTA')
     )
   );
 
@@ -79,9 +79,9 @@ CREATE POLICY "Solo JUNTA y SUPERADMIN pueden asignar posiciones"
   TO authenticated
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('SUPERADMIN', 'JUNTA')
+      SELECT 1 FROM hermanos
+      WHERE hermanos.id = auth.uid()
+      AND hermanos.rol IN ('SUPERADMIN', 'JUNTA')
     )
   );
 
@@ -91,9 +91,9 @@ CREATE POLICY "Solo JUNTA y SUPERADMIN pueden actualizar asignaciones"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('SUPERADMIN', 'JUNTA')
+      SELECT 1 FROM hermanos
+      WHERE hermanos.id = auth.uid()
+      AND hermanos.rol IN ('SUPERADMIN', 'JUNTA')
     )
   );
 
@@ -103,9 +103,9 @@ CREATE POLICY "Solo JUNTA y SUPERADMIN pueden eliminar asignaciones"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('SUPERADMIN', 'JUNTA')
+      SELECT 1 FROM hermanos
+      WHERE hermanos.id = auth.uid()
+      AND hermanos.rol IN ('SUPERADMIN', 'JUNTA')
     )
   );
 

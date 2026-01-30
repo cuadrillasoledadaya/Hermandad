@@ -44,6 +44,7 @@ export interface CortejoAsignacion {
     numero_papeleta: number | null;
     fecha_asignacion: string;
     notas: string | null;
+    id_papeleta?: string; // Nuevo campo para vincular con la papeleta real
 }
 
 export interface PosicionConAsignacion extends CortejoEstructura {
@@ -92,9 +93,26 @@ export async function getCortejoCompleto(anio?: number): Promise<TramoData[]> {
 
     if (asigError) throw asigError;
 
-    // Mapear asignaciones por id_posicion
+    // Obtener papeletas asignadas para vincular IDs
+    const { data: papeletas, error: papError } = await supabase
+        .from('papeletas_cortejo')
+        .select('id, id_posicion_asignada')
+        .eq('anio', year)
+        .not('id_posicion_asignada', 'is', null);
+
+    if (papError) throw papError;
+
+    // Mapa de papeleta por posicion
+    const papeletasMap = new Map(
+        papeletas?.map(p => [p.id_posicion_asignada, p.id]) || []
+    );
+
+    // Mapear asignaciones por id_posicion e inyectar id_papeleta
     const asignacionesMap = new Map(
-        asignaciones?.map(a => [a.id_posicion, a]) || []
+        asignaciones?.map(a => [
+            a.id_posicion,
+            { ...a, id_papeleta: papeletasMap.get(a.id_posicion) }
+        ]) || []
     );
 
     // Combinar estructura con asignaciones

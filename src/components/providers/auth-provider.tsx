@@ -60,19 +60,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Fetching role for:', userId);
         try {
             const { data, error } = await supabase
-                .from('profiles')
-                .select('role')
+                .from('hermanos')
+                .select('rol')
                 .eq('id', userId)
                 .maybeSingle(); // Changed from single() to maybeSingle() to avoid 406/404 errors hanging
 
             if (error) {
-                console.warn('Profile fetch error (defaulting to HERMANO):', error.message);
+                console.warn('Hermanos fetch error (defaulting to HERMANO):', error.message);
                 setRole('HERMANO');
             } else if (data) {
-                console.log('Role found:', data.role);
-                setRole(data.role as UserRole);
+                console.log('Role found:', data.rol);
+                setRole(data.rol as UserRole);
             } else {
-                console.log('No profile found, defaulting to HERMANO');
+                console.log('No hermano found, defaulting to HERMANO');
                 setRole('HERMANO');
             }
         } catch (error) {

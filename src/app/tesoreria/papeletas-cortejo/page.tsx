@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getPapeletasDelAnio, getEstadisticasPapeletas } from '@/lib/papeletas-cortejo';
 import { Card } from '@/components/ui/card';
-import { Loader2, Receipt, Search, Filter } from 'lucide-react';
+import { Loader2, Search, Filter } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { VenderPapeletaDialog } from '@/components/cortejo/vender-papeleta-dialog';
 import { Input } from '@/components/ui/input';
@@ -138,10 +138,10 @@ export default function PapeletasPage() {
                                         </td>
                                         <td className="px-4 py-3 capitalize">
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${papeleta.tipo === 'insignia'
-                                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                    : papeleta.tipo === 'costalero'
-                                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                : papeleta.tipo === 'costalero'
+                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                    : 'bg-blue-50 text-blue-700 border-blue-200'
                                                 }`}>
                                                 {papeleta.tipo}
                                             </span>
@@ -151,10 +151,10 @@ export default function PapeletasPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${papeleta.estado === 'asignada'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : papeleta.estado === 'pagada'
-                                                        ? 'bg-yellow-100 text-yellow-700'
-                                                        : 'bg-red-100 text-red-700'
+                                                ? 'bg-green-100 text-green-700'
+                                                : papeleta.estado === 'pagada'
+                                                    ? 'bg-yellow-100 text-yellow-700'
+                                                    : 'bg-red-100 text-red-700'
                                                 }`}>
                                                 {papeleta.estado === 'pagada' ? 'Pendiente' : papeleta.estado}
                                             </span>

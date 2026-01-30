@@ -30,7 +30,7 @@ export interface PapeletaCortejo {
     estado: EstadoPapeleta;
     importe: number;
     fecha_pago: string;
-    id_ingreso: string | null;
+    id_pago: string | null;
     id_posicion_asignada: string | null;
     fecha_asignacion: string | null;
     created_at: string;
@@ -49,6 +49,10 @@ export interface PapeletaConDetalles extends PapeletaCortejo {
         tipo: string;
         tipo_insignia?: string;
     };
+    pago?: {
+        id: string;
+        tipo_pago?: string;
+    };
 }
 
 // =====================================================
@@ -63,7 +67,7 @@ export interface VenderPapeletaInput {
 }
 
 /**
- * Vende una papeleta de cortejo y crea el ingreso asociado
+ * Vende una papeleta de cortejo y crea el pago asociado
  */
 export async function venderPapeleta(input: VenderPapeletaInput): Promise<PapeletaCortejo> {
     const year = input.anio || new Date().getFullYear();
@@ -82,20 +86,21 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
 
     const siguienteNumero = ultimaPapeleta ? ultimaPapeleta.numero + 1 : 1;
 
-    // 2. Crear el ingreso en tesorería
-    const { data: ingreso, error: ingresoError } = await supabase
-        .from('ingresos')
+    // 2. Crear el pago en tesorería (tabla pagos)
+    const { data: pago, error: pagoError } = await supabase
+        .from('pagos')
         .insert({
             id_hermano: input.id_hermano,
-            monto: importe,
-            periodo: `${year}-01-01`, // Temporada del año
-            tipo_ingreso: 'papeleta_cortejo',
-            notas: `Papeleta #${siguienteNumero} - ${TIPOS_PAPELETA[input.tipo]}`
+            cantidad: importe,
+            fecha_pago: new Date().toISOString(),
+            anio: year,
+            tipo_pago: 'papeleta_cortejo',
+            concepto: `Papeleta #${siguienteNumero} - ${TIPOS_PAPELETA[input.tipo]}`
         })
         .select()
         .single();
 
-    if (ingresoError) throw ingresoError;
+    if (pagoError) throw pagoError;
 
     // 3. Crear la papeleta
     const { data: papeleta, error: papeletaError } = await supabase
@@ -106,7 +111,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
             anio: year,
             tipo: input.tipo,
             importe,
-            id_ingreso: ingreso.id,
+            id_pago: pago.id,
             estado: 'pagada'
         })
         .select()
@@ -114,11 +119,11 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
 
     if (papeletaError) throw papeletaError;
 
-    // 4. Actualizar el ingreso con la referencia a la papeleta
+    // 4. Actualizar el pago con la referencia a la papeleta
     await supabase
-        .from('ingresos')
+        .from('pagos')
         .update({ id_papeleta: papeleta.id })
-        .eq('id', ingreso.id);
+        .eq('id', pago.id);
 
     return papeleta;
 }
@@ -150,7 +155,8 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
         .select(`
             *,
             hermano:hermanos(id, nombre, apellidos),
-            posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia)
+            posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
+            pago:pagos(id, tipo_pago)
         `)
         .eq('anio', year)
         .order('numero', { ascending: true });
@@ -197,7 +203,8 @@ export async function getPapeleta(id: string): Promise<PapeletaConDetalles> {
         .select(`
             *,
             hermano:hermanos(id, nombre, apellidos),
-            posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia)
+            posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
+            pago:pagos(id, tipo_pago)
         `)
         .eq('id', id)
         .single();
