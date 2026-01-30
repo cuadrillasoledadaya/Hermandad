@@ -64,7 +64,7 @@ export function AddBrotherDialog() {
                     Nuevo Hermano
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] bg-white">
                 <DialogHeader>
                     <DialogTitle>Alta de Nuevo Hermano</DialogTitle>
                     <DialogDescription>

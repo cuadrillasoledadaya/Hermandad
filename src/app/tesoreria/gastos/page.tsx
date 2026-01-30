@@ -36,7 +36,7 @@ export default function GastosPage() {
                     <Card className="p-4 bg-gradient-to-br from-red-50 to-red-100/50 border-red-200">
                         <p className="text-xs font-bold uppercase text-red-700 tracking-wider mb-1">Total Mes</p>
                         <p className="text-2xl font-black text-red-600">
-                            {stats?.total.toFixed(0) || 0}€
+                            {stats?.total.toFixed(2) || '0.00'}€
                         </p>
                     </Card>
                     <Card className="p-4 bg-gradient-to-br from-slate-50 to-slate-100/50 border-slate-200">

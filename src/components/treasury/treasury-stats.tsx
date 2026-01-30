@@ -113,7 +113,7 @@ export function TreasuryStats() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                    <div className="text-3xl font-black text-blue-600">{monthlyIncome.toFixed(0)}€</div>
+                    <div className="text-3xl font-black text-blue-600">{monthlyIncome.toFixed(2)}€</div>
                     <p className="text-[10px] text-blue-600/60 font-medium mt-1">{thisMonthPagos.length} pagos</p>
                 </CardContent>
             </Card>
@@ -127,10 +127,10 @@ export function TreasuryStats() {
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                     <div className={`text-3xl font-black ${netBalance >= 0 ? 'text-emerald-600' : 'text-orange-600'}`}>
-                        {netBalance >= 0 ? '+' : ''}{netBalance.toFixed(0)}€
+                        {netBalance >= 0 ? '+' : ''}{netBalance.toFixed(2)}€
                     </div>
                     <p className={`text-[10px] font-medium mt-1 ${netBalance >= 0 ? 'text-emerald-600/60' : 'text-orange-600/60'}`}>
-                        Gastos: {monthlyExpenses.toFixed(0)}€
+                        Gastos: {monthlyExpenses.toFixed(2)}€
                     </p>
                 </CardContent>
             </Card>
