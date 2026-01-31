@@ -18,6 +18,20 @@ ADD CONSTRAINT papeletas_cortejo_id_hermano_fkey
 
 -- 2. Asegurar que el email de hermanos es único
 UPDATE hermanos SET email = NULL WHERE email = '';
+
+-- Limpiar duplicados: para cada email, dejamos solo el registro con el número de hermano más bajo
+-- (o el registro más antiguo si no hay número) y ponemos a NULL los demás.
+WITH duplicates AS (
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY email ORDER BY numero_hermano ASC NULLS LAST, fecha_alta ASC) as rnum
+    FROM hermanos
+    WHERE email IS NOT NULL
+)
+UPDATE hermanos
+SET email = NULL
+WHERE id IN (
+    SELECT id FROM duplicates WHERE rnum > 1
+);
+
 ALTER TABLE hermanos DROP CONSTRAINT IF EXISTS hermanos_email_unique;
 ALTER TABLE hermanos ADD CONSTRAINT hermanos_email_unique UNIQUE (email);
 
