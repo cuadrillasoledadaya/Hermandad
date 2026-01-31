@@ -86,3 +86,27 @@ export function getMonthStatusForYear(hermano: Hermano, pagos: Pago[], seasonYea
 
     return 'PENDING';
 }
+
+export function getPendingMonthsForSeason(hermano: Hermano, pagos: Pago[], seasonYear: number): number[] {
+    const pending: number[] = [];
+    const altaDate = startOfMonth(new Date(hermano.fecha_alta));
+    const today = startOfMonth(new Date());
+
+    for (let i = 0; i < 12; i++) {
+        const { calendarMonth, calendarYear } = getCalendarMonthAndYear(seasonYear, i);
+        const cellDate = new Date(calendarYear, calendarMonth);
+
+        // Skip if before alta
+        if (cellDate < altaDate) continue;
+
+        // Skip if future month (beyond today)
+        if (cellDate > today) continue;
+
+        const status = getMonthStatusForYear(hermano, pagos, seasonYear, i);
+        if (status === 'OVERDUE' || status === 'PENDING') {
+            pending.push(i);
+        }
+    }
+
+    return pending;
+}

@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MONTHS_FULL, getActiveSeason, getConceptString } from '@/lib/treasury';
+import { MONTHS_FULL, getActiveSeason, getConceptString, getPendingMonthsForSeason } from '@/lib/treasury';
 import { getPreciosConfig } from '@/lib/configuracion';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +28,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     const realMonth = new Date().getMonth();
     const initialSeasonMonthIdx = (realMonth + 12 - 2) % 12;
 
-    const [selectedMonth, setSelectedMonth] = useState(initialSeasonMonthIdx);
+    const [selectedMonth, setSelectedMonth] = useState<number | 'FULL_YEAR'>(initialSeasonMonthIdx);
 
     const { data: config } = useQuery({
         queryKey: ['configuracion-precios'],
@@ -40,9 +40,11 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
         queryFn: getActiveSeason,
     });
 
-    const amount = overrideAmount ?? config?.cuota_mensual_hermano?.toString() ?? '10';
+    const fee = config?.cuota_mensual_hermano ?? 1.8;
+    const amount = overrideAmount ?? (selectedMonth === 'FULL_YEAR' ? (fee * 12).toString() : fee.toString());
     const selectedYear = overrideYear ?? activeSeason?.anio ?? new Date().getFullYear();
 
+    const numMonthsDetected = Math.floor(parseFloat(amount) / fee) || 0;
 
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
@@ -56,27 +58,67 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
 
     const paymentMutation = useMutation({
         mutationFn: async () => {
-            const conceptoStandard = getConceptString(selectedYear, selectedMonth);
+            const monthsToPay: number[] = [];
 
-            const { data, error } = await supabase
+            if (selectedMonth === 'FULL_YEAR') {
+                for (let i = 0; i < 12; i++) monthsToPay.push(i);
+            } else {
+                // Smart assignment logic
+                const pending = getPendingMonthsForSeason(hermano!, pagosBrother, selectedYear);
+
+                // Always include the selected month if it's not already paid (or even if it is, as per user requirement)
+                let remainingMonths = numMonthsDetected;
+
+                // If the selected month is pending, we prioritize it as requested: "asigne como pagadas el mes que se selecione"
+                if (!monthsToPay.includes(selectedMonth)) {
+                    monthsToPay.push(selectedMonth);
+                    remainingMonths--;
+                }
+
+                // Fill with pending/arrears
+                for (const m of pending) {
+                    if (remainingMonths <= 0) break;
+                    if (!monthsToPay.includes(m)) {
+                        monthsToPay.push(m);
+                        remainingMonths--;
+                    }
+                }
+
+                // If still months left, fill with next months
+                let nextMonth = selectedMonth + 1;
+                while (remainingMonths > 0 && nextMonth < 12) {
+                    if (!monthsToPay.includes(nextMonth)) {
+                        monthsToPay.push(nextMonth);
+                        remainingMonths--;
+                    }
+                    nextMonth++;
+                }
+            }
+
+            // Create insertion records
+            const records = monthsToPay.map(mIdx => ({
+                id_hermano: id,
+                cantidad: fee, // We split the total into individual 1-month payments for audit Trail
+                concepto: getConceptString(selectedYear, mIdx),
+                anio: selectedYear,
+                fecha_pago: new Date().toISOString().split('T')[0]
+            }));
+
+            const { error } = await supabase
                 .from('pagos')
-                .insert([{
-                    id_hermano: id,
-                    cantidad: parseFloat(amount),
-                    concepto: conceptoStandard,
-                    anio: selectedYear,
-                    fecha_pago: new Date().toISOString().split('T')[0]
-                }]);
+                .insert(records);
             if (error) throw error;
-            return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pagos'] });
             queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
-            toast.success('Pago registrado correctamente');
+            queryClient.invalidateQueries({ queryKey: ['hermano-status'] });
+            setOverrideAmount(null);
+            setOverrideYear(null);
+            toast.success('Pago(s) registrado(s) correctamente');
         },
-        onError: () => {
-            toast.error('Error al registrar el pago');
+        onError: (error: Error) => {
+            toast.error('Error al registrar el pago: ' + error.message);
         }
     });
 
@@ -104,6 +146,12 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (selectedMonth === 'FULL_YEAR' && parseFloat(amount) < (fee * 12)) {
+            toast.error(`El importe para año completo debe ser al menos ${(fee * 12).toFixed(2)}€`);
+            return;
+        }
+
         paymentMutation.mutate();
     };
 
@@ -126,26 +174,37 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                             <Input
                                 id="amount"
                                 type="number"
-                                step="0.01"
+                                step="0.10"
                                 value={amount}
                                 onChange={(e) => setOverrideAmount(e.target.value)}
                                 className="text-center text-xl font-bold border-primary/20 focus-visible:ring-primary h-12"
                                 required
                             />
+                            {numMonthsDetected > 0 && (
+                                <p className="text-center text-xs text-primary font-medium bg-primary/5 py-1 rounded-full animate-in fade-in slide-in-from-top-1">
+                                    ✨ Cubre {numMonthsDetected} {numMonthsDetected === 1 ? 'mes' : 'meses'} de cuota
+                                </p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="month">Mes</Label>
+                                <Label htmlFor="month">Periodo</Label>
                                 <select
                                     id="month"
                                     value={selectedMonth}
-                                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setSelectedMonth(val === 'FULL_YEAR' ? 'FULL_YEAR' : parseInt(val));
+                                        setOverrideAmount(null); // Reset to automatic calculation based on selection
+                                    }}
                                     className="flex h-12 w-full rounded-md border border-primary/20 bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 appearance-none cursor-pointer"
                                 >
                                     {MONTHS_FULL.map((month, idx) => (
                                         <option key={idx} value={idx}>{month}</option>
                                     ))}
+                                    <option value="" disabled className="border-t">——————</option>
+                                    <option value="FULL_YEAR" className="font-bold text-primary">📅 AÑO COMPLETO</option>
                                 </select>
                             </div>
                             <div className="space-y-2">
