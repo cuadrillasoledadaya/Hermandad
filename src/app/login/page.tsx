@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { LogIn } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
@@ -76,6 +77,16 @@ export default function LoginPage() {
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? 'Cargando...' : 'Iniciar Sesión'}
                         </Button>
+                        <div className="text-center pt-4 border-t">
+                            <p className="text-sm text-muted-foreground">
+                                ¿Eres hermano y no tienes cuenta?
+                            </p>
+                            <Link href="/register">
+                                <Button variant="link" type="button" className="text-primary font-bold">
+                                    Regístrate aquí con tu email
+                                </Button>
+                            </Link>
+                        </div>
                     </form>
                 </CardContent>
             </Card>
