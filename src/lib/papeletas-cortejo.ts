@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getPreciosConfig } from './configuracion';
 
 // =====================================================
 // TIPOS Y CONSTANTES
@@ -72,11 +73,27 @@ export interface VenderPapeletaInput {
 }
 
 /**
+ * Obtiene el precio configurado para un tipo de papeleta
+ */
+export async function getPrecioPapeleta(tipo: TipoPapeleta): Promise<number> {
+    const config = await getPreciosConfig();
+    switch (tipo) {
+        case 'nazareno': return config.papeleta_nazareno;
+        case 'costalero': return config.papeleta_costalero;
+        case 'insignia': return config.papeleta_insignia;
+        case 'vara': return config.papeleta_vara;
+        case 'bocina': return config.papeleta_bocina;
+        case 'cruz_guia': return config.papeleta_cruz_guia;
+        default: return PRECIO_PAPELETA_DEFAULT;
+    }
+}
+
+/**
  * Vende una papeleta de cortejo y crea el pago asociado
  */
 export async function venderPapeleta(input: VenderPapeletaInput): Promise<PapeletaCortejo> {
     const year = input.anio || new Date().getFullYear();
-    const importe = input.importe || PRECIO_PAPELETA_DEFAULT;
+    const importe = input.importe ?? await getPrecioPapeleta(input.tipo);
 
     // 0. Validación: Verificar si el hermano ya tiene papeleta este año
     const { data: existingPapeleta, error: checkError } = await supabase
@@ -324,10 +341,10 @@ export async function asignarPosicionAPapeleta(
     if (posError) throw posError;
 
     // 3. Verificar que el tipo coincide (1:1 Estricto)
-    const matchesType = papeleta.tipo === (posicion.tipo as any);
+    const matchesType = papeleta.tipo === (posicion.tipo as TipoPapeleta);
 
     if (!matchesType) {
-        const tipoLabel = (TIPOS_PAPELETA as any)[papeleta.tipo] || papeleta.tipo;
+        const tipoLabel = TIPOS_PAPELETA[papeleta.tipo as keyof typeof TIPOS_PAPELETA] || papeleta.tipo;
         throw new Error(`El tipo de papeleta (${tipoLabel}) no coincide con el tipo de posición (${posicion.tipo})`);
     }
 

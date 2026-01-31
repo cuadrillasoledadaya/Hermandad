@@ -12,6 +12,13 @@ export interface Hermano {
     activo: boolean;
 }
 
+export interface BrotherSearchResult {
+    id: string;
+    nombre: string;
+    apellidos: string;
+    tiene_papeleta?: boolean;
+}
+
 export interface Pago {
     id: string;
     id_hermano: string;

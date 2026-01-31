@@ -1,6 +1,7 @@
 import { differenceInMonths, startOfMonth } from 'date-fns';
 import { type Hermano, type Pago } from './brothers';
 import { supabase } from './supabase';
+import { getPreciosConfig } from './configuracion';
 
 // Helper to get formatted concept string for a season month
 export function getConceptString(seasonYear: number, seasonMonthIdx: number) {
@@ -33,14 +34,15 @@ export function getCalendarMonthAndYear(seasonYear: number, seasonMonthIdx: numb
 
 export type PaymentStatus = 'PAID' | 'PENDING' | 'OVERDUE';
 
-const CUOTA_MENSUAL = 10; // This should be configurable later
+export async function calculateHermanoStatus(hermano: Hermano, pagos: Pago[]): Promise<PaymentStatus> {
+    const config = await getPreciosConfig();
+    const cuotaMensual = config.cuota_mensual_hermano;
 
-export function calculateHermanoStatus(hermano: Hermano, pagos: Pago[]): PaymentStatus {
     const altaDate = startOfMonth(new Date(hermano.fecha_alta));
     const today = startOfMonth(new Date());
 
     const monthsSinceAlta = Math.max(0, differenceInMonths(today, altaDate) + 1);
-    const totalRequired = monthsSinceAlta * CUOTA_MENSUAL;
+    const totalRequired = monthsSinceAlta * cuotaMensual;
 
     const totalPaid = pagos.reduce((acc, pago) => acc + pago.cantidad, 0);
 
@@ -49,7 +51,7 @@ export function calculateHermanoStatus(hermano: Hermano, pagos: Pago[]): Payment
 
     if (debt <= 0) {
         return 'PAID';
-    } else if (debt <= CUOTA_MENSUAL) {
+    } else if (debt <= cuotaMensual) {
         // Si solo debe el mes actual, lo marcamos como pendiente (blanco)
         return 'PENDING';
     } else {

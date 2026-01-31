@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/store/use-app-store';
-import { X, Home, Users, Wallet, Share2, Settings, Calendar, Receipt, Church, LogOut, Shield } from 'lucide-react';
+import { X, Home, Users, Wallet, Share2, Settings, Receipt, Church, LogOut, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -101,7 +101,7 @@ export function Sidebar() {
                                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
                                     {role}
                                 </span>
-                                <p className="text-xs text-slate-500 mt-2 text-center">v1.1.20</p>
+                                <p className="text-xs text-slate-500 mt-2 text-center">v1.1.25</p>
                             </div>
                         </div>
                         <button

@@ -14,32 +14,35 @@ import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MONTHS_FULL, getActiveSeason, getConceptString } from '@/lib/treasury';
+import { getPreciosConfig } from '@/lib/configuracion';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const [amount, setAmount] = useState('10');
+    const [overrideAmount, setOverrideAmount] = useState<string | null>(null);
+    const [overrideYear, setOverrideYear] = useState<number | null>(null);
 
     // Initial month index in season (Mar=0)
     const realMonth = new Date().getMonth();
     const initialSeasonMonthIdx = (realMonth + 12 - 2) % 12;
 
     const [selectedMonth, setSelectedMonth] = useState(initialSeasonMonthIdx);
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+    const { data: config } = useQuery({
+        queryKey: ['configuracion-precios'],
+        queryFn: getPreciosConfig,
+    });
 
     const { data: activeSeason } = useQuery({
         queryKey: ['active-season'],
         queryFn: getActiveSeason,
     });
 
-    // Initialize year when active season is loaded
-    useEffect(() => {
-        if (activeSeason?.anio) {
-            setSelectedYear(activeSeason.anio);
-        }
-    }, [activeSeason]);
+    const amount = overrideAmount ?? config?.cuota_mensual_hermano?.toString() ?? '10';
+    const selectedYear = overrideYear ?? activeSeason?.anio ?? new Date().getFullYear();
+
 
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
@@ -125,7 +128,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                 type="number"
                                 step="0.01"
                                 value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
+                                onChange={(e) => setOverrideAmount(e.target.value)}
                                 className="text-center text-xl font-bold border-primary/20 focus-visible:ring-primary h-12"
                                 required
                             />
@@ -151,7 +154,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                     id="year"
                                     type="number"
                                     value={selectedYear}
-                                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                    onChange={(e) => setOverrideYear(parseInt(e.target.value))}
                                     className="border-primary/20 focus-visible:ring-primary h-12 text-center"
                                     required
                                 />

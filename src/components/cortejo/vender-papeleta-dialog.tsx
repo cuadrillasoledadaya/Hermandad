@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { venderPapeleta, TIPOS_PAPELETA, TipoPapeleta, PRECIO_PAPELETA_DEFAULT } from '@/lib/papeletas-cortejo';
+import { type BrotherSearchResult } from '@/lib/brothers';
+import { venderPapeleta, TIPOS_PAPELETA, TipoPapeleta, PRECIO_PAPELETA_DEFAULT, getPrecioPapeleta } from '@/lib/papeletas-cortejo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,16 @@ export function VenderPapeletaDialog() {
     const [tipo, setTipo] = useState<TipoPapeleta>('nazareno');
     const [tramo, setTramo] = useState<string>('1');
     const [importe, setImporte] = useState(PRECIO_PAPELETA_DEFAULT);
+
+    // Update price when type changes
+    useQuery({
+        queryKey: ['papeleta-price', tipo],
+        queryFn: async () => {
+            const price = await getPrecioPapeleta(tipo);
+            setImporte(prev => prev !== price ? price : prev);
+            return price;
+        },
+    });
 
     const queryClient = useQueryClient();
 
@@ -142,7 +153,7 @@ export function VenderPapeletaDialog() {
                                     <p className="text-sm text-center text-muted-foreground p-4">
                                         No se encontraron hermanos con ese nombre.
                                     </p>
-                                ) : hermanos?.map((item: any) => (
+                                ) : (hermanos as (BrotherSearchResult & { tiene_papeleta: boolean })[])?.map((item) => (
                                     <button
                                         key={item.id}
                                         onClick={() => !item.tiene_papeleta && handleSelectHermano(item)}

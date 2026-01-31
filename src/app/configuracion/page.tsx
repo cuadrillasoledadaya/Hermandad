@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { SidebarWrapper } from '@/components/layout/sidebar-wrapper';
-import { Settings, Users, Calendar, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Settings, Users, Calendar, ShieldCheck, ArrowRight, Euro } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -37,6 +37,15 @@ export default function ConfiguracionPage() {
             color: 'text-purple-600',
             bg: 'bg-purple-50',
             roles: ['SUPERADMIN']
+        },
+        {
+            title: 'Precios y Cuotas',
+            description: 'Configurar precios fijos para cuotas y papeletas.',
+            icon: Euro,
+            href: '/configuracion/precios',
+            color: 'text-amber-600',
+            bg: 'bg-amber-50',
+            roles: ['SUPERADMIN', 'JUNTA']
         },
         {
             title: 'Miembros de la Hermandad',
