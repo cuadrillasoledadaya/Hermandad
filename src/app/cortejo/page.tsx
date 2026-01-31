@@ -77,11 +77,30 @@ export default function CortejoPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold tracking-tight">🔱 Cortejo Procesional</h2>
-                <p className="text-muted-foreground">
-                    Organización y estructura del cortejo de la Hermandad.
-                </p>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">🔱 Cortejo Procesional</h2>
+                    <p className="text-muted-foreground">
+                        Organización y estructura del cortejo de la Hermandad.
+                    </p>
+                </div>
+                {canManage && (
+                    <div className="flex gap-2">
+                        <Link href="/cortejo/admin">
+                            <Button variant="outline" className="gap-2">
+                                <Shield className="w-4 h-4" />
+                                Gestionar Estructura
+                            </Button>
+                        </Link>
+                        <Link href="/cortejo/sorteo">
+                            <Button className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
+                                <Users className="w-4 h-4" />
+                                Sorteo de Varas
+                            </Button>
+                        </Link>
+                    </div>
+                )}
             </div>
 
             {/* Estadísticas */}
