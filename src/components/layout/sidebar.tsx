@@ -17,11 +17,10 @@ export function Sidebar() {
         { name: 'Hermanos', icon: Users, href: '/hermanos' },
         { name: 'Tesorería', icon: Wallet, href: '/tesoreria' },
         { name: 'Avisos', icon: Share2, href: '/avisos' },
-        { name: 'Configuración', icon: Settings, href: '/config' },
+        { name: 'Configuración', icon: Settings, href: '/configuracion' },
     ];
 
     const adminItems = [
-        { name: 'Temporadas', icon: Calendar, href: '/configuracion/temporadas' },
         { name: 'Gastos', icon: Receipt, href: '/tesoreria/gastos' },
         { name: 'Papeletas', icon: Receipt, href: '/tesoreria/papeletas-cortejo' },
         { name: 'Cortejo', icon: Church, href: '/cortejo' },
@@ -102,7 +101,7 @@ export function Sidebar() {
                                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
                                     {role}
                                 </span>
-                                <p className="text-xs text-slate-500 mt-2 text-center">v1.1.16</p>
+                                <p className="text-xs text-slate-500 mt-2 text-center">v1.1.20</p>
                             </div>
                         </div>
                         <button
