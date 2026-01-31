@@ -6,8 +6,9 @@ export interface CandidatoSorteo {
     nombre: string;
     apellidos: string;
     numero_hermano: number | null;
-    antiguedad_hermandad: string | null; // fecha ingreso
+    antiguedad_hermandad: string | null;
     fecha_pago: string;
+    tramo: number | null; // Nuevo campo
 }
 
 export interface HuecoLibre {
@@ -30,6 +31,7 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
         .select(`
             id,
             fecha_pago,
+            tramo,
             hermanos(
                 id,
                 nombre,
@@ -62,6 +64,7 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
             numero_hermano: h ? h.numero_hermano : 0,
             antiguedad_hermandad: h ? h.fecha_alta : null,
             fecha_pago: p.fecha_pago,
+            tramo: p.tramo,
         };
     }) as CandidatoSorteo[];
 }
@@ -114,38 +117,50 @@ export function simularSorteo(
     huecos: HuecoLibre[],
     criterio: 'antiguedad' | 'orden_llegada' = 'antiguedad'
 ): ResultadoSorteo[] {
-    // 1. Ordenar Candidatos
-    const candidatosOrdenados = [...candidatos].sort((a, b) => {
-        if (criterio === 'antiguedad') {
-            // Menor número de hermano va primero (o fecha ingreso más antigua)
-            const numA = a.numero_hermano ?? 999999;
-            const numB = b.numero_hermano ?? 999999;
-            return numA - numB;
-        } else {
-            // Orden llegada (fecha pago)
-            return new Date(a.fecha_pago).getTime() - new Date(b.fecha_pago).getTime();
-        }
-    });
+    // 1. Agrupar candidatos y huecos por Tramo
+    // Nota: orden_global de hueco ya incluye el tramo (tramo * 1000 + posicion)
+    // El tramo 'null' se sorteara de forma global o segun tipo.
 
-    // 2. Ordenar Huecos
-    // Si es antigüedad: Queremos llenar primero los sitios más cercanos al paso (Mayor orden_global)
-    // Si es orden_llegada (o default): Llenamos desde la Cruz de Guía (Menor orden_global)
-    const huecosOrdenados = [...huecos].sort((a, b) => {
-        if (criterio === 'antiguedad') {
-            return b.orden_global - a.orden_global; // DESC
-        }
-        return a.orden_global - b.orden_global; // ASC
-    });
+    // Filtramos candidatos que coincidan con los tramos representados en los huecos
+    // En el MVP, simplemente asignamos candidatos a huecos que tengan el MISMO tramo.
 
-    // 3. Asignar
     const asignaciones: ResultadoSorteo[] = [];
-    const max = Math.min(candidatosOrdenados.length, huecosOrdenados.length);
 
-    for (let i = 0; i < max; i++) {
-        asignaciones.push({
-            candidato: candidatosOrdenados[i],
-            posicion: huecosOrdenados[i]
+    // Lista de tramos presentes
+    const tramos = Array.from(new Set([...candidatos.map(c => c.tramo), ...huecos.map(h => Math.floor(h.orden_global / 1000))]));
+
+    for (const tr of tramos) {
+        const candidatosTramo = candidatos.filter(c => c.tramo === tr);
+        const huecosTramo = huecos.filter(h => Math.floor(h.orden_global / 1000) === tr);
+
+        if (candidatosTramo.length === 0 || huecosTramo.length === 0) continue;
+
+        // A) Ordenar Candidatos del Tramo
+        const tOrdenados = [...candidatosTramo].sort((a, b) => {
+            if (criterio === 'antiguedad') {
+                const numA = a.numero_hermano ?? 999999;
+                const numB = b.numero_hermano ?? 999999;
+                return numA - numB;
+            }
+            return new Date(a.fecha_pago).getTime() - new Date(b.fecha_pago).getTime();
         });
+
+        // B) Ordenar Huecos del Tramo
+        // Regla: A mayor antigüedad, más cerca del paso (Mayor orden_global dentro del tramo)
+        const hOrdenados = [...huecosTramo].sort((a, b) => {
+            if (criterio === 'antiguedad') {
+                return b.orden_global - a.orden_global; // DESC
+            }
+            return a.orden_global - b.orden_global; // ASC
+        });
+
+        const max = Math.min(tOrdenados.length, hOrdenados.length);
+        for (let i = 0; i < max; i++) {
+            asignaciones.push({
+                candidato: tOrdenados[i],
+                posicion: hOrdenados[i]
+            });
+        }
     }
 
     return asignaciones;

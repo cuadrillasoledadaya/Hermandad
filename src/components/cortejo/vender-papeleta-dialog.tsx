@@ -18,6 +18,7 @@ export function VenderPapeletaDialog() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedHermano, setSelectedHermano] = useState<{ id: string; nombre: string; apellidos: string } | null>(null);
     const [tipo, setTipo] = useState<TipoPapeleta>('nazareno');
+    const [tramo, setTramo] = useState<string>('1');
     const [importe, setImporte] = useState(PRECIO_PAPELETA_DEFAULT);
 
     const queryClient = useQueryClient();
@@ -79,6 +80,7 @@ export function VenderPapeletaDialog() {
         setSearchTerm('');
         setSelectedHermano(null);
         setTipo('nazareno');
+        setTramo('1');
         setImporte(PRECIO_PAPELETA_DEFAULT);
     };
 
@@ -93,6 +95,7 @@ export function VenderPapeletaDialog() {
         venderMutation.mutate({
             id_hermano: selectedHermano.id,
             tipo,
+            tramo: (tipo === 'nazareno' || tipo === 'vara' || tipo === 'insignia' || tipo === 'bocina') ? Number(tramo) : undefined,
             importe: Number(importe)
         });
     };
@@ -203,6 +206,26 @@ export function VenderPapeletaDialog() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                {(tipo === 'nazareno' || tipo === 'vara' || tipo === 'insignia' || tipo === 'bocina') && (
+                                    <div className="space-y-2">
+                                        <Label>Tramo</Label>
+                                        <Select
+                                            value={tramo}
+                                            onValueChange={setTramo}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="0">Cruz de Guía (Tramo 0)</SelectItem>
+                                                <SelectItem value="1">Tramo 1</SelectItem>
+                                                <SelectItem value="2">Tramo 2</SelectItem>
+                                                <SelectItem value="3">Tramo 3</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <Label>Importe (€)</Label>

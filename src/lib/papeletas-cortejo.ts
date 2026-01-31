@@ -30,6 +30,7 @@ export interface PapeletaCortejo {
     numero: number;
     anio: number;
     tipo: TipoPapeleta;
+    tramo: number | null;
     estado: EstadoPapeleta;
     importe: number;
     fecha_pago: string;
@@ -65,6 +66,7 @@ export interface PapeletaConDetalles extends PapeletaCortejo {
 export interface VenderPapeletaInput {
     id_hermano: string;
     tipo: TipoPapeleta;
+    tramo?: number; // Nuevo campo opcional
     importe?: number;
     anio?: number;
 }
@@ -128,6 +130,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
             numero: siguienteNumero,
             anio: year,
             tipo: input.tipo,
+            tramo: input.tramo || null,
             importe,
             id_ingreso: pago.id,
             estado: 'pagada'
