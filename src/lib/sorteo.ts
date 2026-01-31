@@ -23,13 +23,17 @@ export interface ResultadoSorteo {
 
 export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
     // Debug log
-    console.log(`[Sorteo] Fetching candidatos for tipo: ${tipo}`);
+    console.log(`[Sorteo] Fetching ALL papeletas for tipo: ${tipo} to debug...`);
 
-    const { data, error } = await supabase
+    // Fetch all tickets of this type to see what exists (without strict filters first)
+    const { data: allTickets, error: allError } = await supabase
         .from('papeletas_cortejo')
         .select(`
             id,
             fecha_pago,
+            estado,
+            tipo,
+            id_posicion_asignada,
             hermanos(
                 id,
                 nombre,
@@ -38,19 +42,30 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
                 fecha_ingreso
             )
         `)
-        .ilike('estado', 'pagada') // Case insensitive check for 'pagada', 'Pagada', etc.
         .ilike('tipo', tipo)
-        .is('id_posicion_asignada', null)
         .order('fecha_pago', { ascending: true });
 
-    if (error) {
-        console.error('[Sorteo] Error fetching candidatos:', error);
-        throw error;
+    if (allError) {
+        console.error('[Sorteo] Fatal Error fetching tickets:', allError);
+        throw allError;
     }
 
-    console.log(`[Sorteo] Found ${data?.length || 0} candidates`);
+    if (!allTickets) return [];
 
-    return data.map((p) => {
+    console.log(`[Sorteo] Total tickets found for '${tipo}': ${allTickets.length}`);
+
+    // Filter in memory to debug step-by-step
+    const pagadas = allTickets.filter(p => p.estado && p.estado.toLowerCase() === 'pagada');
+    console.log(`[Sorteo] Tickets 'pagada': ${pagadas.length}`);
+
+    const sinAsignar = pagadas.filter(p => !p.id_posicion_asignada);
+    console.log(`[Sorteo] Tickets pagada AND sin asignación (Candidates): ${sinAsignar.length}`);
+
+    if (sinAsignar.length === 0 && allTickets.length > 0) {
+        console.warn('[Sorteo] WARNING: Tickets exist but filters removed all. Check specific ticket:', allTickets[0]);
+    }
+
+    return sinAsignar.map((p) => {
         const h = Array.isArray(p.hermanos) ? p.hermanos[0] : p.hermanos;
         return {
             id_papeleta: p.id,
@@ -86,8 +101,16 @@ export async function getHuecosLibres(tipo: string, tramoId?: string): Promise<H
 
     if (error) throw error;
 
+    interface RawHueco {
+        id: string;
+        nombre: string;
+        tramo: number;
+        posicion: number;
+        asignaciones: { id: string }[];
+    }
+
     // Cast data for safer processing
-    const data = rawData as unknown as { id: string; nombre: string; tramo: number; posicion: number; asignaciones: any[] }[];
+    const data = rawData as unknown as RawHueco[];
 
     // Filtrar los que NO tienen asignación (array vacio)
     const libres = data.filter((pos) => pos.asignaciones.length === 0);
