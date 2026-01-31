@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPapeletasDelAnio, getEstadisticasPapeletas } from '@/lib/papeletas-cortejo';
 import { Card } from '@/components/ui/card';
 import { Loader2, Search, Filter } from 'lucide-react';
@@ -11,12 +11,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from 'lucide-react';
+import { eliminarPapeleta } from '@/lib/papeletas-cortejo';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button'; // Ensure Button is imported if not already, or keep existing
 
 export default function PapeletasPage() {
     const { role } = useAuth();
     const canManage = role === 'SUPERADMIN' || role === 'JUNTA';
     const [filterEstado, setFilterEstado] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Delete state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [papeletaToDelete, setPapeletaToDelete] = useState<{ id: string, numero: number } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const queryClient = useQueryClient(); // Need queryClient for invalidation
 
     const { data: papeletas, isLoading } = useQuery({
         queryKey: ['papeletas-cortejo'],
@@ -46,6 +66,31 @@ export default function PapeletasPage() {
             </div>
         );
     }
+
+    const handleDeleteClick = (id: string, numero: number) => {
+        setPapeletaToDelete({ id, numero });
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent auto-close
+        if (!papeletaToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await eliminarPapeleta(papeletaToDelete.id);
+            toast.success(`Papeleta #${papeletaToDelete.numero} eliminada correctamente`);
+            setDeleteDialogOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['papeletas-cortejo'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas-stats'] });
+        } catch (error: any) {
+            console.error('Error deleting:', error);
+            toast.error('Error al eliminar: ' + error.message);
+        } finally {
+            setIsDeleting(false);
+            setPapeletaToDelete(null);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -171,6 +216,18 @@ export default function PapeletasPage() {
                                         <td className="px-4 py-3 text-muted-foreground text-xs">
                                             {format(new Date(papeleta.fecha_pago), 'dd MMM yyyy', { locale: es })}
                                         </td>
+                                        {canManage && (
+                                            <td className="px-4 py-3 text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleDeleteClick(papeleta.id, papeleta.numero)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             )}
@@ -178,6 +235,29 @@ export default function PapeletasPage() {
                     </table>
                 </div>
             </Card>
+
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Estás a punto de eliminar la papeleta #{papeletaToDelete?.numero}.
+                            Esta acción eliminará también el cobro asociado y liberará cualquier posición asignada.
+                            <br /><br />
+                            <span className="font-bold text-red-600">Esta acción no se puede deshacer.</span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDelete}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Eliminar'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

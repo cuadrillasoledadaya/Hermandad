@@ -76,6 +76,21 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     const year = input.anio || new Date().getFullYear();
     const importe = input.importe || PRECIO_PAPELETA_DEFAULT;
 
+    // 0. Validación: Verificar si el hermano ya tiene papeleta este año
+    const { data: existingPapeleta, error: checkError } = await supabase
+        .from('papeletas_cortejo')
+        .select('id, numero')
+        .eq('id_hermano', input.id_hermano)
+        .eq('anio', year)
+        .neq('estado', 'cancelada') // Ignorar las canceladas/borradas si las hubiera
+        .single();
+
+    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+    if (existingPapeleta) {
+        throw new Error(`Este hermano ya tiene la papeleta #${existingPapeleta.numero} activa para este año.`);
+    }
+
     // 1. Obtener el siguiente número de papeleta disponible
     const { data: ultimaPapeleta, error: numError } = await supabase
         .from('papeletas_cortejo')
@@ -120,7 +135,11 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
         .select()
         .single();
 
-    if (papeletaError) throw papeletaError;
+    if (papeletaError) {
+        // Rollback pago si falla papeleta
+        await supabase.from('pagos').delete().eq('id', pago.id);
+        throw papeletaError;
+    }
 
     // 4. Actualizar el pago con la referencia a la papeleta
     await supabase
@@ -141,6 +160,58 @@ export async function cancelarPapeleta(id_papeleta: string): Promise<void> {
         .eq('id', id_papeleta);
 
     if (error) throw error;
+}
+
+/**
+ * Elimina completamente una papeleta, su asignación y su pago asociado.
+ * Solo para administradores.
+ */
+export async function eliminarPapeleta(id_papeleta: string): Promise<void> {
+    // 1. Obtener datos de la papeleta para saber qué borrar
+    const { data: papeleta, error: getError } = await supabase
+        .from('papeletas_cortejo')
+        .select('id, anio, id_posicion_asignada, id_ingreso')
+        .eq('id', id_papeleta)
+        .single();
+
+    if (getError) throw getError;
+
+    // 2. Si tiene asignación de puesto, borrarla en cortejo_asignaciones
+    if (papeleta.id_posicion_asignada) {
+        const { error: delAsigError } = await supabase
+            .from('cortejo_asignaciones')
+            .delete()
+            .eq('id_posicion', papeleta.id_posicion_asignada)
+            .eq('anio', papeleta.anio);
+
+        if (delAsigError) throw delAsigError;
+    }
+
+    // 3. Eliminar la papeleta (esto debería ser lo último por integridad, pero lo hacemos antes del pago)
+    // Primero desvinculamos el pago para evitar constraints si las hubiera
+    if (papeleta.id_ingreso) {
+        await supabase.from('pagos').update({ id_papeleta: null }).eq('id', papeleta.id_ingreso);
+    }
+
+    const { error: delPapError } = await supabase
+        .from('papeletas_cortejo')
+        .delete()
+        .eq('id', id_papeleta);
+
+    if (delPapError) throw delPapError;
+
+    // 4. Eliminar el pago asociado
+    if (papeleta.id_ingreso) {
+        const { error: delPagoError } = await supabase
+            .from('pagos')
+            .delete()
+            .eq('id', papeleta.id_ingreso);
+
+        if (delPagoError) {
+            console.error('Error borrando pago de papeleta eliminada:', delPagoError);
+            // No lanzamos error aquí porque la papeleta ya se borró, es cleanup best-effort
+        }
+    }
 }
 
 // =====================================================

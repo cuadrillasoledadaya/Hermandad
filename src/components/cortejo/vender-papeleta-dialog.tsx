@@ -27,12 +27,34 @@ export function VenderPapeletaDialog() {
         queryKey: ['hermanos-search', searchTerm],
         queryFn: async () => {
             if (searchTerm.length < 2) return [];
-            const { data } = await supabase
+
+            // 1. Buscar hermanos
+            const { data: hermanosFound } = await supabase
                 .from('hermanos')
                 .select('id, nombre, apellidos')
                 .or(`nombre.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%`)
+                .eq('activo', true) // Solo activos
                 .limit(5);
-            return data || [];
+
+            if (!hermanosFound || hermanosFound.length === 0) return [];
+
+            // 2. Verificar si tienen papeleta este año
+            const ids = hermanosFound.map(h => h.id);
+            const year = new Date().getFullYear();
+
+            const { data: papeletas } = await supabase
+                .from('papeletas_cortejo')
+                .select('id_hermano')
+                .in('id_hermano', ids)
+                .eq('anio', year)
+                .neq('estado', 'cancelada');
+
+            const hermanosConPapeletaSet = new Set(papeletas?.map(p => p.id_hermano));
+
+            return hermanosFound.map(h => ({
+                ...h,
+                tiene_papeleta: hermanosConPapeletaSet.has(h.id)
+            }));
         },
         enabled: searchTerm.length >= 2,
     });
@@ -117,16 +139,29 @@ export function VenderPapeletaDialog() {
                                     <p className="text-sm text-center text-muted-foreground p-4">
                                         No se encontraron hermanos con ese nombre.
                                     </p>
-                                ) : hermanos?.map((hermano) => (
+                                ) : hermanos?.map((item: any) => (
                                     <button
-                                        key={hermano.id}
-                                        onClick={() => handleSelectHermano(hermano)}
-                                        className="w-full text-left p-3 hover:bg-slate-50 rounded-md transition-colors flex items-center justify-between group"
+                                        key={item.id}
+                                        onClick={() => !item.tiene_papeleta && handleSelectHermano(item)}
+                                        disabled={item.tiene_papeleta}
+                                        className={`w-full text-left p-3 rounded-md transition-colors flex items-center justify-between group
+                                            ${item.tiene_papeleta
+                                                ? 'bg-slate-100 opacity-60 cursor-not-allowed'
+                                                : 'hover:bg-slate-50'}`}
                                     >
-                                        <span className="font-medium">
-                                            {hermano.nombre} {hermano.apellidos}
-                                        </span>
-                                        <UserPlus className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div>
+                                            <span className="font-medium block">
+                                                {item.nombre} {item.apellidos}
+                                            </span>
+                                            {item.tiene_papeleta && (
+                                                <span className="text-xs text-red-500 font-medium">
+                                                    Ya tiene papeleta
+                                                </span>
+                                            )}
+                                        </div>
+                                        {!item.tiene_papeleta && (
+                                            <UserPlus className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        )}
                                     </button>
                                 ))}
                                 {searchTerm.length < 2 && (

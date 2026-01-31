@@ -1,0 +1,85 @@
+-- =====================================================
+-- SEED: 70 HERMANOS ALEATORIOS
+-- =====================================================
+-- Genera 70 hermanos con nombres, apellidos y fechas aleatorias.
+-- NO incluye email ni teléfono (NULL).
+-- Ejecuta recalibración al final para asignar número de hermano.
+
+DO $$
+BEGIN
+    -- Insertar 70 hermanos (sin DNI ni Fecha Nacimiento, que no existen en la tabla)
+    INSERT INTO hermanos (nombre, apellidos, fecha_alta, activo, rol) VALUES
+    ('Antonio', 'García López', '1980-03-15', true, 'HERMANO'),
+    ('María', 'Rodríguez Sánchez', '1985-11-20', true, 'HERMANO'),
+    ('Manuel', 'Martínez Pérez', '1990-06-05', true, 'HERMANO'),
+    ('Josefa', 'González Ruiz', '1975-01-30', true, 'HERMANO'),
+    ('Francisco', 'Hernández Jiménez', '2000-09-12', true, 'HERMANO'),
+    ('Carmen', 'Díaz Moreno', '2010-02-14', true, 'HERMANO'),
+    ('David', 'Muñoz Álvarez', '1995-08-22', true, 'HERMANO'),
+    ('Isabel', 'Romero Navarro', '1988-05-01', true, 'HERMANO'),
+    ('Javier', 'Torres Domínguez', '2005-12-10', true, 'HERMANO'),
+    ('Ana', 'Vázquez Gil', '2015-04-04', true, 'HERMANO'),
+    ('José', 'Serrano Ramos', '1970-07-19', true, 'HERMANO'),
+    ('Dolores', 'Blanco Molina', '1965-03-25', true, 'HERMANO'),
+    ('Juan', 'Morales Castro', '1992-10-08', true, 'HERMANO'),
+    ('Paqui', 'Ortega Rubio', '1998-01-17', true, 'HERMANO'),
+    ('Pedro', 'Delgado Ortiz', '2003-06-21', true, 'HERMANO'),
+    ('Pilar', 'Marín Santos', '1982-12-02', true, 'HERMANO'),
+    ('Miguel', 'Iglesias Núñez', '1987-09-15', true, 'HERMANO'),
+    ('Lucía', 'Garrido Medina', '2012-03-10', true, 'HERMANO'),
+    ('Rafael', 'Cortes Peña', '1978-05-28', true, 'HERMANO'),
+    ('Elena', 'Cruz Flores', '2008-08-08', true, 'HERMANO'),
+    ('Ángel', 'Cabrera Campos', '1991-04-14', true, 'HERMANO'),
+    ('Rocío', 'Vega Fuentes', '1996-11-25', true, 'HERMANO'),
+    ('Luis', 'Diez Reyes', '2002-02-02', true, 'HERMANO'),
+    ('Laura', 'Aguilar Santiago', '1984-07-30', true, 'HERMANO'),
+    ('Fernando', 'Pascual León', '1972-01-12', true, 'HERMANO'),
+    ('Mercedes', 'Herrero Santana', '1968-06-18', true, 'HERMANO'),
+    ('Carlos', 'Lorenzo Vidal', '1994-09-05', true, 'HERMANO'),
+    ('Sofía', 'Hidalgo Montero', '2018-12-24', true, 'HERMANO'),
+    ('Alberto', 'Ibañez Giménez', '2006-05-15', true, 'HERMANO'),
+    ('Teresa', 'Ferrer Durán', '1989-03-08', true, 'HERMANO'),
+    ('Diego', 'Vicente Benítez', '1983-10-22', true, 'HERMANO'),
+    ('Rosario', 'Mora Arias', '1976-08-11', true, 'HERMANO'),
+    ('Pablo', 'Santiago Vargas', '2001-01-05', true, 'HERMANO'),
+    ('Beatriz', 'Carmona Gallardo', '2009-07-29', true, 'HERMANO'),
+    ('Jorge', 'Rojas Marcos', '1997-04-16', true, 'HERMANO'),
+    ('Julia', 'Mendez Guzman', '2016-11-11', true, 'HERMANO'),
+    ('Alejandro', 'Crespo Soto', '1993-02-20', true, 'HERMANO'),
+    ('Cristina', 'Pastor Velasco', '1986-06-30', true, 'HERMANO'),
+    ('Eduardo', 'Saez Soler', '1979-09-09', true, 'HERMANO'),
+    ('Sara', 'Moya Esteban', '2004-12-25', true, 'HERMANO'),
+    ('Sergio', 'Parra Bravo', '2011-05-02', true, 'HERMANO'),
+    ('Paula', 'Gallego Roman', '1990-08-14', true, 'HERMANO'),
+    ('Andrés', 'Luque Pardo', '1974-04-20', true, 'HERMANO'),
+    ('Marta', 'Rivera Casado', '1960-01-01', true, 'HERMANO'),
+    ('Daniel', 'Sola Reyes', '2020-03-15', true, 'HERMANO'),
+    ('Natalia', 'Calvo Prieto', '2014-06-01', true, 'HERMANO'),
+    ('Raúl', 'Vila Campos', '1999-10-31', true, 'HERMANO'),
+    ('Clara', 'Montes Sierra', '2007-02-08', true, 'HERMANO'),
+    ('Enrique', 'Rivas Arroyo', '1981-11-18', true, 'HERMANO'),
+    ('Alba', 'Franco Castillo', '1995-07-23', true, 'HERMANO'),
+    ('Victor', 'Segura Gil', '2019-01-10', true, 'HERMANO'),
+    ('Rosa', 'Espinosa Rios', '1963-05-25', true, 'HERMANO'),
+    ('Ignacio', 'Campos Marin', '1985-12-12', true, 'HERMANO'),
+    ('Marina', 'Fuentes Leon', '2013-09-01', true, 'HERMANO'),
+    ('Marcos', 'Carrasco Rubio', '2000-04-24', true, 'HERMANO'),
+    ('Silvia', 'Caballero Mendez', '1992-08-05', true, 'HERMANO'),
+    ('Rubén', 'Lozano Aguilar', '1977-03-13', true, 'HERMANO'),
+    ('Patricia', 'Gimenez Cano', '1971-11-29', true, 'HERMANO'),
+    ('Adrián', 'Vargas Duran', '1998-06-30', true, 'HERMANO'),
+    ('Inés', 'Serrano Ferrer', '2003-10-15', true, 'HERMANO'),
+    ('Mario', 'Ramos Vicente', '2015-02-14', true, 'HERMANO'),
+    ('Victoria', 'Blanco Mora', '1990-12-31', true, 'HERMANO'),
+    ('Hugo', 'Castro Santiago', '2010-07-07', true, 'HERMANO'),
+    ('Eva', 'Rubio Carmona', '1988-09-21', true, 'HERMANO'),
+    ('Álvaro', 'Ortiz Rojas', '1973-01-04', true, 'HERMANO'),
+    ('Celia', 'Santos Mendez', '1967-08-20', true, 'HERMANO'),
+    ('Guillermo', 'Nuñez Crespo', '1996-03-18', true, 'HERMANO'),
+    ('Lorena', 'Medina Pastor', '2002-11-05', true, 'HERMANO'),
+    ('Felipe', 'Peña Saez', '1984-06-12', true, 'HERMANO'),
+    ('Alicia', 'Flores Moya', '2008-05-30', true, 'HERMANO');
+
+    -- Recalibrar para asignar números de hermano
+    PERFORM recalibrar_numeros_hermano();
+END $$;
