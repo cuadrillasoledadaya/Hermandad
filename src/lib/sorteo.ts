@@ -22,8 +22,8 @@ export interface ResultadoSorteo {
     posicion: HuecoLibre;
 }
 
-export async function getCandidatosNazarenos(): Promise<CandidatoSorteo[]> {
-    // 1. Obtener papeletas PAGADAS de tipo NAZARENO que NO tengan asignación
+export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
+    // 1. Obtener papeletas PAGADAS de tipo X que NO tengan asignación
     const { data, error } = await supabase
         .from('papeletas_cortejo')
         .select(`
@@ -38,9 +38,9 @@ export async function getCandidatosNazarenos(): Promise<CandidatoSorteo[]> {
             )
         `)
         .eq('estado', 'pagada')
-        .eq('tipo', 'nazareno')
+        .eq('tipo', tipo)
         .is('id_posicion_asignada', null)
-        .order('fecha_pago', { ascending: true }); // Default sort, but we will re-sort in memory if needed
+        .order('fecha_pago', { ascending: true });
 
     if (error) throw error;
 
@@ -55,14 +55,7 @@ export async function getCandidatosNazarenos(): Promise<CandidatoSorteo[]> {
     }));
 }
 
-export async function getHuecosLibresNazarenos(tramoId?: string): Promise<HuecoLibre[]> {
-    // Definir qué posiciones son "de nazareno". 
-    // Por simplicidad, asumimos que son las de tipo 'cirio' o que están en un 'tramo'.
-    // En nuestra estructura, 'tramo' es un nodo padre, y los hijos son 'pareja'.
-    // Necesitamos ver cómo se guardaron las posiciones.
-    // Revisando cortejo.ts: las "leaf nodes" (posiciones asignables) tienen tipo 'cirio', 'insignia', etc.
-    // Asumiremos tipo = 'cirio' para nazarenos.
-
+export async function getHuecosLibres(tipo: string, tramoId?: string): Promise<HuecoLibre[]> {
     let query = supabase
         .from('cortejo_estructura')
         .select(`
@@ -72,17 +65,19 @@ export async function getHuecosLibresNazarenos(tramoId?: string): Promise<HuecoL
             posicion,
             asignaciones:cortejo_asignaciones(id)
         `)
-        .eq('tipo', 'cirio');
+        .eq('tipo', tipo);
 
     if (tramoId) {
         query = query.eq('parent_id', tramoId);
     }
 
-    const { data: rawData, error } = await query.order('tramo', { ascending: true }).order('posicion', { ascending: true });
+    const { data: rawData, error } = await query
+        .order('tramo', { ascending: true })
+        .order('posicion', { ascending: true });
 
     if (error) throw error;
 
-    // Cast data for safer processing (can also use Generics in .select())
+    // Cast data for safer processing
     const data = rawData as unknown as { id: string; nombre: string; tramo: number; posicion: number; asignaciones: any[] }[];
 
     // Filtrar los que NO tienen asignación (array vacio)
@@ -91,7 +86,7 @@ export async function getHuecosLibresNazarenos(tramoId?: string): Promise<HuecoL
     return libres.map((pos) => ({
         id_posicion: pos.id,
         nombre: pos.nombre,
-        orden_global: ((pos.tramo || 99) * 1000) + (pos.posicion || 0) // Synthetic sort key
+        orden_global: ((pos.tramo || 99) * 1000) + (pos.posicion || 0)
     }));
 }
 

@@ -5,7 +5,7 @@ import { SidebarWrapper } from '@/components/layout/sidebar-wrapper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCandidatosNazarenos, getHuecosLibresNazarenos, simularSorteo, confirmarAsignacionMasiva, type ResultadoSorteo } from '@/lib/sorteo';
+import { getCandidatos, getHuecosLibres, simularSorteo, confirmarAsignacionMasiva, type ResultadoSorteo } from '@/lib/sorteo';
 import { Loader2, Users, ArrowRight, Save, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,17 +15,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export default function SorteoPage() {
     const queryClient = useQueryClient();
     const [criterio, setCriterio] = useState<'antiguedad' | 'orden_llegada'>('antiguedad');
+    const [tipoSorteo, setTipoSorteo] = useState<string>('vara'); // Default to Vara as per request
     const [simulacion, setSimulacion] = useState<ResultadoSorteo[] | null>(null);
 
-    // 1. Fetch Datos
+    // 1. Fetch Datos (Dynamic based on type)
     const { data: candidatos = [], isLoading: loadingCandidatos } = useQuery({
-        queryKey: ['sorteo-candidatos'],
-        queryFn: getCandidatosNazarenos
+        queryKey: ['sorteo-candidatos', tipoSorteo],
+        queryFn: () => getCandidatos(tipoSorteo)
     });
 
     const { data: huecos = [], isLoading: loadingHuecos } = useQuery({
-        queryKey: ['sorteo-huecos'],
-        queryFn: () => getHuecosLibresNazarenos() // Sin filtro tramo por ahora, global nazarenos
+        queryKey: ['sorteo-huecos', tipoSorteo],
+        queryFn: () => getHuecosLibres(tipoSorteo)
     });
 
     // 2. Mutación Confirmar
@@ -63,7 +64,7 @@ export default function SorteoPage() {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-[#1a2b4b]">Sorteo de Sitios</h1>
-                            <p className="text-slate-500">Asignación automática de posiciones para tramos con alta demanda.</p>
+                            <p className="text-slate-500">Asignación automática de posiciones (Varas, Insignias, Nazarenos).</p>
                         </div>
                         {simulacion && (
                             <div className="flex gap-2">
@@ -83,6 +84,49 @@ export default function SorteoPage() {
                         )}
                     </div>
 
+                    {/* Configuration Panel */}
+                    <Card className="bg-slate-50 border-slate-200">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">Configuración del Sorteo</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
+                                <div className="space-y-2 w-full md:w-64">
+                                    <label className="text-sm font-medium">Tipo de Posición</label>
+                                    <Select value={tipoSorteo} onValueChange={setTipoSorteo}>
+                                        <SelectTrigger className="bg-white">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="vara">🎋 Varas</SelectItem>
+                                            <SelectItem value="insignia">🚩 Insignias</SelectItem>
+                                            <SelectItem value="bocina">📯 Bocinas</SelectItem>
+                                            <SelectItem value="nazareno">👤 Nazarenos</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2 w-full md:w-64">
+                                    <label className="text-sm font-medium">Criterio de Asignación</label>
+                                    <Select value={criterio} onValueChange={(v: any) => setCriterio(v)}>
+                                        <SelectTrigger className="bg-white">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="antiguedad">📅 Por Antigüedad (Nº Hermano)</SelectItem>
+                                            <SelectItem value="orden_llegada">⏱️ Por Orden de Pago</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex-1 text-right">
+                                    <Button onClick={handleSimular} disabled={loading || candidatos.length === 0 || huecos.length === 0} className="w-full md:w-auto">
+                                        <Shuffle className="w-4 h-4 mr-2" />
+                                        Simular Sorteo
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card>
@@ -91,7 +135,7 @@ export default function SorteoPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-red-600">{candidatos.length}</div>
-                                <p className="text-xs text-muted-foreground">Papeletas pagadas sin sitio</p>
+                                <p className="text-xs text-muted-foreground">Papeletas &apos;{tipoSorteo}&apos; pagadas sin sitio</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -99,8 +143,8 @@ export default function SorteoPage() {
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Oferta (Huecos Libres)</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-emerald-600">{huecos.length}</div>
-                                <p className="text-xs text-muted-foreground">Posiciones de cirio vacías</p>
+                                <div className="text-2xl font-bold text-green-600">{huecos.length}</div>
+                                <p className="text-xs text-muted-foreground">Posiciones &apos;{tipoSorteo}&apos; libres</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -120,36 +164,14 @@ export default function SorteoPage() {
 
                     {/* Controles y Listas */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Panel Izquierdo: Configuración y Candidatos */}
+                        {/* Panel Izquierdo: Candidatos */}
                         <div className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Configuración</CardTitle>
-                                    <CardDescription>Define cómo se ordenarán los candidatos</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Criterio de Prioridad</label>
-                                        <Select value={criterio} onValueChange={(v: 'antiguedad' | 'orden_llegada') => setCriterio(v)}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="antiguedad">Antigüedad (Nº Hermano)</SelectItem>
-                                                <SelectItem value="orden_llegada">Orden de Pago (Fecha)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <Button className="w-full" onClick={handleSimular} disabled={loading || candidatos.length === 0 || huecos.length === 0}>
-                                        <Shuffle className="w-4 h-4 mr-2" />
-                                        Simular Asignación
-                                    </Button>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
                                     <CardTitle>Candidatos en Espera</CardTitle>
+                                    <CardDescription>
+                                        Listado de hermanos solicitantes ordenada por criterio seleccionado.
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     {loading ? (
@@ -165,18 +187,34 @@ export default function SorteoPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {candidatos.map((c) => (
-                                                        <TableRow key={c.id_papeleta}>
-                                                            <TableCell>{c.numero_hermano || '-'}</TableCell>
-                                                            <TableCell>{c.nombre} {c.apellidos}</TableCell>
-                                                            <TableCell className="text-xs text-muted-foreground">
-                                                                {new Date(c.antiguedad_hermandad || 0).getFullYear()}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
+                                                    {simulacion ? (
+                                                        // Si hay simulación, mostramos los candidatos en el orden simulado
+                                                        simulacion.map((res) => (
+                                                            <TableRow key={res.candidato.id_papeleta} className="bg-purple-50/50">
+                                                                <TableCell>{res.candidato.numero_hermano || '-'}</TableCell>
+                                                                <TableCell>{res.candidato.nombre} {res.candidato.apellidos}</TableCell>
+                                                                <TableCell className="text-xs text-muted-foreground">
+                                                                    {res.candidato.antiguedad_hermandad ? new Date(res.candidato.antiguedad_hermandad).getFullYear() : '-'}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    ) : (
+                                                        // Si no, mostramos candidatos raw
+                                                        candidatos.map((c: any) => (
+                                                            <TableRow key={c.id_papeleta}>
+                                                                <TableCell>{c.numero_hermano || '-'}</TableCell>
+                                                                <TableCell>{c.nombre} {c.apellidos}</TableCell>
+                                                                <TableCell className="text-xs text-muted-foreground">
+                                                                    {c.antiguedad_hermandad ? new Date(c.antiguedad_hermandad).getFullYear() : '-'}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    )}
                                                     {candidatos.length === 0 && (
                                                         <TableRow>
-                                                            <TableCell colSpan={3} className="text-center py-4">No hay candidatos pendientes</TableCell>
+                                                            <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                                                                No hay candidatos para &apos;{tipoSorteo}&apos;
+                                                            </TableCell>
                                                         </TableRow>
                                                     )}
                                                 </TableBody>
