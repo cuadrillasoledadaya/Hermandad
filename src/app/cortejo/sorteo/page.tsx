@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { SidebarWrapper } from '@/components/layout/sidebar-wrapper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -192,46 +192,59 @@ export default function SorteoPage() {
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {simulacion ? (
-                                                        // Si hay simulación, mostramos los candidatos en el orden simulado
-                                                        simulacion.map((res) => (
-                                                            <TableRow key={res.candidato.id_papeleta} className="bg-purple-50/50">
-                                                                <TableCell>{res.candidato.numero_hermano || '-'}</TableCell>
-                                                                <TableCell>{res.candidato.nombre} {res.candidato.apellidos}</TableCell>
-                                                                <TableCell className="text-xs text-muted-foreground">
-                                                                    {res.candidato.antiguedad_hermandad ? new Date(res.candidato.antiguedad_hermandad).getFullYear() : '-'}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {/* No actions in simulation view */}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))
-                                                    ) : (
-                                                        // Si no, mostramos candidatos raw con opción de excluir
-                                                        candidatos.map((c) => (
-                                                            <TableRow key={c.id_papeleta}>
-                                                                <TableCell>{c.numero_hermano || '-'}</TableCell>
-                                                                <TableCell>{c.nombre} {c.apellidos}</TableCell>
-                                                                <TableCell className="text-xs text-muted-foreground">
-                                                                    {c.antiguedad_hermandad ? new Date(c.antiguedad_hermandad).getFullYear() : '-'}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                                                                        onClick={() => setExcluidos(prev => [...prev, c.id_papeleta])}
-                                                                        title="Excluir del sorteo"
-                                                                    >
-                                                                        <X className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))
-                                                    )}
-                                                    {candidatos.length === 0 && (
+                                                    {(() => {
+                                                        const listToRender = simulacion ? simulacion.map(r => r.candidato) : candidatos;
+
+                                                        // Agrupar por tramo
+                                                        const grouped = listToRender.reduce((acc, c) => {
+                                                            const tr = c.tramo ?? 1; // Default to 1 for legacy
+                                                            if (!acc[tr]) acc[tr] = [];
+                                                            acc[tr].push(c);
+                                                            return acc;
+                                                        }, {} as Record<number, typeof candidatos>);
+
+                                                        return Object.keys(grouped).sort().map(trKey => {
+                                                            const tr = Number(trKey);
+                                                            const items = grouped[tr];
+                                                            return (
+                                                                <React.Fragment key={tr}>
+                                                                    <TableRow className="bg-slate-100/80">
+                                                                        <TableCell colSpan={4} className="py-1 px-4">
+                                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                                                {tr === 0 ? 'Tramo 0 (Cruz de Guía)' : `Tramo ${tr}`}
+                                                                            </span>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                    {items.map((c) => (
+                                                                        <TableRow key={c.id_papeleta} className={simulacion ? "bg-purple-50/30" : ""}>
+                                                                            <TableCell>{c.numero_hermano || '-'}</TableCell>
+                                                                            <TableCell className="font-medium">{c.nombre} {c.apellidos}</TableCell>
+                                                                            <TableCell className="text-xs text-muted-foreground">
+                                                                                {c.antiguedad_hermandad ? new Date(c.antiguedad_hermandad).getFullYear() : '-'}
+                                                                            </TableCell>
+                                                                            <TableCell>
+                                                                                {!simulacion && (
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="icon"
+                                                                                        className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                                                                                        onClick={() => setExcluidos(prev => [...prev, c.id_papeleta])}
+                                                                                        title="Excluir del sorteo"
+                                                                                    >
+                                                                                        <X className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                )}
+                                                                            </TableCell>
+                                                                        </TableRow>
+                                                                    ))}
+                                                                </React.Fragment>
+                                                            );
+                                                        });
+                                                    })()}
+                                                    {candidatos.length === 0 && !simulacion && (
                                                         <TableRow>
-                                                            <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                                                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                                                <Users className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                                                 No hay candidatos para &apos;{tipoSorteo}&apos;
                                                             </TableCell>
                                                         </TableRow>
@@ -271,22 +284,47 @@ export default function SorteoPage() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {simulacion.map((res, i) => (
-                                                    <TableRow key={i}>
-                                                        <TableCell>
-                                                            <div className="font-medium">{res.candidato.nombre} {res.candidato.apellidos}</div>
-                                                            <div className="text-xs text-muted-foreground mr-2">Hno: {res.candidato.numero_hermano}</div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <ArrowRight className="w-4 h-4 text-emerald-500" />
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                                                                {res.posicion.nombre}
-                                                            </Badge>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
+                                                {(() => {
+                                                    // Agrupar resultados por tramo
+                                                    const grouped = simulacion.reduce((acc, res) => {
+                                                        const tr = res.candidato.tramo ?? 1;
+                                                        if (!acc[tr]) acc[tr] = [];
+                                                        acc[tr].push(res);
+                                                        return acc;
+                                                    }, {} as Record<number, ResultadoSorteo[]>);
+
+                                                    return Object.keys(grouped).sort().map(trKey => {
+                                                        const tr = Number(trKey);
+                                                        const items = grouped[tr];
+                                                        return (
+                                                            <React.Fragment key={tr}>
+                                                                <TableRow className="bg-emerald-50/50">
+                                                                    <TableCell colSpan={3} className="py-1 px-4">
+                                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                                                                            Resultados {tr === 0 ? 'Cruz de Guía' : `Tramo ${tr}`}
+                                                                        </span>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                                {items.map((res, i) => (
+                                                                    <TableRow key={`${tr}-${i}`}>
+                                                                        <TableCell>
+                                                                            <div className="font-medium">{res.candidato.nombre} {res.candidato.apellidos}</div>
+                                                                            <div className="text-[10px] text-muted-foreground">Hno: {res.candidato.numero_hermano}</div>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <ArrowRight className="w-4 h-4 text-emerald-500" />
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Badge variant="outline" className="bg-white text-slate-700 border-slate-200">
+                                                                                {res.posicion.nombre}
+                                                                            </Badge>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </React.Fragment>
+                                                        );
+                                                    });
+                                                })()}
                                             </TableBody>
                                         </Table>
                                     </div>
