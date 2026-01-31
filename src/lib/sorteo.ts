@@ -22,7 +22,9 @@ export interface ResultadoSorteo {
 }
 
 export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
-    // 1. Obtener papeletas PAGADAS de tipo X que NO tengan asignación
+    // Debug log
+    console.log(`[Sorteo] Fetching candidatos for tipo: ${tipo}`);
+
     const { data, error } = await supabase
         .from('papeletas_cortejo')
         .select(`
@@ -36,12 +38,17 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
                 fecha_ingreso
             )
         `)
-        .eq('estado', 'pagada')
+        .ilike('estado', 'pagada') // Case insensitive check for 'pagada', 'Pagada', etc.
         .ilike('tipo', tipo)
         .is('id_posicion_asignada', null)
         .order('fecha_pago', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+        console.error('[Sorteo] Error fetching candidatos:', error);
+        throw error;
+    }
+
+    console.log(`[Sorteo] Found ${data?.length || 0} candidates`);
 
     return data.map((p) => {
         const h = Array.isArray(p.hermanos) ? p.hermanos[0] : p.hermanos;
