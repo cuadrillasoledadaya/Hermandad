@@ -23,26 +23,24 @@ export interface ResultadoSorteo {
 
 export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
     // Debug log
-    console.log(`[Sorteo] Fetching ALL papeletas for tipo: ${tipo} to debug...`);
+    console.log(`[Sorteo] Fetching candidatos for tipo: ${tipo} (v1.1.09)`);
 
-    // Fetch all tickets of this type to see what exists (without strict filters first)
     const { data: allTickets, error: allError } = await supabase
         .from('papeletas_cortejo')
         .select(`
             id,
             fecha_pago,
-            estado,
-            tipo,
-            id_posicion_asignada,
             hermanos(
                 id,
                 nombre,
                 apellidos,
                 numero_hermano,
-                fecha_ingreso
+                fecha_alta
             )
         `)
+        .ilike('estado', 'pagada')
         .ilike('tipo', tipo)
+        .is('id_posicion_asignada', null)
         .order('fecha_pago', { ascending: true });
 
     if (allError) {
@@ -50,22 +48,11 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
         throw allError;
     }
 
+    console.log(`[Sorteo] Candidates found for '${tipo}': ${allTickets?.length || 0}`);
+
     if (!allTickets) return [];
 
-    console.log(`[Sorteo] Total tickets found for '${tipo}': ${allTickets.length}`);
-
-    // Filter in memory to debug step-by-step
-    const pagadas = allTickets.filter(p => p.estado && p.estado.toLowerCase() === 'pagada');
-    console.log(`[Sorteo] Tickets 'pagada': ${pagadas.length}`);
-
-    const sinAsignar = pagadas.filter(p => !p.id_posicion_asignada);
-    console.log(`[Sorteo] Tickets pagada AND sin asignación (Candidates): ${sinAsignar.length}`);
-
-    if (sinAsignar.length === 0 && allTickets.length > 0) {
-        console.warn('[Sorteo] WARNING: Tickets exist but filters removed all. Check specific ticket:', allTickets[0]);
-    }
-
-    return sinAsignar.map((p) => {
+    return allTickets.map((p) => {
         const h = Array.isArray(p.hermanos) ? p.hermanos[0] : p.hermanos;
         return {
             id_papeleta: p.id,
@@ -73,7 +60,7 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
             nombre: h ? h.nombre : 'Desconocido',
             apellidos: h ? h.apellidos : '',
             numero_hermano: h ? h.numero_hermano : 0,
-            antiguedad_hermandad: h ? h.fecha_ingreso : null,
+            antiguedad_hermandad: h ? h.fecha_alta : null,
             fecha_pago: p.fecha_pago,
         };
     }) as CandidatoSorteo[];
