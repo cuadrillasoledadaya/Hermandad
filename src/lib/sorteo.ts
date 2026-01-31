@@ -29,7 +29,7 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
         .select(`
             id,
             fecha_pago,
-            hermanos (
+            hermanos(
                 id,
                 nombre,
                 apellidos,
@@ -38,7 +38,7 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
             )
         `)
         .eq('estado', 'pagada')
-        .eq('tipo', tipo)
+        .ilike('tipo', tipo)
         .is('id_posicion_asignada', null)
         .order('fecha_pago', { ascending: true });
 
@@ -63,8 +63,8 @@ export async function getHuecosLibres(tipo: string, tramoId?: string): Promise<H
             nombre,
             tramo,
             posicion,
-            asignaciones:cortejo_asignaciones(id)
-        `)
+            asignaciones: cortejo_asignaciones(id)
+            `)
         .eq('tipo', tipo);
 
     if (tramoId) {

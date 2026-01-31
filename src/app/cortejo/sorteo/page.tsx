@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCandidatos, getHuecosLibres, simularSorteo, confirmarAsignacionMasiva, type ResultadoSorteo } from '@/lib/sorteo';
-import { Loader2, Users, ArrowRight, Save, Shuffle } from 'lucide-react';
+import { Loader2, Users, ArrowRight, Save, Shuffle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -17,12 +17,16 @@ export default function SorteoPage() {
     const [criterio, setCriterio] = useState<'antiguedad' | 'orden_llegada'>('antiguedad');
     const [tipoSorteo, setTipoSorteo] = useState<string>('vara'); // Default to Vara as per request
     const [simulacion, setSimulacion] = useState<ResultadoSorteo[] | null>(null);
+    const [excluidos, setExcluidos] = useState<string[]>([]); // New state for manually excluded candidates
 
     // 1. Fetch Datos (Dynamic based on type)
-    const { data: candidatos = [], isLoading: loadingCandidatos } = useQuery({
+    const { data: rawCandidatos = [], isLoading: loadingCandidatos } = useQuery({
         queryKey: ['sorteo-candidatos', tipoSorteo],
         queryFn: () => getCandidatos(tipoSorteo)
     });
+
+    // Filter out manually excluded candidates
+    const candidatos = rawCandidatos.filter(c => !excluidos.includes(c.id_papeleta));
 
     const { data: huecos = [], isLoading: loadingHuecos } = useQuery({
         queryKey: ['sorteo-huecos', tipoSorteo],
@@ -184,6 +188,7 @@ export default function SorteoPage() {
                                                         <TableHead>Hno.</TableHead>
                                                         <TableHead>Nombre</TableHead>
                                                         <TableHead>Antigüedad</TableHead>
+                                                        <TableHead className="w-[50px]"></TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
@@ -196,16 +201,30 @@ export default function SorteoPage() {
                                                                 <TableCell className="text-xs text-muted-foreground">
                                                                     {res.candidato.antiguedad_hermandad ? new Date(res.candidato.antiguedad_hermandad).getFullYear() : '-'}
                                                                 </TableCell>
+                                                                <TableCell>
+                                                                    {/* No actions in simulation view */}
+                                                                </TableCell>
                                                             </TableRow>
                                                         ))
                                                     ) : (
-                                                        // Si no, mostramos candidatos raw
+                                                        // Si no, mostramos candidatos raw con opción de excluir
                                                         candidatos.map((c: any) => (
                                                             <TableRow key={c.id_papeleta}>
                                                                 <TableCell>{c.numero_hermano || '-'}</TableCell>
                                                                 <TableCell>{c.nombre} {c.apellidos}</TableCell>
                                                                 <TableCell className="text-xs text-muted-foreground">
                                                                     {c.antiguedad_hermandad ? new Date(c.antiguedad_hermandad).getFullYear() : '-'}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                                                                        onClick={() => setExcluidos(prev => [...prev, c.id_papeleta])}
+                                                                        title="Excluir del sorteo"
+                                                                    >
+                                                                        <X className="h-4 w-4" />
+                                                                    </Button>
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))
