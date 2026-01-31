@@ -77,14 +77,7 @@ export default function CortejoPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">🔱 Cortejo Procesional</h2>
-                    <p className="text-muted-foreground">
-                        Organización y estructura del cortejo de la Hermandad.
-                    </p>
-                </div>
+            <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4">
                 {canManage && (
                     <div className="flex gap-2">
                         <Link href="/cortejo/admin">

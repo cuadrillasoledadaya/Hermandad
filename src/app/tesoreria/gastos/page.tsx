@@ -21,13 +21,7 @@ export default function GastosPage() {
         <div className="space-y-6">
             {/* Header con estadísticas */}
             <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Gestión de Gastos</h2>
-                        <p className="text-muted-foreground">
-                            Control de gastos generales de la Hermandad.
-                        </p>
-                    </div>
+                <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
                     {canAddExpense && <AddExpenseDialog />}
                 </div>
 

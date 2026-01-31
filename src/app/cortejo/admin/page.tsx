@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { obtenerPosicionesPorTramo } from '@/lib/cortejo-admin';
-import { Shield } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AddFilaNazarenosDialog } from '@/components/cortejo/admin/add-fila-nazarenos-dialog';
@@ -16,19 +15,6 @@ export default function CortejoAdminPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                        <Shield className="w-8 h-8 text-[#1a2b4b]" />
-                        <h1 className="text-3xl md:text-4xl font-bold text-[#1a2b4b]">
-                            Administración del Cortejo
-                        </h1>
-                    </div>
-                    <p className="text-slate-600">
-                        Gestiona la estructura: añade, elimina o reordena posiciones
-                    </p>
-                </div>
-
                 {/* Tabs por Tramo */}
                 <Tabs value={tramoSeleccionado.toString()} onValueChange={(v) => setTramoSeleccionado(Number(v))}>
                     <TabsList className="grid w-full grid-cols-4">

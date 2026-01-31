@@ -29,13 +29,31 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
     }
 
     const getHeaderData = (path: string) => {
+        // Sub-páginas de Hermanos
         if (path === '/hermanos/nuevo') return { title: 'NUEVO HERMANO', back: '/hermanos' };
-        if (path.startsWith('/hermanos/')) return { title: 'PERFIL DEL HERMANO', back: '/hermanos' };
+        if (path.match(/\/hermanos\/[0-9a-f-]+/)) return { title: 'PERFIL DEL HERMANO', back: '/hermanos' };
         if (path === '/hermanos') return { title: 'CENSO DE HERMANOS' };
-        if (path.startsWith('/tesoreria/pago')) return { title: 'REGISTRAR PAGO', back: '/tesoreria' };
+
+        // Sub-páginas de Tesorería
+        if (path.startsWith('/tesoreria/pago/')) return { title: 'REGISTRAR PAGO', back: '/tesoreria' };
+        if (path === '/tesoreria/gastos') return { title: 'GESTIÓN DE GASTOS', back: '/tesoreria' };
+        if (path === '/tesoreria/papeletas-cortejo') return { title: 'PAPELETAS DE SITIO', back: '/tesoreria' };
         if (path === '/tesoreria') return { title: 'TESORERÍA' };
+
+        // Sub-páginas de Cortejo
+        if (path === '/cortejo/admin') return { title: 'GESTIÓN DE ESTRUCTURA', back: '/cortejo' };
+        if (path === '/cortejo/sorteo') return { title: 'SORTEO DE VARAS', back: '/cortejo' };
+        if (path === '/cortejo') return { title: 'CORTEJO PROCESIONAL' };
+
+        // Sub-páginas de Configuración
+        if (path === '/configuracion/precios') return { title: 'CONFIGURACIÓN DE PRECIOS', back: '/configuracion' };
+        if (path === '/configuracion/usuarios') return { title: 'GESTIÓN DE USUARIOS', back: '/configuracion' };
+        if (path === '/configuracion/temporadas') return { title: 'GESTIÓN DE TEMPORADAS', back: '/configuracion' };
+        if (path === '/configuracion') return { title: 'CONFIGURACIÓN' };
+
         if (path === '/avisos') return { title: 'AVISOS' };
-        if (path === '/config') return { title: 'CONFIGURACIÓN' };
+        if (path === '/') return { title: 'INICIO' };
+
         return { title: 'HERMANDAD DE LA SOLEDAD' };
     };
 
