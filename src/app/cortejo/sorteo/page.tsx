@@ -111,7 +111,7 @@ export default function SorteoPage() {
                                 </div>
                                 <div className="space-y-2 w-full md:w-64">
                                     <label className="text-sm font-medium">Criterio de Asignación</label>
-                                    <Select value={criterio} onValueChange={(v: any) => setCriterio(v)}>
+                                    <Select value={criterio} onValueChange={(v: 'antiguedad' | 'orden_llegada') => setCriterio(v)}>
                                         <SelectTrigger className="bg-white">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -208,7 +208,7 @@ export default function SorteoPage() {
                                                         ))
                                                     ) : (
                                                         // Si no, mostramos candidatos raw con opción de excluir
-                                                        candidatos.map((c: any) => (
+                                                        candidatos.map((c) => (
                                                             <TableRow key={c.id_papeleta}>
                                                                 <TableCell>{c.numero_hermano || '-'}</TableCell>
                                                                 <TableCell>{c.nombre} {c.apellidos}</TableCell>

@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { TipoPapeleta } from './papeletas-cortejo';
 
 export interface CandidatoSorteo {
     id_papeleta: string;
@@ -44,15 +43,18 @@ export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
 
     if (error) throw error;
 
-    return data.map((p: any) => ({
-        id_papeleta: p.id,
-        id_hermano: p.hermanos.id,
-        nombre: p.hermanos.nombre,
-        apellidos: p.hermanos.apellidos,
-        numero_hermano: p.hermanos.numero_hermano,
-        antiguedad_hermandad: p.hermanos.fecha_ingreso,
-        fecha_pago: p.fecha_pago,
-    }));
+    return data.map((p) => {
+        const h = Array.isArray(p.hermanos) ? p.hermanos[0] : p.hermanos;
+        return {
+            id_papeleta: p.id,
+            id_hermano: h ? h.id : '',
+            nombre: h ? h.nombre : 'Desconocido',
+            apellidos: h ? h.apellidos : '',
+            numero_hermano: h ? h.numero_hermano : 0,
+            antiguedad_hermandad: h ? h.fecha_ingreso : null,
+            fecha_pago: p.fecha_pago,
+        };
+    }) as CandidatoSorteo[];
 }
 
 export async function getHuecosLibres(tipo: string, tramoId?: string): Promise<HuecoLibre[]> {
