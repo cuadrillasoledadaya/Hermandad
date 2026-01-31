@@ -127,8 +127,15 @@ export function simularSorteo(
         }
     });
 
-    // 2. Ordenar Huecos (por orden de cortejo)
-    const huecosOrdenados = [...huecos].sort((a, b) => a.orden_global - b.orden_global);
+    // 2. Ordenar Huecos
+    // Si es antigüedad: Queremos llenar primero los sitios más cercanos al paso (Mayor orden_global)
+    // Si es orden_llegada (o default): Llenamos desde la Cruz de Guía (Menor orden_global)
+    const huecosOrdenados = [...huecos].sort((a, b) => {
+        if (criterio === 'antiguedad') {
+            return b.orden_global - a.orden_global; // DESC
+        }
+        return a.orden_global - b.orden_global; // ASC
+    });
 
     // 3. Asignar
     const asignaciones: ResultadoSorteo[] = [];
