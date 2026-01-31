@@ -3,7 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCortejoCompleto, getEstadisticasCortejo } from '@/lib/cortejo';
 import { Card } from '@/components/ui/card';
-import { Loader2, Church, User, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Church, User, Users, Shield } from 'lucide-react';
+import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { AsignarPapeletaDialog } from '@/components/cortejo/asignar-papeleta-dialog';
 import { useState } from 'react';
