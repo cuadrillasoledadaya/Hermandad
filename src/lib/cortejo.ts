@@ -273,7 +273,8 @@ export async function asignarPosicion(input: AsignarPosicionInput): Promise<Cort
             id_posicion: input.id_posicion,
             anio: year,
             numero_papeleta: input.numero_papeleta || null,
-            notas: input.notas || null
+            notas: input.notas || null,
+            forma_asignacion: 'manual'
         })
         .select()
         .single();

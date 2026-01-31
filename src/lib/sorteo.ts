@@ -155,7 +155,7 @@ export async function confirmarAsignacionMasiva(resultados: ResultadoSorteo[]) {
                 id_posicion: res.posicion.id_posicion,
                 id_hermano: res.candidato.id_hermano,
                 anio: new Date().getFullYear(), // O la temporada activa
-                // forma_asignacion: 'sorteo' // TODO: Add column to DB
+                forma_asignacion: 'sorteo'
             });
 
         if (assignError) throw assignError;
