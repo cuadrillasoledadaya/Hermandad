@@ -13,7 +13,8 @@ import { toast } from 'sonner';
 import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MONTHS_FULL, getActiveSeason, getConceptString, getPendingMonthsForSeason } from '@/lib/treasury';
+import { MONTHS_FULL, getActiveSeason, getConceptString, getPendingMonthsForSeason, getCalendarMonthAndYear } from '@/lib/treasury';
+import { cn } from '@/lib/utils';
 import { getPreciosConfig } from '@/lib/configuracion';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,11 +25,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     const [overrideAmount, setOverrideAmount] = useState<string | null>(null);
     const [overrideYear, setOverrideYear] = useState<number | null>(null);
 
-    // Initial month index in season (Mar=0)
-    const realMonth = new Date().getMonth();
-    const initialSeasonMonthIdx = (realMonth + 12 - 2) % 12;
-
-    const [selectedMonth, setSelectedMonth] = useState<number | 'FULL_YEAR'>(initialSeasonMonthIdx);
+    const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
 
     const { data: config } = useQuery({
         queryKey: ['configuracion-precios'],
@@ -41,10 +38,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     });
 
     const fee = config?.cuota_mensual_hermano ?? 1.8;
-    const amount = overrideAmount ?? (selectedMonth === 'FULL_YEAR' ? (fee * 12).toString() : fee.toString());
     const selectedYear = overrideYear ?? activeSeason?.anio ?? new Date().getFullYear();
-
-    const numMonthsDetected = Math.floor(parseFloat(amount) / fee) || 0;
 
     const { data: hermano, isLoading: loadingHermano } = useQuery({
         queryKey: ['hermano', id],
@@ -56,49 +50,32 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
         queryFn: () => getPagosByHermano(id),
     });
 
+    // Auto-calculate amount based on selected months
+    const autoAmount = (selectedMonths.length * fee).toFixed(2);
+    const amount = overrideAmount ?? autoAmount;
+
+    const toggleMonth = (idx: number) => {
+        setSelectedMonths(prev =>
+            prev.includes(idx) ? prev.filter(m => m !== idx) : [...prev, idx].sort((a, b) => a - b)
+        );
+        setOverrideAmount(null);
+    };
+
+    const selectAllPending = () => {
+        if (!hermano) return;
+        const pending = getPendingMonthsForSeason(hermano, pagosBrother, selectedYear);
+        setSelectedMonths(pending);
+        setOverrideAmount(null);
+    };
+
     const paymentMutation = useMutation({
         mutationFn: async () => {
-            const monthsToPay: number[] = [];
-
-            if (selectedMonth === 'FULL_YEAR') {
-                for (let i = 0; i < 12; i++) monthsToPay.push(i);
-            } else {
-                // Smart assignment logic
-                const pending = getPendingMonthsForSeason(hermano!, pagosBrother, selectedYear);
-
-                // Always include the selected month if it's not already paid (or even if it is, as per user requirement)
-                let remainingMonths = numMonthsDetected;
-
-                // If the selected month is pending, we prioritize it as requested: "asigne como pagadas el mes que se selecione"
-                if (!monthsToPay.includes(selectedMonth)) {
-                    monthsToPay.push(selectedMonth);
-                    remainingMonths--;
-                }
-
-                // Fill with pending/arrears
-                for (const m of pending) {
-                    if (remainingMonths <= 0) break;
-                    if (!monthsToPay.includes(m)) {
-                        monthsToPay.push(m);
-                        remainingMonths--;
-                    }
-                }
-
-                // If still months left, fill with next months
-                let nextMonth = selectedMonth + 1;
-                while (remainingMonths > 0 && nextMonth < 12) {
-                    if (!monthsToPay.includes(nextMonth)) {
-                        monthsToPay.push(nextMonth);
-                        remainingMonths--;
-                    }
-                    nextMonth++;
-                }
-            }
+            if (selectedMonths.length === 0) throw new Error('Selecciona al menos un mes');
 
             // Create insertion records
-            const records = monthsToPay.map(mIdx => ({
+            const records = selectedMonths.map(mIdx => ({
                 id_hermano: id,
-                cantidad: fee, // We split the total into individual 1-month payments for audit Trail
+                cantidad: fee,
                 concepto: getConceptString(selectedYear, mIdx),
                 anio: selectedYear,
                 fecha_pago: new Date().toISOString().split('T')[0]
@@ -113,6 +90,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
             queryClient.invalidateQueries({ queryKey: ['pagos'] });
             queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
             queryClient.invalidateQueries({ queryKey: ['hermano-status'] });
+            setSelectedMonths([]);
             setOverrideAmount(null);
             setOverrideYear(null);
             toast.success('Pago(s) registrado(s) correctamente');
@@ -146,12 +124,10 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (selectedMonth === 'FULL_YEAR' && parseFloat(amount) < (fee * 12)) {
-            toast.error(`El importe para año completo debe ser al menos ${(fee * 12).toFixed(2)}€`);
+        if (selectedMonths.length === 0) {
+            toast.error('Selecciona al menos un mes para pagar');
             return;
         }
-
         paymentMutation.mutate();
     };
 
@@ -168,47 +144,68 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="space-y-2">
-                            <Label htmlFor="amount">Cantidad (€)</Label>
-                            <Input
-                                id="amount"
-                                type="number"
-                                step="0.10"
-                                value={amount}
-                                onChange={(e) => setOverrideAmount(e.target.value)}
-                                className="text-center text-xl font-bold border-primary/20 focus-visible:ring-primary h-12"
-                                required
-                            />
-                            {numMonthsDetected > 0 && (
-                                <p className="text-center text-xs text-primary font-medium bg-primary/5 py-1 rounded-full animate-in fade-in slide-in-from-top-1">
-                                    ✨ Cubre {numMonthsDetected} {numMonthsDetected === 1 ? 'mes' : 'meses'} de cuota
-                                </p>
-                            )}
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <Label className="text-base font-bold">Meses de la Temporada</Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={selectAllPending}
+                                    className="text-[10px] h-7 bg-primary/5 hover:bg-primary/10 border-primary/20"
+                                >
+                                    Elegir Todo lo Pendiente
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto p-2 border rounded-xl bg-slate-50/50 custom-scrollbar">
+                                {MONTHS_FULL.map((month, idx) => {
+                                    const { calendarMonth, calendarYear } = getCalendarMonthAndYear(selectedYear, idx);
+                                    const cellDate = startOfMonth(new Date(calendarYear, calendarMonth));
+                                    const altaDate = startOfMonth(new Date(hermano.fecha_alta));
+
+                                    // Skip if before alta
+                                    if (cellDate < altaDate) return null;
+
+                                    // Check status
+                                    const isPaid = pagosBrother.some(p => {
+                                        const shortMonth = month.substring(0, 3);
+                                        return p.anio === selectedYear && p.concepto.includes(shortMonth);
+                                    });
+
+                                    // If paid, hide from select as requested
+                                    if (isPaid) return null;
+
+                                    const isSelected = selectedMonths.includes(idx);
+
+                                    return (
+                                        <div
+                                            key={idx}
+                                            onClick={() => toggleMonth(idx)}
+                                            className={cn(
+                                                "flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer group",
+                                                isSelected
+                                                    ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                                                    : "bg-white border-slate-200 hover:border-primary/30"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "w-4 h-4 rounded border flex items-center justify-center transition-colors",
+                                                isSelected ? "bg-white text-primary" : "border-slate-300 group-hover:border-primary"
+                                            )}>
+                                                {isSelected && <div className="w-2 h-2 bg-primary rounded-sm" />}
+                                            </div>
+                                            <span className="text-xs font-bold leading-none">{month}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="month">Periodo</Label>
-                                <select
-                                    id="month"
-                                    value={selectedMonth}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setSelectedMonth(val === 'FULL_YEAR' ? 'FULL_YEAR' : parseInt(val));
-                                        setOverrideAmount(null); // Reset to automatic calculation based on selection
-                                    }}
-                                    className="flex h-12 w-full rounded-md border border-primary/20 bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 appearance-none cursor-pointer"
-                                >
-                                    {MONTHS_FULL.map((month, idx) => (
-                                        <option key={idx} value={idx}>{month}</option>
-                                    ))}
-                                    <option value="" disabled className="border-t">——————</option>
-                                    <option value="FULL_YEAR" className="font-bold text-primary">📅 AÑO COMPLETO</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="year">Año</Label>
+                                <Label htmlFor="year">Año Temporada</Label>
                                 <Input
                                     id="year"
                                     type="number"
@@ -218,13 +215,33 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                     required
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="amount">Total a Cobrar (€)</Label>
+                                <Input
+                                    id="amount"
+                                    type="number"
+                                    step="0.10"
+                                    value={amount}
+                                    onChange={(e) => setOverrideAmount(e.target.value)}
+                                    className="text-center text-xl font-bold border-primary/20 focus-visible:ring-primary h-12"
+                                    required
+                                />
+                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 pt-4">
+                        {selectedMonths.length > 0 && (
+                            <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 animate-in fade-in zoom-in-95">
+                                <p className="text-xs text-center text-slate-600">
+                                    Se registrarán <span className="font-bold text-primary">{selectedMonths.length} cuotas</span> por un total de <span className="font-bold text-primary">{amount}€</span>.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-3 pt-2">
                             <Button
                                 type="submit"
-                                disabled={paymentMutation.isPending}
-                                className="w-full bg-primary hover:bg-primary/90 h-12 text-lg"
+                                disabled={paymentMutation.isPending || selectedMonths.length === 0}
+                                className="w-full bg-primary hover:bg-primary/90 h-12 text-lg font-bold shadow-lg shadow-primary/20"
                             >
                                 {paymentMutation.isPending ? 'Procesando...' : 'Confirmar Cobro'}
                             </Button>
