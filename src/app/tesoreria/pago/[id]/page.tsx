@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
+import { Wallet, Trash2, Calendar, Euro, Check } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MONTHS_FULL, getActiveSeason, getConceptString, getPendingMonthsForSeason, getCalendarMonthAndYear } from '@/lib/treasury';
@@ -184,19 +184,24 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                             key={idx}
                                             onClick={() => toggleMonth(idx)}
                                             className={cn(
-                                                "flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer group",
+                                                "flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer",
                                                 isSelected
-                                                    ? "bg-primary border-primary text-primary-foreground shadow-sm"
-                                                    : "bg-white border-slate-200 hover:border-primary/30"
+                                                    ? "bg-primary/10 border-primary shadow-md"
+                                                    : "bg-white border-slate-300 hover:border-primary/50 hover:bg-slate-50"
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-                                                isSelected ? "bg-white text-primary" : "border-slate-300 group-hover:border-primary"
+                                                "w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0",
+                                                isSelected
+                                                    ? "bg-primary border-primary"
+                                                    : "bg-white border-slate-400"
                                             )}>
-                                                {isSelected && <div className="w-2 h-2 bg-primary rounded-sm" />}
+                                                {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
                                             </div>
-                                            <span className="text-xs font-bold leading-none">{month}</span>
+                                            <span className={cn(
+                                                "text-sm font-semibold leading-none",
+                                                isSelected ? "text-primary" : "text-slate-700"
+                                            )}>{month}</span>
                                         </div>
                                     );
                                 })}
