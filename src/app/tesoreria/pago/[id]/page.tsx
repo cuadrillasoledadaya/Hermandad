@@ -186,21 +186,21 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                             className={cn(
                                                 "flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer",
                                                 isSelected
-                                                    ? "bg-primary/10 border-primary shadow-md"
-                                                    : "bg-white border-slate-300 hover:border-primary/50 hover:bg-slate-50"
+                                                    ? "bg-primary/5 border-primary/30 shadow-sm"
+                                                    : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-6 h-6 rounded-md border-[3px] flex items-center justify-center transition-all flex-shrink-0 shadow-sm",
+                                                "w-7 h-7 rounded-xl border-[3.5px] flex items-center justify-center transition-all flex-shrink-0",
                                                 isSelected
-                                                    ? "bg-primary border-primary scale-110 shadow-primary/30"
-                                                    : "bg-white border-slate-500 hover:border-primary/70"
+                                                    ? "bg-slate-900 border-slate-900"
+                                                    : "bg-white border-slate-900"
                                             )}>
-                                                {isSelected && <Check className="w-4 h-4 text-white stroke-[4]" />}
+                                                {isSelected && <Check className="w-5 h-5 text-white stroke-[3.5]" />}
                                             </div>
                                             <span className={cn(
                                                 "text-sm font-semibold leading-none",
-                                                isSelected ? "text-primary" : "text-slate-700"
+                                                isSelected ? "text-slate-900" : "text-slate-700"
                                             )}>{month}</span>
                                         </div>
                                     );
