@@ -208,3 +208,54 @@ export async function getCurrentMonthExpenseStats(): Promise<{
         count: expenses.length
     };
 }
+
+/**
+ * Obtener estadísticas de gastos del mes anterior
+ */
+export async function getPreviousMonthExpenseStats(): Promise<{
+    total: number;
+    byCategory: Record<ExpenseCategory, number>;
+    count: number;
+}> {
+    const now = new Date();
+    // Obtener el mes anterior
+    const previousMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const previousYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+    const expenses = await getExpensesByMonth(previousYear, previousMonth);
+
+    return {
+        total: calculateTotalExpenses(expenses),
+        byCategory: groupExpensesByCategory(expenses),
+        count: expenses.length
+    };
+}
+
+/**
+ * Obtener promedio de gastos mensuales de los últimos N meses
+ */
+export async function getAverageMonthlyExpenses(months: number = 3): Promise<number> {
+    const now = new Date();
+    let totalExpenses = 0;
+    let monthsWithData = 0;
+
+    for (let i = 0; i < months; i++) {
+        const targetMonth = now.getMonth() - i;
+        const targetYear = now.getFullYear();
+
+        // Calcular año y mes correctos (manejar cambio de año)
+        const adjustedDate = new Date(targetYear, targetMonth, 1);
+        const finalYear = adjustedDate.getFullYear();
+        const finalMonth = adjustedDate.getMonth();
+
+        const expenses = await getExpensesByMonth(finalYear, finalMonth);
+
+        if (expenses.length > 0) {
+            totalExpenses += calculateTotalExpenses(expenses);
+            monthsWithData++;
+        }
+    }
+
+    return monthsWithData > 0 ? totalExpenses / monthsWithData : 0;
+}
+

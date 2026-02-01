@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getExpenses, deleteExpense, type Expense, EXPENSE_CATEGORIES } from '@/lib/expenses';
 import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Trash2, Calendar, Euro, Flower2, Flame, Wrench, PartyPopper, Package } from 'lucide-react';
 import { format } from 'date-fns';
@@ -28,6 +29,8 @@ export function ExpensesList() {
     const { role } = useAuth();
     const canDelete = role === 'SUPERADMIN' || role === 'JUNTA';
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [selectedMonth, setSelectedMonth] = useState<string>('all');
+    const [selectedYear, setSelectedYear] = useState<string>('all');
 
     const queryClient = useQueryClient();
 
@@ -53,9 +56,25 @@ export function ExpensesList() {
         }
     };
 
-    const filteredExpenses = selectedCategory === 'all'
-        ? expenses
-        : expenses.filter(e => e.categoria === selectedCategory);
+    // Obtener años únicos de los gastos
+    const years = Array.from(new Set(expenses.map(e => new Date(e.fecha).getFullYear()))).sort((a, b) => b - a);
+    const currentYear = new Date().getFullYear();
+    if (!years.includes(currentYear)) years.unshift(currentYear);
+
+    const filteredExpenses = expenses.filter(expense => {
+        // Filtro por categoría
+        if (selectedCategory !== 'all' && expense.categoria !== selectedCategory) return false;
+
+        const expenseDate = new Date(expense.fecha);
+
+        // Filtro por mes
+        if (selectedMonth !== 'all' && expenseDate.getMonth().toString() !== selectedMonth) return false;
+
+        // Filtro por año
+        if (selectedYear !== 'all' && expenseDate.getFullYear().toString() !== selectedYear) return false;
+
+        return true;
+    });
 
     const total = filteredExpenses.reduce((sum, e) => sum + Number(e.cantidad), 0);
 
@@ -70,25 +89,59 @@ export function ExpensesList() {
 
     return (
         <div className="space-y-6">
-            {/* Filtros por categoría */}
-            <div className="flex flex-wrap gap-2">
-                <Button
-                    variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory('all')}
-                >
-                    Todos
-                </Button>
-                {EXPENSE_CATEGORIES.map((cat) => (
+            {/* Filtros */}
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-slate-50 p-4 rounded-lg border">
+                {/* Filtros por categoría */}
+                <div className="flex flex-wrap gap-2">
                     <Button
-                        key={cat}
-                        variant={selectedCategory === cat ? 'default' : 'outline'}
+                        variant={selectedCategory === 'all' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setSelectedCategory(cat)}
+                        onClick={() => setSelectedCategory('all')}
                     >
-                        {cat}
+                        Todos
                     </Button>
-                ))}
+                    {EXPENSE_CATEGORIES.map((cat) => (
+                        <Button
+                            key={cat}
+                            variant={selectedCategory === cat ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSelectedCategory(cat)}
+                        >
+                            {cat}
+                        </Button>
+                    ))}
+                </div>
+
+                {/* Filtros por fecha */}
+                <div className="flex gap-2 w-full md:w-auto">
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <SelectTrigger className="w-[140px] bg-white">
+                            <SelectValue placeholder="Mes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos los meses</SelectItem>
+                            {Array.from({ length: 12 }, (_, i) => (
+                                <SelectItem key={i} value={i.toString()}>
+                                    {format(new Date(0, i), 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(new Date(0, i), 'MMMM', { locale: es }).slice(1)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                        <SelectTrigger className="w-[100px] bg-white">
+                            <SelectValue placeholder="Año" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {years.map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                    {year}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             {/* Resumen */}
@@ -108,7 +161,7 @@ export function ExpensesList() {
             {/* Lista de gastos */}
             {filteredExpenses.length === 0 ? (
                 <Card className="p-12 text-center border-2 border-dashed">
-                    <p className="text-muted-foreground">No hay gastos registrados en esta categoría.</p>
+                    <p className="text-muted-foreground">No hay gastos registrados con los filtros seleccionados.</p>
                 </Card>
             ) : (
                 <>
