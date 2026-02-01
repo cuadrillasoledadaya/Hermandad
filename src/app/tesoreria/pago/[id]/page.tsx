@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Wallet, Trash2, Calendar, Euro } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MONTHS_FULL, getActiveSeason, getConceptString, getPendingMonthsForSeason, getCalendarMonthAndYear } from '@/lib/treasury';
 import { cn } from '@/lib/utils';
@@ -231,6 +231,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
 
                         {selectedMonths.length > 0 && (
                             <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 animate-in fade-in zoom-in-95">
+                                <p className="text-xs text-slate-500 mt-2 text-center">v1.1.29</p>
                                 <p className="text-xs text-center text-slate-600">
                                     Se registrarán <span className="font-bold text-primary">{selectedMonths.length} cuotas</span> por un total de <span className="font-bold text-primary">{amount}€</span>.
                                 </p>
