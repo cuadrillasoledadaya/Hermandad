@@ -105,9 +105,19 @@ export async function getExpensesByCategory(categoria: ExpenseCategory): Promise
  * Crear un nuevo gasto
  */
 export async function createExpense(expense: CreateExpenseInput): Promise<Expense> {
+    // Obtener el usuario actual
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        throw new Error('Usuario no autenticado');
+    }
+
     const { data, error } = await supabase
         .from('gastos')
-        .insert([expense])
+        .insert([{
+            ...expense,
+            created_by: user.id
+        }])
         .select()
         .single();
 
