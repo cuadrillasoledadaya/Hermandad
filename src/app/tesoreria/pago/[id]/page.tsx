@@ -191,12 +191,12 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0",
+                                                "w-6 h-6 rounded-md border-[3px] flex items-center justify-center transition-all flex-shrink-0 shadow-sm",
                                                 isSelected
-                                                    ? "bg-primary border-primary"
-                                                    : "bg-white border-slate-400"
+                                                    ? "bg-primary border-primary scale-110 shadow-primary/30"
+                                                    : "bg-white border-slate-500 hover:border-primary/70"
                                             )}>
-                                                {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                                                {isSelected && <Check className="w-4 h-4 text-white stroke-[4]" />}
                                             </div>
                                             <span className={cn(
                                                 "text-sm font-semibold leading-none",
