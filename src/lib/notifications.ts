@@ -1,4 +1,6 @@
 export interface NotificationPayload {
+    action: 'create' | 'update' | 'delete';
+    id: string; // Internal DB ID
     title: string;
     content: string;
     platforms: string[];

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Users, Wallet } from 'lucide-react';
+import { Home, Users, Wallet, Share2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,7 @@ export function BottomNav() {
 
     const navItems = [
         { name: 'Inicio', icon: Home, href: '/' },
+        { name: 'Redes', icon: Share2, href: '/redes-sociales' },
         { name: 'Registro', icon: Users, href: '/hermanos' },
         { name: 'Tesorería', icon: Wallet, href: '/tesoreria' },
     ];

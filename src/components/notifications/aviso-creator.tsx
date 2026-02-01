@@ -28,7 +28,9 @@ export function AvisoCreator() {
 
         const result = await sendToSocialMedia({
             ...formData,
-            platforms: ['Facebook', 'Instagram', 'Twitter'], // Example default platforms
+            action: 'create',
+            id: crypto.randomUUID(), // Generate a temporary ID for direct sends
+            platforms: ['Facebook', 'Instagram', 'Twitter'],
         });
 
         setLoading(false);
