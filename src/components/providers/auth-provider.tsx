@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 type UserRole = 'SUPERADMIN' | 'JUNTA' | 'HERMANO';

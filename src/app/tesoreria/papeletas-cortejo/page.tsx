@@ -83,9 +83,10 @@ export default function PapeletasPage() {
             setDeleteDialogOpen(false);
             queryClient.invalidateQueries({ queryKey: ['papeletas-cortejo'] });
             queryClient.invalidateQueries({ queryKey: ['papeletas-stats'] });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error deleting:', error);
-            toast.error('Error al eliminar: ' + error.message);
+            const msg = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error('Error al eliminar: ' + msg);
         } finally {
             setIsDeleting(false);
             setPapeletaToDelete(null);

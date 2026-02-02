@@ -45,9 +45,10 @@ export default function RegisterPage() {
                     window.location.href = '/login';
                 }, 2000);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Registration error:', err);
-            toast.error('Ocurrió un error inesperado');
+            const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error inesperado';
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }

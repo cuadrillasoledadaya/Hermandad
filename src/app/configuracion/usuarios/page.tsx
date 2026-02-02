@@ -49,7 +49,7 @@ export default function UsuariosPage() {
             queryClient.invalidateQueries({ queryKey: ['hermanos-roles'] });
             toast.success('Rol actualizado correctamente');
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error('Error al actualizar el rol: ' + error.message);
         }
     });

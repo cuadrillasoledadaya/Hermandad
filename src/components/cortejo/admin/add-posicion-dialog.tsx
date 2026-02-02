@@ -40,7 +40,7 @@ export function AddPosicionDialog({ tramoInicial = 1 }: AddPosicionDialogProps) 
         }
     });
 
-    const updateForm = (key: keyof NuevaPosicion, value: any) => {
+    const updateForm = (key: keyof NuevaPosicion, value: string | number | PosicionTipo | Lado) => {
         setFormData(prev => ({ ...prev, [key]: value }));
     };
 
