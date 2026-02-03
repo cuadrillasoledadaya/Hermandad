@@ -1,0 +1,1325 @@
+================================================================================
+GUÍA PRÁCTICA - MEJORAR LA APLICACIÓN PWA PASO A PASO
+================================================================================
+
+ESTA GUÍA TE DICE EXACTAMENTE QUÉ HACER EN CADA ARCHIVO
+COPIA Y PEGA EL CÓDIGO SIN MODIFICAR NADA SALVO LO INDICADO
+TODO SEGUIRÁ FUNCIONANDO IGUAL PERO MEJOR
+
+================================================================================
+PASO 1: INSTALAR LIBRERÍAS NECESARIAS
+================================================================================
+
+Abre la terminal en la carpeta del proyecto y ejecuta estos comandos uno por uno:
+
+npm install zod
+npm install @tanstack/react-query-persist-client
+npm install idb-keyval
+npm install @serwist/sw
+
+Espera a que termine cada instalación antes de pasar al siguiente paso.
+
+================================================================================
+PASO 2: ARREGLAR LA SEGURIDAD (MIDDLEWARE)
+================================================================================
+
+ARCHIVO A MODIFICAR: src/middleware.ts
+
+Este archivo controla la seguridad de tu app. Lo vamos a mejorar para proteger
+contra ataques hackers.
+
+BORRA TODO EL CONTENIDO ACTUAL y pega este código nuevo:
+
+-------------------------------------------------------------------------------
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+    let response = NextResponse.next({
+        request: {
+            headers: request.headers,
+        },
+    })
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                get(name: string) {
+                    return request.cookies.get(name)?.value
+                },
+                set(name: string, value: string, options: CookieOptions) {
+                    request.cookies.set({
+                        name,
+                        value,
+                        ...options,
+                    })
+                    response = NextResponse.next({
+                        request: {
+                            headers: request.headers,
+                        },
+                    })
+                    response.cookies.set({
+                        name,
+                        value,
+                        ...options,
+                    })
+                },
+                remove(name: string, options: CookieOptions) {
+                    request.cookies.set({
+                        name,
+                        value: '',
+                        ...options,
+                    })
+                    response = NextResponse.next({
+                        request: {
+                            headers: request.headers,
+                        },
+                    })
+                    response.cookies.set({
+                        name,
+                        value: '',
+                        ...options,
+                    })
+                },
+            },
+        }
+    )
+
+    // OBTENER Y REFRESCAR SESIÓN SI ES NECESARIO
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    // Si hay sesión y el token está próximo a expirar, refrescarlo
+    if (session?.expires_at) {
+        const expiresAt = session.expires_at * 1000 // Convertir a milisegundos
+        const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000)
+        
+        if (expiresAt < fiveMinutesFromNow) {
+            await supabase.auth.refreshSession()
+        }
+    }
+    
+    console.log('Middleware Path:', request.nextUrl.pathname, 'Session exists:', !!session);
+
+    // Protected routes logic
+    const isProtectedPath = ['/', '/tesoreria', '/hermanos', '/avisos', '/config'].some(path =>
+        request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
+    )
+
+    if (!session && isProtectedPath && request.nextUrl.pathname !== '/login') {
+        console.log('Middleware: Redirecting to /login (no session)');
+        return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    if (session && request.nextUrl.pathname === '/login') {
+        console.log('Middleware: Redirecting to / (already logged in)');
+        return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    // AÑADIR HEADERS DE SEGURIDAD - ESTO PROTEGE CONTRA ATAQUES
+    const securityHeaders = {
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://*.google-analytics.com; img-src 'self' data: https: blob:;",
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    }
+
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+    })
+
+    return response
+}
+
+export const config = {
+    matcher: [
+        '/((?!_next/static|_next/image|favicon.ico).*)',
+    ],
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 3: MEJORAR EL MANIFEST (PARA QUE LA PWA SE VEA BIEN)
+================================================================================
+
+ARCHIVO A MODIFICAR: public/manifest.json
+
+BORRA TODO y pega esto:
+
+-------------------------------------------------------------------------------
+{
+  "name": "Hermandad de la Soledad",
+  "short_name": "Hermandad",
+  "id": "/",
+  "description": "Sistema de gestión integral para la hermandad",
+  "start_url": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay"],
+  "background_color": "#ffffff",
+  "theme_color": "#2E7D32",
+  "orientation": "portrait",
+  "lang": "es",
+  "categories": ["productivity", "finance"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard-mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Panel principal en móvil"
+    },
+    {
+      "src": "/screenshots/dashboard-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Panel principal en escritorio"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo Pago",
+      "short_name": "Pago",
+      "description": "Registrar un nuevo pago",
+      "url": "/tesoreria",
+      "icons": [{ "src": "/icons/payment-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Lista Hermanos",
+      "short_name": "Hermanos",
+      "description": "Ver lista de hermanos",
+      "url": "/hermanos",
+      "icons": [{ "src": "/icons/users-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Configuración",
+      "short_name": "Config",
+      "description": "Ajustes del sistema",
+      "url": "/configuracion",
+      "icons": [{ "src": "/icons/settings-96x96.png", "sizes": "96x96" }]
+    }
+  ]
+}
+-------------------------------------------------------------------------------
+
+IMPORTANTE: Tienes que crear estas imágenes:
+- /public/icons/icon-maskable-192x192.png
+- /public/icons/icon-maskable-512x512.png
+- /public/screenshots/dashboard-mobile.png (captura de tu app en móvil)
+- /public/screenshots/dashboard-desktop.png (captura en escritorio)
+- /public/icons/payment-96x96.png
+- /public/icons/users-96x96.png
+- /public/icons/settings-96x96.png
+
+Para los iconos maskable, usa: https://maskable.app/
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 4: MEJORAR EL SERVICE WORKER (PARA QUE FUNCIONE OFFLINE)
+================================================================================
+
+ARCHIVO A MODIFICAR: src/sw.ts
+
+BORRA TODO y pega esto:
+
+-------------------------------------------------------------------------------
+import { defaultCache } from "@serwist/next/worker";
+import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
+import { Serwist, NetworkFirst, CacheFirst, StaleWhileRevalidate } from "serwist";
+
+declare global {
+  interface ServiceWorkerGlobalScope extends SerwistGlobalConfig {
+    __SW_MANIFEST: (string | PrecacheEntry)[] | undefined;
+  }
+}
+
+declare const self: ServiceWorkerGlobalScope;
+
+const serwist = new Serwist({
+  precacheEntries: self.__SW_MANIFEST,
+  skipWaiting: true,
+  clientsClaim: true,
+  navigationPreload: true,
+  runtimeCaching: [
+    // Cache por defecto de Serwist
+    ...defaultCache,
+    
+    // Estrategia para API de Supabase: Intenta red primero, si falla usa cache
+    {
+      matcher: ({ url }) => url.pathname.includes('/rest/v1/'),
+      handler: new NetworkFirst({
+        cacheName: 'api-cache',
+        plugins: [
+          {
+            cachedResponseWillBeUsed: async ({ cachedResponse }) => {
+              // Si estamos offline, devolver cache incluso si está viejo
+              if (!navigator.onLine && cachedResponse) {
+                return cachedResponse;
+              }
+              return cachedResponse;
+            }
+          }
+        ]
+      })
+    },
+    
+    // Estrategia para imágenes: Usa cache primero
+    {
+      matcher: ({ request }) => request.destination === 'image',
+      handler: new CacheFirst({
+        cacheName: 'images-cache',
+        plugins: [
+          {
+            expiration: {
+              maxEntries: 100,
+              maxAgeSeconds: 30 * 24 * 60 * 60 // 30 días
+            }
+          }
+        ]
+      })
+    },
+    
+    // Estrategia para fuentes de Google: Cache primero
+    {
+      matcher: ({ url }) => url.origin === 'https://fonts.googleapis.com' || 
+                           url.origin === 'https://fonts.gstatic.com',
+      handler: new CacheFirst({
+        cacheName: 'fonts-cache',
+        plugins: [
+          {
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 365 * 24 * 60 * 60 // 1 año
+            }
+          }
+        ]
+      })
+    }
+  ],
+});
+
+// Escuchar mensajes desde la aplicación
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Background Sync: Sincronizar cuando vuelva la conexión
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-mutations') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'PROCESS_MUTATIONS' });
+        });
+      })
+    );
+  }
+});
+
+serwist.addEventListeners();
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 5: MEJORAR INDEXEDDB (BASE DE DATOS LOCAL)
+================================================================================
+
+ARCHIVO A MODIFICAR: src/lib/db.ts
+
+BORRA TODO y pega esto:
+
+-------------------------------------------------------------------------------
+import { openDB, IDBPDatabase } from 'idb';
+
+const DATABASE_NAME = 'hermandad_offline_db';
+const DATABASE_VERSION = 2; // Incrementamos versión para migración
+
+// Cola de operaciones pendientes (para cuando estamos offline)
+interface MutationQueueItem {
+  id?: number;
+  type: 'insert' | 'update' | 'delete';
+  table: string;
+  data: any;
+  timestamp: number;
+  retryCount: number;
+}
+
+export async function initDB(): Promise<IDBPDatabase> {
+  return openDB(DATABASE_NAME, DATABASE_VERSION, {
+    upgrade(db, oldVersion) {
+      // Versión 1
+      if (oldVersion < 1) {
+        const hermanosStore = db.createObjectStore('hermanos', { keyPath: 'id' });
+        hermanosStore.createIndex('email', 'email', { unique: true });
+        hermanosStore.createIndex('numero_hermano', 'numero_hermano', { unique: true });
+        hermanosStore.createIndex('activo', 'activo', { unique: false });
+        
+        const pagosStore = db.createObjectStore('pagos', { keyPath: 'id' });
+        pagosStore.createIndex('hermano_id', 'hermano_id', { unique: false });
+        pagosStore.createIndex('fecha', 'fecha', { unique: false });
+        
+        db.createObjectStore('mutation_queue', { keyPath: 'id', autoIncrement: true });
+        
+        db.createObjectStore('sync_metadata', { keyPath: 'key' });
+      }
+      
+      // Versión 2 - Añadir stores adicionales si los necesitas
+      if (oldVersion < 2) {
+        if (!db.objectStoreNames.contains('configuracion')) {
+          db.createObjectStore('configuracion', { keyPath: 'id' });
+        }
+      }
+    },
+  });
+}
+
+// Función para guardar datos de hermanos en local
+export async function saveHermanosLocal(hermanos: any[]) {
+  const db = await initDB();
+  const tx = db.transaction('hermanos', 'readwrite');
+  const store = tx.objectStore('hermanos');
+  
+  // Limpiar datos antiguos y guardar nuevos
+  await store.clear();
+  for (const hermano of hermanos) {
+    await store.put(hermano);
+  }
+  
+  await tx.done;
+}
+
+// Función para obtener hermanos de local
+export async function getHermanosLocal(): Promise<any[]> {
+  const db = await initDB();
+  return db.getAll('hermanos');
+}
+
+// Función para guardar pagos en local
+export async function savePagosLocal(pagos: any[]) {
+  const db = await initDB();
+  const tx = db.transaction('pagos', 'readwrite');
+  const store = tx.objectStore('pagos');
+  
+  await store.clear();
+  for (const pago of pagos) {
+    await store.put(pago);
+  }
+  
+  await tx.done;
+}
+
+// Función para obtener pagos de local
+export async function getPagosLocal(): Promise<any[]> {
+  const db = await initDB();
+  return db.getAll('pagos');
+}
+
+// AÑADIR UNA MUTACIÓN A LA COLA (cuando estamos offline)
+export async function queueMutation(mutation: Omit<MutationQueueItem, 'id' | 'timestamp' | 'retryCount'>) {
+  const db = await initDB();
+  const item: MutationQueueItem = {
+    ...mutation,
+    timestamp: Date.now(),
+    retryCount: 0
+  };
+  await db.add('mutation_queue', item);
+}
+
+// OBTENER TODAS LAS MUTACIONES PENDIENTES
+export async function getPendingMutations(): Promise<MutationQueueItem[]> {
+  const db = await initDB();
+  return db.getAll('mutation_queue');
+}
+
+// ELIMINAR UNA MUTACIÓN YA PROCESADA
+export async function removeMutation(id: number) {
+  const db = await initDB();
+  await db.delete('mutation_queue', id);
+}
+
+// ACTUALIZAR CONTADOR DE REINTENTOS
+export async function incrementRetryCount(id: number) {
+  const db = await initDB();
+  const tx = db.transaction('mutation_queue', 'readwrite');
+  const store = tx.objectStore('mutation_queue');
+  const item = await store.get(id);
+  if (item) {
+    item.retryCount += 1;
+    await store.put(item);
+  }
+  await tx.done;
+}
+
+// GUARDAR METADATA DE SINCRONIZACIÓN
+export async function setSyncMetadata(key: string, value: any) {
+  const db = await initDB();
+  await db.put('sync_metadata', { key, value, timestamp: Date.now() });
+}
+
+// OBTENER METADATA DE SINCRONIZACIÓN
+export async function getSyncMetadata(key: string): Promise<any | undefined> {
+  const db = await initDB();
+  const result = await db.get('sync_metadata', key);
+  return result?.value;
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 6: MEJORAR REACT QUERY (PARA QUE GUARDE DATOS OFFLINE)
+================================================================================
+
+ARCHIVO A MODIFICAR: src/components/providers/query-provider.tsx
+
+BORRA TODO y pega esto:
+
+-------------------------------------------------------------------------------
+'use client';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { get, set, del } from 'idb-keyval';
+import { ReactNode, useEffect, useState } from 'react';
+
+// Crear el QueryClient fuera del componente para que se reutilice
+const createQueryClient = () => 
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos se consideran frescos
+        gcTime: 1000 * 60 * 60 * 24, // 24 horas - datos persisten en memoria
+        refetchOnWindowFocus: false, // No recargar al volver a la pestaña
+        refetchOnReconnect: true, // Sí recargar al recuperar conexión
+        retry: (failureCount, error: any) => {
+          const status = error?.status;
+          // No reintentar errores 4xx (cliente), solo 5xx o errores de red
+          if (status >= 400 && status < 500) return false;
+          // Reintentar hasta 3 veces con backoff exponencial
+          if (failureCount < 3) return true;
+          return false;
+        },
+        retryDelay: (retryCount) => {
+          // Backoff exponencial: 1s, 2s, 4s
+          return Math.min(1000 * Math.pow(2, retryCount), 10000);
+        },
+      },
+    },
+  });
+
+// Variable global para mantener el QueryClient entre hot reloads
+let clientQueryClient: QueryClient | undefined = undefined;
+
+const getQueryClient = () => {
+  if (typeof window === 'undefined') {
+    // Server: siempre crear nuevo
+    return createQueryClient();
+  }
+  // Client: reutilizar si existe
+  if (!clientQueryClient) {
+    clientQueryClient = createQueryClient();
+  }
+  return clientQueryClient;
+};
+
+// Persister usando IndexedDB (idb-keyval)
+const idbPersister = createAsyncStoragePersister({
+  storage: {
+    getItem: async (key) => {
+      const value = await get(key);
+      return value || null;
+    },
+    setItem: async (key, value) => {
+      await set(key, value);
+    },
+    removeItem: async (key) => {
+      await del(key);
+    },
+  },
+  key: 'hermandad-react-query-cache',
+  throttleTime: 1000, // Guardar máximo cada 1 segundo
+});
+
+export function QueryProvider({ children }: { children: ReactNode }) {
+  const queryClient = getQueryClient();
+  const [isRestoring, setIsRestoring] = useState(true);
+
+  useEffect(() => {
+    // Persistir el caché de React Query en IndexedDB
+    const unsubscribe = persistQueryClient({
+      queryClient,
+      persister: idbPersister,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 días de persistencia
+      buster: 'v2', // Cambiar esto cuando quieras invalidar todo el caché
+      dehydrateOptions: {
+        shouldDehydrateQuery: (query) => {
+          // Solo persistir queries que no sean de autenticación o sensibles
+          const queryKey = query.queryKey;
+          if (queryKey[0] === 'auth' || queryKey[0] === 'session') {
+            return false;
+          }
+          // Solo persistir queries exitosas
+          return query.state.status === 'success';
+        },
+      },
+    });
+
+    // Simular restauración completada después de un momento
+    setTimeout(() => setIsRestoring(false), 100);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [queryClient]);
+
+  // Mostrar nada o un spinner mientras restaura (opcional)
+  if (isRestoring && typeof window !== 'undefined') {
+    // Puedes descomentar esto si quieres mostrar algo mientras carga
+    // return <div className="p-4 text-center">Restaurando datos...</div>;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 7: CREAR HOOK PARA DETECTAR SI HAY INTERNET
+================================================================================
+
+CREAR NUEVO ARCHIVO: src/hooks/use-network-status.ts
+
+Copia y pega esto:
+
+-------------------------------------------------------------------------------
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+
+interface NetworkStatus {
+  isOnline: boolean;
+  connectionType: string | null;
+  effectiveType: string | null;
+  downlink: number | null;
+  rtt: number | null;
+}
+
+export function useNetworkStatus(): NetworkStatus {
+  const [status, setStatus] = useState<NetworkStatus>({
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    connectionType: null,
+    effectiveType: null,
+    downlink: null,
+    rtt: null,
+  });
+
+  const updateConnectionStatus = useCallback(() => {
+    if (typeof navigator === 'undefined') return;
+
+    const connection = (navigator as any).connection;
+    
+    setStatus({
+      isOnline: navigator.onLine,
+      connectionType: connection?.type || null,
+      effectiveType: connection?.effectiveType || null,
+      downlink: connection?.downlink || null,
+      rtt: connection?.rtt || null,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Eventos de conexión
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // API de conexión (para saber tipo: 4g, 3g, etc.)
+    const connection = (navigator as any).connection;
+    if (connection) {
+      connection.addEventListener('change', updateConnectionStatus);
+    }
+
+    // Estado inicial
+    updateConnectionStatus();
+
+    return () => {
+      window.removeEventListener('online', updateConnectionStatus);
+      window.removeEventListener('offline', updateConnectionStatus);
+      if (connection) {
+        connection.removeEventListener('change', updateConnectionStatus);
+      }
+    };
+  }, [updateConnectionStatus]);
+
+  return status;
+}
+
+// Hook simple solo para saber si estamos online
+export function useIsOnline(): boolean {
+  const { isOnline } = useNetworkStatus();
+  return isOnline;
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 8: CREAR HOOK PARA SINCRONIZAR DATOS OFFLINE
+================================================================================
+
+CREAR NUEVO ARCHIVO: src/hooks/use-offline-sync.ts
+
+Copia y pega esto:
+
+-------------------------------------------------------------------------------
+'use client';
+
+import { useEffect, useCallback, useState } from 'react';
+import { useNetworkStatus } from './use-network-status';
+import { getPendingMutations, removeMutation, incrementRetryCount } from '@/lib/db';
+import { createClient } from '@/lib/supabase';
+import { toast } from 'sonner';
+
+interface SyncStatus {
+  isSyncing: boolean;
+  pendingCount: number;
+  lastSync: Date | null;
+  error: string | null;
+}
+
+export function useOfflineSync() {
+  const { isOnline } = useNetworkStatus();
+  const [status, setStatus] = useState<SyncStatus>({
+    isSyncing: false,
+    pendingCount: 0,
+    lastSync: null,
+    error: null,
+  });
+
+  // Verificar cuántas mutaciones pendientes hay
+  const checkPending = useCallback(async () => {
+    const pending = await getPendingMutations();
+    setStatus(prev => ({ ...prev, pendingCount: pending.length }));
+  }, []);
+
+  // Procesar mutaciones pendientes
+  const processMutations = useCallback(async () => {
+    if (!isOnline) return;
+    
+    const pending = await getPendingMutations();
+    if (pending.length === 0) return;
+
+    setStatus(prev => ({ ...prev, isSyncing: true, error: null }));
+    const supabase = createClient();
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const mutation of pending) {
+      try {
+        let result;
+        
+        switch (mutation.type) {
+          case 'insert':
+            result = await supabase.from(mutation.table).insert(mutation.data);
+            break;
+          case 'update':
+            result = await supabase.from(mutation.table).update(mutation.data).eq('id', mutation.data.id);
+            break;
+          case 'delete':
+            result = await supabase.from(mutation.table).delete().eq('id', mutation.data.id);
+            break;
+        }
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        // Éxito: eliminar de la cola
+        if (mutation.id) {
+          await removeMutation(mutation.id);
+        }
+        successCount++;
+        
+      } catch (error) {
+        console.error('Error procesando mutation:', mutation, error);
+        errorCount++;
+        
+        // Incrementar contador de reintentos
+        if (mutation.id) {
+          await incrementRetryCount(mutation.id);
+        }
+        
+        // Si ha fallado muchas veces, mostrar error
+        if (mutation.retryCount >= 3) {
+          setStatus(prev => ({ ...prev, error: `Fallo al sincronizar ${mutation.table}` }));
+        }
+      }
+    }
+
+    setStatus(prev => ({
+      ...prev,
+      isSyncing: false,
+      pendingCount: pending.length - successCount,
+      lastSync: new Date(),
+    }));
+
+    if (successCount > 0) {
+      toast.success(`${successCount} cambios sincronizados`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} cambios no pudieron sincronizarse`);
+    }
+  }, [isOnline]);
+
+  // Escuchar mensajes del Service Worker
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PROCESS_MUTATIONS') {
+        processMutations();
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleMessage);
+    
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleMessage);
+    };
+  }, [processMutations]);
+
+  // Sincronizar automáticamente cuando volvemos online
+  useEffect(() => {
+    if (isOnline) {
+      // Pequeña espera para asegurar conexión estable
+      const timer = setTimeout(() => {
+        processMutations();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, processMutations]);
+
+  // Verificar pendientes al montar
+  useEffect(() => {
+    checkPending();
+  }, [checkPending]);
+
+  return {
+    ...status,
+    isOnline,
+    syncNow: processMutations,
+    refreshPending: checkPending,
+  };
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 9: CREAR COMPONENTE DE BANNER OFFLINE
+================================================================================
+
+CREAR NUEVO ARCHIVO: src/components/ui/offline-banner.tsx
+
+Copia y pega esto:
+
+-------------------------------------------------------------------------------
+'use client';
+
+import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { WifiOff, RefreshCw } from 'lucide-react';
+import { Button } from './button';
+
+export function OfflineBanner() {
+  const { isOnline, isSyncing, pendingCount, syncNow } = useOfflineSync();
+
+  // No mostrar nada si estamos online y no hay pendientes
+  if (isOnline && pendingCount === 0 && !isSyncing) {
+    return null;
+  }
+
+  return (
+    <div className={`fixed bottom-0 left-0 right-0 z-50 p-3 ${
+      isOnline ? 'bg-blue-500 text-white' : 'bg-yellow-500 text-black'
+    }`}>
+      <div className="flex items-center justify-between max-w-7xl mx-auto">
+        <div className="flex items-center gap-2">
+          {!isOnline && <WifiOff className="w-5 h-5" />}
+          <span className="font-medium">
+            {!isOnline 
+              ? 'Sin conexión a Internet. Los cambios se guardarán localmente.' 
+              : isSyncing 
+                ? 'Sincronizando cambios...'
+                : `${pendingCount} cambios pendientes de sincronizar`
+            }
+          </span>
+        </div>
+        
+        {isOnline && pendingCount > 0 && (
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={syncNow}
+            disabled={isSyncing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            Sincronizar ahora
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 10: MEJORAR ZUSTAND (QUITAR LOCALSTORAGE)
+================================================================================
+
+ARCHIVO A MODIFICAR: src/store/use-app-store.ts
+
+BORRA TODO y pega esto:
+
+-------------------------------------------------------------------------------
+import { create } from 'zustand';
+
+interface AppState {
+    isSidebarOpen: boolean;
+    toggleSidebar: () => void;
+    // Más estado UI global aquí
+}
+
+export const useAppStore = create<AppState>()(
+    (set) => ({
+        isSidebarOpen: false,
+        toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+    })
+);
+
+// Nota: Eliminamos persist porque solo guardamos UI state (posición sidebar, tema)
+// Los datos importantes van a React Query + IndexedDB
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 11: CREAR UTILIDAD PARA MUTATIONS OFFLINE
+================================================================================
+
+CREAR NUEVO ARCHIVO: src/lib/offline-mutation.ts
+
+Copia y pega esto:
+
+-------------------------------------------------------------------------------
+import { queueMutation } from './db';
+
+// Tipo de operación de base de datos
+interface MutationOptions {
+  type: 'insert' | 'update' | 'delete';
+  table: string;
+  data: any;
+}
+
+// Función principal para realizar mutations con soporte offline
+export async function offlineMutation(options: MutationOptions): Promise<{ success: boolean; offline: boolean; error?: string }> {
+  try {
+    // Intentar hacer la operación online primero
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/${options.table}`, {
+      method: options.type === 'delete' ? 'DELETE' : options.type === 'insert' ? 'POST' : 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      body: options.type !== 'delete' ? JSON.stringify(options.data) : undefined,
+    });
+
+    if (response.ok) {
+      return { success: true, offline: false };
+    }
+    
+    // Si falló por conexión, guardar en cola
+    if (!navigator.onLine || response.status === 0) {
+      await queueMutation(options);
+      return { success: true, offline: true };
+    }
+    
+    return { success: false, offline: false, error: `Error ${response.status}` };
+    
+  } catch (error) {
+    // Error de red: guardar en cola
+    if (!navigator.onLine || (error instanceof TypeError && error.message.includes('fetch'))) {
+      await queueMutation(options);
+      return { success: true, offline: true };
+    }
+    
+    return { success: false, offline: false, error: String(error) };
+  }
+}
+
+// Helper para inserts
+export async function offlineInsert(table: string, data: any) {
+  return offlineMutation({ type: 'insert', table, data });
+}
+
+// Helper para updates
+export async function offlineUpdate(table: string, data: any) {
+  return offlineMutation({ type: 'update', table, data });
+}
+
+// Helper para deletes
+export async function offlineDelete(table: string, id: string | number) {
+  return offlineMutation({ type: 'delete', table, data: { id } });
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 12: ACTUALIZAR LAYOUT PRINCIPAL
+================================================================================
+
+ARCHIVO A MODIFICAR: src/app/layout.tsx
+
+BORRA TODO y pega esto:
+
+-------------------------------------------------------------------------------
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
+import { Toaster } from "@/components/ui/sonner";
+import { OfflineBanner } from "@/components/ui/offline-banner";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Hermandad de la Soledad - Gestión",
+  description: "Sistema de gestión integral para la Hermandad",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Hermandad",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2E7D32",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5, // Permitimos zoom para accesibilidad
+  userScalable: true, // Permitimos zoom para accesibilidad
+};
+
+// ELIMINADO: export const dynamic = "force-dynamic";
+// Ahora las páginas pueden usar SSG por defecto
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="es">
+      <head>
+        {/* Iconos para iOS */}
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
+      <body className={`${inter.className} antialiased`}>
+        <QueryProvider>
+          <AuthProvider>
+            <SidebarWrapper>
+              {children}
+            </SidebarWrapper>
+            <OfflineBanner />
+            <Toaster />
+          </AuthProvider>
+        </QueryProvider>
+      </body>
+    </html>
+  );
+}
+-------------------------------------------------------------------------------
+
+GUARDAR EL ARCHIVO
+
+================================================================================
+PASO 13: CREAR ARCHIVOS LOADING PARA RUTAS
+================================================================================
+
+CREAR NUEVO ARCHIVO: src/app/loading.tsx
+
+Copia y pega esto:
+
+-------------------------------------------------------------------------------
+import { SkeletonCard } from "@/components/ui/skeleton";
+
+export default function Loading() {
+  return (
+    <div className="p-6 space-y-4">
+      <div className="h-8 w-1/3 bg-gray-200 rounded animate-pulse" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    </div>
+  );
+}
+-------------------------------------------------------------------------------
+
+GUARDAR
+
+CREAR NUEVO ARCHIVO: src/components/ui/skeleton.tsx
+
+Copia y pega esto:
+
+-------------------------------------------------------------------------------
+import { cn } from "@/lib/utils";
+
+interface SkeletonProps {
+  className?: string;
+}
+
+export function Skeleton({ className }: SkeletonProps) {
+  return (
+    <div className={cn("animate-pulse bg-gray-200 rounded", className)} />
+  );
+}
+
+export function SkeletonCard() {
+  return (
+    <div className="space-y-3 p-4 border rounded-lg">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-20 w-full" />
+      <div className="flex gap-2">
+        <Skeleton className="h-10 w-24" />
+        <Skeleton className="h-10 w-24" />
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonTable({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="space-y-2">
+      <Skeleton className="h-10 w-full" />
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className="h-12 w-full" />
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonText({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton 
+          key={i} 
+          className={`h-4 ${i === lines - 1 ? 'w-2/3' : 'w-full'}`} 
+        />
+      ))}
+    </div>
+  );
+}
+-------------------------------------------------------------------------------
+
+GUARDAR
+
+================================================================================
+PASO 14: CREAR ERROR BOUNDARY PARA RUTAS
+================================================================================
+
+CREAR NUEVO ARCHIVO: src/app/error.tsx
+
+Copia y pega esto:
+
+-------------------------------------------------------------------------------
+'use client';
+
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    // Loguear error a consola o servicio de tracking
+    console.error('Error en ruta:', error);
+  }, [error]);
+
+  return (
+    <div className="min-h-[400px] flex flex-col items-center justify-center p-6">
+      <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+      <h2 className="text-xl font-bold mb-2">Algo salió mal</h2>
+      <p className="text-gray-600 mb-4 text-center max-w-md">
+        Ha ocurrido un error al cargar esta página. Puedes intentar recargar.
+      </p>
+      <div className="flex gap-3">
+        <Button onClick={reset} variant="default">
+          Intentar de nuevo
+        </Button>
+        <Button onClick={() => window.location.href = '/'} variant="outline">
+          Ir al inicio
+        </Button>
+      </div>
+      {process.env.NODE_ENV === 'development' && (
+        <pre className="mt-4 p-4 bg-gray-100 rounded text-xs overflow-auto max-w-full">
+          {error.message}
+          {error.stack}
+        </pre>
+      )}
+    </div>
+  );
+}
+-------------------------------------------------------------------------------
+
+GUARDAR
+
+================================================================================
+PASO 15: PROBAR QUE TODO FUNCIONA
+================================================================================
+
+Después de hacer todos los cambios, ejecuta estos comandos en la terminal:
+
+1. Primero verificar que no hay errores de sintaxis:
+   npm run lint
+
+2. Si hay errores, corrígelos antes de continuar.
+
+3. Compilar para producción:
+   npm run build
+
+4. Si la compilación falla, revisa los mensajes de error y corrige.
+
+5. Probar en desarrollo:
+   npm run dev
+
+6. Abre Chrome DevTools (F12) y ve a:
+   - Application > Service Workers (debería estar activo)
+   - Application > Manifest (debería mostrar el manifest completo)
+   - Application > IndexedDB (debería ver la base de datos)
+   - Lighthouse > PWA (ejecutar auditoría)
+
+================================================================================
+RESUMEN DE LO QUE HEMOS HECHO
+================================================================================
+
+✅ SEGURIDAD:
+   - Añadidos headers de seguridad (CSP, X-Frame-Options, etc.)
+   - Tokens de Supabase se refrescan automáticamente
+
+✅ PWA:
+   - Manifest mejorado con iconos maskable, screenshots, shortcuts
+   - Service Worker con estrategias de caché personalizadas
+   - Soporte para Background Sync
+
+✅ OFFLINE-FIRST:
+   - React Query persiste en IndexedDB
+   - IndexedDB configurada con índices y cola de mutaciones
+   - Sistema de detección de red (online/offline)
+   - Banner visual de estado de conexión
+   - Cola de mutations que se sincronizan automáticamente
+
+✅ PERFORMANCE:
+   - Eliminado force-dynamic para permitir SSG
+   - QueryClient reutilizable (no se recrea)
+   - Componentes Skeleton para estados de carga
+   - Archivos loading.tsx para cada ruta
+
+✅ UX:
+   - Error boundaries con botón de reintentar
+   - Estados de carga consistentes
+   - Indicador visual de sincronización
+   - Feedback cuando estamos offline
+
+================================================================================
+PRÓXIMOS PASOS OPCIONALES (PARA MÁS ADELANTE)
+================================================================================
+
+Cuando quieras mejorar aún más la app:
+
+1. Añadir validación con Zod:
+   - Instalar: npm install zod
+   - Validar todos los datos antes de enviar a Supabase
+
+2. Implementar Supabase Realtime:
+   - Sincronización en tiempo real entre dispositivos
+   - Notificaciones instantáneas
+
+3. Añadir Sentry para monitoreo de errores:
+   - npm install @sentry/nextjs
+   - Configurar en next.config.ts
+
+4. Optimizar imágenes:
+   - Usar componente Image de Next.js en todas las imágenes
+   - Implementar lazy loading
+
+5. Testing:
+   - Añadir Playwright para tests E2E
+   - Tests de modo offline
+
+================================================================================
+
+¡LISTO! Tu aplicación ahora es una PWA robusta con soporte offline completo.
+Todo seguirá funcionando igual pero mucho mejor.
+
+Si tienes algún error, revisa:
+1. Que instalaste todas las librerías (paso 1)
+2. Que copiaste bien el código sin perder comillas o llaves
+3. Que no hay errores en la consola del navegador (F12)
+
+Suerte con tu proyecto!

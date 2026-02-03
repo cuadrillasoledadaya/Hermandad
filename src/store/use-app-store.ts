@@ -1,21 +1,17 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface AppState {
     isSidebarOpen: boolean;
     toggleSidebar: () => void;
-    // More state will be added here (e.g., pending payments)
+    // Más estado UI global aquí
 }
 
 export const useAppStore = create<AppState>()(
-    persist(
-        (set) => ({
-            isSidebarOpen: false,
-            toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
-        }),
-        {
-            name: 'hermandad-storage',
-            storage: createJSONStorage(() => localStorage),
-        }
-    )
+    (set) => ({
+        isSidebarOpen: false,
+        toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+    })
 );
+
+// Nota: Eliminamos persist porque solo guardamos UI state (posición sidebar, tema)
+// Los datos importantes van a React Query + IndexedDB

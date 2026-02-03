@@ -1,11 +1,21 @@
 {
   "name": "Hermandad de la Soledad",
   "short_name": "Hermandad",
+  "id": "/",
   "description": "Sistema de gestión integral para la hermandad",
   "start_url": "/",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay"
+  ],
   "background_color": "#ffffff",
   "theme_color": "#2E7D32",
+  "orientation": "portrait",
+  "lang": "es",
+  "categories": [
+    "productivity",
+    "finance"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -16,6 +26,72 @@
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard-mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Panel principal en móvil"
+    },
+    {
+      "src": "/screenshots/dashboard-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Panel principal en escritorio"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo Pago",
+      "short_name": "Pago",
+      "description": "Registrar un nuevo pago",
+      "url": "/tesoreria",
+      "icons": [
+        {
+          "src": "/icons/payment-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Lista Hermanos",
+      "short_name": "Hermanos",
+      "description": "Ver lista de hermanos",
+      "url": "/hermanos",
+      "icons": [
+        {
+          "src": "/icons/users-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Configuración",
+      "short_name": "Config",
+      "description": "Ajustes del sistema",
+      "url": "/configuracion",
+      "icons": [
+        {
+          "src": "/icons/settings-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ]
 }

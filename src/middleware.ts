@@ -54,7 +54,19 @@ export async function middleware(request: NextRequest) {
         }
     )
 
+    // OBTENER Y REFRESCAR SESIÓN SI ES NECESARIO
     const { data: { session } } = await supabase.auth.getSession()
+
+    // Si hay sesión y el token está próximo a expirar, refrescarlo
+    if (session?.expires_at) {
+        const expiresAt = session.expires_at * 1000 // Convertir a milisegundos
+        const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000)
+
+        if (expiresAt < fiveMinutesFromNow) {
+            await supabase.auth.refreshSession()
+        }
+    }
+
     console.log('Middleware Path:', request.nextUrl.pathname, 'Session exists:', !!session);
 
     // Protected routes logic
@@ -72,18 +84,24 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
+    // AÑADIR HEADERS DE SEGURIDAD - ESTO PROTEGE CONTRA ATAQUES
+    const securityHeaders = {
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://*.google-analytics.com; img-src 'self' data: https: blob:;",
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    }
+
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value)
+    })
+
     return response
 }
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * Feel free to modify this pattern to include more paths.
-         */
         '/((?!_next/static|_next/image|favicon.ico).*)',
     ],
 }

@@ -7,9 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Send, AlertCircle, Loader2 } from 'lucide-react';
+import { Trash2, Send, AlertCircle, Loader2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/providers/auth-provider';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 
 interface Aviso {
     id: string;
@@ -25,6 +32,11 @@ export function InternalManager() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [formData, setFormData] = useState({
+        title: '',
+        content: '',
+    });
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState({
         title: '',
         content: '',
     });
@@ -80,6 +92,41 @@ export function InternalManager() {
         }
     };
 
+    const handleEdit = (aviso: Aviso) => {
+        setEditingId(aviso.id);
+        setEditForm({
+            title: aviso.titulo,
+            content: aviso.contenido
+        });
+    };
+
+    const handleUpdate = async () => {
+        if (!editingId) return;
+        setSubmitting(true);
+        try {
+            const { error } = await supabase
+                .from('avisos_internos')
+                .update({
+                    titulo: editForm.title,
+                    contenido: editForm.content,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', editingId);
+
+            if (error) throw error;
+
+            toast.success('Aviso actualizado correctamente');
+            setEditingId(null);
+            fetchAvisos();
+        } catch (error: unknown) {
+            console.error('Error updating aviso:', error);
+            const msg = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error('Error al actualizar el aviso: ' + msg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const handleDelete = async (id: string) => {
         if (!canManage) return;
         if (!confirm('¿Estás seguro de que deseas borrar este aviso?')) return;
@@ -90,13 +137,16 @@ export function InternalManager() {
                 .update({ activo: false })
                 .eq('id', id);
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase RLS/Error:', error);
+                throw error;
+            }
 
             toast.success('Aviso eliminado');
             fetchAvisos();
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error deleting aviso:', error);
-            toast.error('Error al eliminar el aviso');
+            toast.error('No se pudo borrar el aviso. Verifica tus permisos o si la tabla tiene RLS activo.');
         }
     };
 
@@ -157,14 +207,24 @@ export function InternalManager() {
                                         </p>
                                     </div>
                                     {canManage && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                            onClick={() => handleDelete(aviso.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                                onClick={() => handleEdit(aviso)}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-red-300 hover:text-red-600 hover:bg-red-50"
+                                                onClick={() => handleDelete(aviso.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                             </CardHeader>
@@ -175,6 +235,43 @@ export function InternalManager() {
                     ))
                 )}
             </div>
+
+            {/* Dialogo de Edición */}
+            <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Aviso Interno</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-title">Título</Label>
+                            <Input
+                                id="edit-title"
+                                value={editForm.title}
+                                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-content">Contenido</Label>
+                            <Textarea
+                                id="edit-content"
+                                rows={5}
+                                value={editForm.content}
+                                onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingId(null)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleUpdate} disabled={submitting}>
+                            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                            Guardar Cambios
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
