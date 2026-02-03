@@ -38,23 +38,24 @@ export function BrothersList() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h3 className="text-lg font-semibold">Listado General</h3>
                 {canManage && (
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => recalibrateMutation.mutate()}
                             disabled={recalibrateMutation.isPending}
+                            className="flex-1 sm:flex-none"
                         >
                             <RefreshCcw className={recalibrateMutation.isPending ? "animate-spin mr-2 h-4 w-4" : "mr-2 h-4 w-4"} />
-                            Recalibrar Números
+                            Recalibrar
                         </Button>
-                        <Link href="/hermanos/nuevo">
-                            <Button size="sm">
+                        <Link href="/hermanos/nuevo" className="flex-1 sm:flex-none">
+                            <Button size="sm" className="w-full">
                                 <UserPlus className="mr-2 h-4 w-4" />
-                                Nuevo Hermano
+                                Nuevo
                             </Button>
                         </Link>
                     </div>
