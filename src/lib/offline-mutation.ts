@@ -19,24 +19,29 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
     try {
         let result: { data: unknown; error: { code?: string; message: string } | null } = { data: null, error: null };
 
-        // Intentar la operación con el cliente de Supabase (gestiona Auth automáticamente)
-        switch (options.type) {
-            case 'insert':
-                if (Array.isArray(options.data)) {
-                    result = await supabase.from(options.table).insert(options.data).select();
-                } else {
-                    result = await supabase.from(options.table).insert(options.data).select().single();
-                }
-                break;
-            case 'update':
-                if (Array.isArray(options.data)) throw new Error('Bulk update not supported yet');
-                result = await supabase.from(options.table).update(options.data).eq('id', options.data.id).select().single();
-                break;
-            case 'delete':
-                if (Array.isArray(options.data)) throw new Error('Bulk delete not supported yet');
-                result = await supabase.from(options.table).delete().eq('id', options.data.id);
-                break;
-        }
+        // TIMEOUT PROTECTION: No esperar más de 2 segundos por Supabase
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Network timeout')), 2000);
+        });
+
+        const supabaseOperation = (async () => {
+            switch (options.type) {
+                case 'insert':
+                    if (Array.isArray(options.data)) {
+                        return await supabase.from(options.table).insert(options.data).select();
+                    } else {
+                        return await supabase.from(options.table).insert(options.data).select().single();
+                    }
+                case 'update':
+                    if (Array.isArray(options.data)) throw new Error('Bulk update not supported yet');
+                    return await supabase.from(options.table).update(options.data).eq('id', options.data.id).select().single();
+                case 'delete':
+                    if (Array.isArray(options.data)) throw new Error('Bulk delete not supported yet');
+                    return await supabase.from(options.table).delete().eq('id', options.data.id);
+            }
+        })();
+
+        result = await Promise.race([supabaseOperation, timeoutPromise]);
 
         if (result.error) {
             // Si el error es de conexión (pero navigator.onLine dijo que sí), guardamos en cola
@@ -60,6 +65,7 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
         const errorMessage = String(error).toLowerCase();
         const isNetworkError = errorMessage.includes('fetch') ||
             errorMessage.includes('network') ||
+            errorMessage.includes('timeout') ||
             errorMessage.includes('connection');
 
         if (isNetworkError) {
