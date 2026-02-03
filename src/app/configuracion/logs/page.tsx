@@ -5,8 +5,9 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { getSystemLogs, clearSystemLogs, LogEntry } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Trash2, RefreshCw, Copy, AlertTriangle, AlertCircle, Info, Database, CloudOff } from 'lucide-react';
+import { Trash2, RefreshCw, Copy, AlertTriangle, AlertCircle, Info, Database, CloudOff, HardDriveDownload } from 'lucide-react';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { resetAndReload } from '@/lib/db-clear';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -118,6 +119,56 @@ export default function LogsPage() {
                             Advertencia: Tienes {pendingCount} operaciones esperando conexión. Si las descartas, los datos creados offline se perderán permanentemente.
                         </p>
                     )}
+                </CardContent>
+            </Card>
+
+            {/* Sección Limpiar Base de Datos Local */}
+            <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <HardDriveDownload className="w-5 h-5 text-red-600" />
+                        Limpiar Cache Local (IndexedDB)
+                    </CardTitle>
+                    <CardDescription>
+                        Borra TODOS los datos locales y recarga desde Supabase. Útil cuando web y PWA no coinciden.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3">
+                        <div className="bg-white dark:bg-slate-900 p-3 rounded border text-sm">
+                            <p className="font-semibold mb-2">⚠️ Esta acción borrará:</p>
+                            <ul className="list-disc list-inside text-xs space-y-1 text-muted-foreground ml-2">
+                                <li>Todos los hermanos descargados</li>
+                                <li>Todas las papeletas cacheadas</li>
+                                <li>Todos los pagos descargados</li>
+                                <li>Cola de sincronización offline</li>
+                                <li>Logs del sistema</li>
+                            </ul>
+                            <p className="text-xs text-red-600 font-semibold mt-3">
+                                💡 Al recargar, todo se descargará nuevamente desde Supabase (nube).
+                            </p>
+                        </div>
+
+                        <Button
+                            variant="destructive"
+                            className="w-full"
+                            onClick={async () => {
+                                if (confirm('⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán TODOS los datos locales de IndexedDB.\n\nSi tienes cambios pendientes de sincronizar, SE PERDERÁN.\n\nDespués de confirmar, la app se recargará y descargará todo desde Supabase.')) {
+                                    try {
+                                        toast.loading('Limpiando base de datos local...');
+                                        await resetAndReload();
+                                        // La página se recargará automáticamente
+                                    } catch (error) {
+                                        toast.error('Error al limpiar la base de datos');
+                                        console.error(error);
+                                    }
+                                }
+                            }}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Limpiar Todo y Recargar desde Supabase
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
