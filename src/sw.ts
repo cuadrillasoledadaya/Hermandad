@@ -58,3 +58,22 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// 🆕 ESCUCHAR MENSAJES DESDE LA APP - REQUERIDO PARA SINCRONIZACIÓN OFFLINE
+// @ts-expect-error - ServiceWorkerGlobalScope types
+self.addEventListener('message', (event: MessageEvent) => {
+  if (event.data?.type === 'PROCESS_MUTATIONS') {
+    // Notificar a todas las pestañas que deben procesar mutations
+    // @ts-expect-error - ServiceWorkerGlobalScope types
+    self.clients.matchAll().then((clients: readonly any[]) => {
+      clients.forEach((client: any) => {
+        client.postMessage({ type: 'PROCESS_MUTATIONS' });
+      });
+    });
+  }
+  
+  if (event.data?.type === 'SKIP_WAITING') {
+    // @ts-expect-error - ServiceWorkerGlobalScope types
+    self.skipWaiting();
+  }
+});

@@ -46,6 +46,46 @@ export function useOfflineSync() {
 
                 switch (mutation.type) {
                     case 'insert':
+                        // Re-asignar número si es provisional (<= 0) para papeletas_cortejo
+                        if (mutation.table === 'papeletas_cortejo') {
+                            const data = mutation.data as { numero: number; anio: number; id_ingreso?: string };
+                            if (typeof data.numero === 'number' && data.numero <= 0) {
+                                try {
+                                    const { data: ultima } = await supabase
+                                        .from('papeletas_cortejo')
+                                        .select('numero')
+                                        .eq('anio', data.anio)
+                                        .order('numero', { ascending: false })
+                                        .limit(1)
+                                        .maybeSingle();
+
+                                    const nuevoNumero = ultima ? ultima.numero + 1 : 1;
+                                    data.numero = nuevoNumero;
+
+                                    console.log(`🔄 Re-asignando número real ${nuevoNumero} a papeleta provisional`);
+
+                                    // Intentar actualizar el concepto en la tabla de pagos vinculada
+                                    if (data.id_ingreso) {
+                                        const { data: pago } = await supabase
+                                            .from('pagos')
+                                            .select('concepto')
+                                            .eq('id', data.id_ingreso)
+                                            .maybeSingle();
+
+                                        if (pago && pago.concepto.includes('(Pendiente)')) {
+                                            const nuevoConcepto = pago.concepto.replace('(Pendiente)', `#${nuevoNumero}`);
+                                            await supabase
+                                                .from('pagos')
+                                                .update({ concepto: nuevoConcepto })
+                                                .eq('id', data.id_ingreso);
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error('Error re-asignando número:', err);
+                                    // Si falla la re-asignación, dejamos que falle la inserción por la constraint Unique
+                                }
+                            }
+                        }
                         result = await supabase.from(mutation.table).insert(mutation.data);
                         break;
                     case 'update':

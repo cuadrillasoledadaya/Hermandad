@@ -131,7 +131,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     }
 
     // 1. Obtener el siguiente número de papeleta disponible (optimista si offline)
-    let siguienteNumero = 0;
+    let siguienteNumero = -1;
     try {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
@@ -148,20 +148,31 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
             const { data: ultimaPapeleta, error: numError } = await Promise.race([numberQuery, timeoutPromise]);
 
             if (numError) {
-                if (numError.message?.toLowerCase().includes('fetch') || !numError.code) {
-                    siguienteNumero = 0;
-                } else {
-                    throw numError;
-                }
+                // Fallo de red o timeout, usar lógica offline
+                throw numError;
             } else {
                 siguienteNumero = ultimaPapeleta ? ultimaPapeleta.numero + 1 : 1;
             }
         } else {
-            siguienteNumero = 0;
+            throw new Error('offline');
         }
     } catch (e) {
-        console.warn('Error fetching last number, using placeholder:', e);
-        siguienteNumero = 0;
+        // Lógica offline o error de red: Buscar el número negativo más bajo para este año en IndexedDB
+        try {
+            const { initDB } = await import('@/lib/db');
+            const db = await initDB();
+            const localPapeletas = await db.getAllFromIndex('papeletas_cortejo', 'anio', year);
+            const numerosProvisionales = localPapeletas
+                .map(p => p.numero)
+                .filter(n => typeof n === 'number' && n < 0)
+                .sort((a, b) => a - b); // [-3, -2, -1]
+
+            siguienteNumero = numerosProvisionales.length > 0 ? numerosProvisionales[0] - 1 : -1;
+            console.log(`Modo offline: Asignando número provisional ${siguienteNumero}`);
+        } catch (dbErr) {
+            console.error('Error calculando número provisional:', dbErr);
+            siguienteNumero = -1; // Fallback extremo
+        }
     }
 
     // Generar IDs cliente para mantener integridad referencial offline
