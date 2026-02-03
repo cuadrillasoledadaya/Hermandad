@@ -40,13 +40,14 @@ export function VenderPapeletaDialog() {
         queryFn: async () => {
             if (searchTerm.length < 2) return [];
 
-            // 1. Buscar hermanos
-            const { data: hermanosFound } = await supabase
-                .from('hermanos')
-                .select('id, nombre, apellidos')
-                .or(`nombre.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%`)
-                .eq('activo', true) // Solo activos
-                .limit(5);
+            // 1. Buscar hermanos (usando función RPC con unaccent para ignorar tildes)
+            const { data: hermanosFound, error } = await supabase
+                .rpc('search_hermanos', { term: searchTerm });
+
+            if (error) {
+                console.error('Error searching brothers:', error);
+                return [];
+            }
 
             if (!hermanosFound || hermanosFound.length === 0) return [];
 
