@@ -37,6 +37,13 @@ function translateErrorMessage(message: string): string {
  * Muestra un error altamente visible al usuario
  */
 export function showError(title: string, error?: unknown) {
+    console.error(title, error);
+
+    // Guardar en log interno
+    import('./logger').then(({ logSystem }) => {
+        logSystem('error', title, error);
+    });
+
     let message = 'Algo salió mal';
 
     if (typeof error === 'string') {

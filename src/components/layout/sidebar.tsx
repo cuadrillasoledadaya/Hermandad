@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/store/use-app-store';
-import { X, Home, Users, Wallet, Share2, Settings, Receipt, Church, LogOut, Shield } from 'lucide-react';
+import { X, Home, Users, Wallet, Share2, Settings, Receipt, Church, LogOut, Shield, ScrollText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ export function Sidebar() {
         { name: 'Papeletas', icon: Receipt, href: '/tesoreria/papeletas-cortejo' },
         { name: 'Cortejo', icon: Church, href: '/cortejo' },
         { name: 'Config. Cortejo', icon: Shield, href: '/cortejo/admin' },
+        { name: 'Logs Sistema', icon: ScrollText, href: '/configuracion/logs' },
     ];
 
     const canSeeAdmin = role === 'SUPERADMIN' || role === 'JUNTA';
@@ -101,7 +102,7 @@ export function Sidebar() {
                                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
                                     {role}
                                 </span>
-                                <p className="text-xs font-bold text-blue-600 mt-2 text-center">v1.1.57 ✅</p>
+                                <p className="text-xs font-bold text-blue-600 mt-2 text-center">v1.1.58 ✅</p>
                             </div>
                         </div>
                         <button

@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DATABASE_NAME = 'hermandad_offline_db';
-const DATABASE_VERSION = 3; // Incrementamos versión para añadir papeletas_cortejo
+const DATABASE_VERSION = 4; // Incrementamos versión para añadir system_logs
 
 // Cola de operaciones pendientes (para cuando estamos offline)
 export interface MutationQueueItem {
@@ -45,6 +45,15 @@ export async function initDB(): Promise<IDBPDatabase> {
                     const papeletasStore = db.createObjectStore('papeletas_cortejo', { keyPath: 'id' });
                     papeletasStore.createIndex('id_hermano', 'id_hermano', { unique: false });
                     papeletasStore.createIndex('anio', 'anio', { unique: false });
+                }
+            }
+
+            // Versión 4 - Añadir store para logs del sistema
+            if (oldVersion < 4) {
+                if (!db.objectStoreNames.contains('system_logs')) {
+                    const logsStore = db.createObjectStore('system_logs', { keyPath: 'id', autoIncrement: true });
+                    logsStore.createIndex('timestamp', 'timestamp', { unique: false });
+                    logsStore.createIndex('level', 'level', { unique: false });
                 }
             }
         },
