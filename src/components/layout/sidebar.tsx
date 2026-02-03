@@ -101,7 +101,7 @@ export function Sidebar() {
                                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
                                     {role}
                                 </span>
-                                <p className="text-xs text-slate-500 mt-2 text-center">v1.1.41</p>
+                                <p className="text-xs text-slate-500 mt-2 text-center">v1.1.42</p>
                             </div>
                         </div>
                         <button
