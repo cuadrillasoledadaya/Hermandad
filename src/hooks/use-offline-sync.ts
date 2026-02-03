@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState } from 'react';
 import { useNetworkStatus } from './use-network-status';
 import { getPendingMutations, removeMutation, incrementRetryCount } from '@/lib/db';
 import { createClient } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { showError, showSuccess } from '@/lib/error-handler';
 
 interface SyncStatus {
     isSyncing: boolean;
@@ -49,9 +49,11 @@ export function useOfflineSync() {
                         result = await supabase.from(mutation.table).insert(mutation.data);
                         break;
                     case 'update':
+                        if (Array.isArray(mutation.data)) throw new Error('Bulk update not supported');
                         result = await supabase.from(mutation.table).update(mutation.data).eq('id', mutation.data.id);
                         break;
                     case 'delete':
+                        if (Array.isArray(mutation.data)) throw new Error('Bulk delete not supported');
                         result = await supabase.from(mutation.table).delete().eq('id', mutation.data.id);
                         break;
                 }
@@ -90,10 +92,10 @@ export function useOfflineSync() {
         }));
 
         if (successCount > 0) {
-            toast.success(`${successCount} cambios sincronizados`);
+            showSuccess(`¡Sincronizado!`, `${successCount} cambios enviados a la nube`);
         }
         if (errorCount > 0) {
-            toast.error(`${errorCount} cambios no pudieron sincronizarse`);
+            showError(`${errorCount} cambios fallidos`, 'No se pudieron sincronizar algunos cambios');
         }
     }, [isOnline]);
 

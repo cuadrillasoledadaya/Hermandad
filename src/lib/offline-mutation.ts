@@ -5,7 +5,7 @@ import { queueMutation } from './db';
 interface MutationOptions {
     type: 'insert' | 'update' | 'delete';
     table: string;
-    data: Record<string, unknown>;
+    data: Record<string, unknown> | Record<string, unknown>[];
 }
 
 // Función principal para realizar mutations con soporte offline
@@ -22,12 +22,18 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
         // Intentar la operación con el cliente de Supabase (gestiona Auth automáticamente)
         switch (options.type) {
             case 'insert':
-                result = await supabase.from(options.table).insert(options.data).select().single();
+                if (Array.isArray(options.data)) {
+                    result = await supabase.from(options.table).insert(options.data).select();
+                } else {
+                    result = await supabase.from(options.table).insert(options.data).select().single();
+                }
                 break;
             case 'update':
+                if (Array.isArray(options.data)) throw new Error('Bulk update not supported yet');
                 result = await supabase.from(options.table).update(options.data).eq('id', options.data.id).select().single();
                 break;
             case 'delete':
+                if (Array.isArray(options.data)) throw new Error('Bulk delete not supported yet');
                 result = await supabase.from(options.table).delete().eq('id', options.data.id);
                 break;
         }
@@ -66,12 +72,12 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
 }
 
 // Helper para inserts
-export async function offlineInsert(table: string, data: Record<string, unknown>) {
+export async function offlineInsert(table: string, data: Record<string, unknown> | Record<string, unknown>[]) {
     return offlineMutation({ type: 'insert', table, data });
 }
 
 // Helper para updates
-export async function offlineUpdate(table: string, data: Record<string, unknown>) {
+export async function offlineUpdate(table: string, data: Record<string, unknown> | Record<string, unknown>[]) {
     return offlineMutation({ type: 'update', table, data });
 }
 

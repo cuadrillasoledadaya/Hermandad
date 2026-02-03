@@ -8,7 +8,7 @@ export interface MutationQueueItem {
     id?: number;
     type: 'insert' | 'update' | 'delete';
     table: string;
-    data: Record<string, unknown>;
+    data: Record<string, unknown> | Record<string, unknown>[];
     timestamp: number;
     retryCount: number;
 }

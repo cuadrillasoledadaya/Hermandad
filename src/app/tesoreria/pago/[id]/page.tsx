@@ -2,14 +2,15 @@
 
 import { useState, use } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { getHermanoById, getPagosByHermano, deletePago } from '@/lib/brothers';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { showError, showSuccess } from '@/lib/error-handler';
+import { offlineInsert } from '@/lib/offline-mutation';
+import { addPagoLocal } from '@/lib/db';
 import { Wallet, Trash2, Calendar, Euro, Check } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -81,34 +82,49 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                 fecha_pago: new Date().toISOString().split('T')[0]
             }));
 
-            const { error } = await supabase
-                .from('pagos')
-                .insert(records);
-            if (error) throw error;
+            const { offline, error, data } = await offlineInsert('pagos', records);
+
+            if (!offline && error) throw new Error(error);
+
+            // Si es offline, guardamos en el store local para que la UI se actualice
+            if (offline) {
+                for (const record of records) {
+                    await addPagoLocal({
+                        ...record,
+                        id: crypto.randomUUID(), // ID temporal para la UI
+                        offline: true
+                    });
+                }
+            }
+
+            return { offline, data };
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['pagos'] });
+        onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
             queryClient.invalidateQueries({ queryKey: ['hermano-status'] });
             setSelectedMonths([]);
             setOverrideAmount(null);
             setOverrideYear(null);
-            toast.success('Pago(s) registrado(s) correctamente');
+
+            if (result.offline) {
+                showSuccess('Pago guardado (Modo Offline)', 'Se sincronizará cuando vuelvas a tener conexión');
+            } else {
+                showSuccess('¡Cobro registrado!', 'Los pagos se han guardado correctamente');
+            }
         },
         onError: (error: Error) => {
-            toast.error('Error al registrar el pago: ' + error.message);
+            showError('Error al registrar el pago', error);
         }
     });
 
     const deletePaymentMutation = useMutation({
         mutationFn: (pagoId: string) => deletePago(pagoId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['pagos'] });
             queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
-            toast.success('Pago eliminado correctamente');
+            showSuccess('Pago eliminado');
         },
         onError: () => {
-            toast.error('Error al eliminar el pago');
+            showError('Error al eliminar el pago');
         }
     });
 
@@ -125,7 +141,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (selectedMonths.length === 0) {
-            toast.error('Selecciona al menos un mes para pagar');
+            showError('Atención', 'Selecciona al menos un mes para cobrar');
             return;
         }
         paymentMutation.mutate();

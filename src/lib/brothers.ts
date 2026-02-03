@@ -60,14 +60,27 @@ export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_herman
 }
 
 export async function getHermanoById(id: string) {
-    const { data, error } = await supabase
-        .from('hermanos')
-        .select('*')
-        .eq('id', id)
-        .single();
+    try {
+        const { data, error } = await supabase
+            .from('hermanos')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-    if (error) throw error;
-    return data as Hermano;
+        if (error) {
+            if (error.message?.toLowerCase().includes('fetch') || !error.code) throw new Error('offline');
+            throw error;
+        }
+        return data as Hermano;
+    } catch (e) {
+        if ((e as Error).message === 'offline' || (e as Error).message?.includes('fetch')) {
+            const { initDB } = await import('./db');
+            const db = await initDB();
+            const data = await db.get('hermanos', id);
+            if (data) return data as Hermano;
+        }
+        throw e;
+    }
 }
 
 export async function updateHermano(id: string, updates: Partial<Hermano>) {
@@ -95,28 +108,41 @@ export async function deleteHermano(id: string) {
 }
 
 export async function getPagosByHermano(id_hermano: string, anio?: number) {
-    let query = supabase
-        .from('pagos')
-        .select('*')
-        .eq('id_hermano', id_hermano)
-        .order('fecha_pago', { ascending: false });
+    try {
+        let query = supabase
+            .from('pagos')
+            .select('*')
+            .eq('id_hermano', id_hermano)
+            .order('fecha_pago', { ascending: false });
 
-    if (anio) {
-        query = query.eq('anio', anio);
+        if (anio) {
+            query = query.eq('anio', anio);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            if (error.message?.toLowerCase().includes('fetch') || !error.code) throw new Error('offline');
+            throw error;
+        }
+        return data as Pago[];
+    } catch (e) {
+        if ((e as Error).message === 'offline' || (e as Error).message?.includes('fetch')) {
+            const { getPagosLocal } = await import('./db');
+            const allPagos = await getPagosLocal();
+
+            let filtered = (allPagos as unknown as Pago[]).filter(p => p.id_hermano === id_hermano);
+            if (anio) {
+                filtered = filtered.filter(p => p.anio === anio);
+            }
+            return filtered.sort((a, b) => b.fecha_pago.localeCompare(a.fecha_pago));
+        }
+        throw e;
     }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data as Pago[];
 }
 
 export async function deletePago(id: string) {
-    const { error } = await supabase
-        .from('pagos')
-        .delete()
-        .eq('id', id);
-
-    if (error) throw error;
+    const { success, error } = await offlineDelete('pagos', id);
+    if (!success) throw new Error(error || 'Error eliminando pago');
 }
 export async function searchHermanos(term: string): Promise<BrotherSearchResult[]> {
     try {

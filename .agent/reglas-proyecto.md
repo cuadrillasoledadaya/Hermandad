@@ -4,7 +4,7 @@ Este documento contiene reglas críticas que el agente (Antigravity) DEBE seguir
 
 ## 1. Gestión de Versiones y Sincronización
 
-- **REGLA**: Todo cambio en el código DEBE acompañarse de un incremento de versión.
+- **REGLA**: Todo cambio en el código DEBE acompañarse de un incremento de versión y subida a github.
 - **Formato**: `X.X.XX` (Ej: `1.1.44`).
 - **Workflow Obligatorio**: Se debe seguir estrictamente [github-sync.md](file:///c:/Users/chiqui/Hermandad/web/.agent/workflows/github-sync.md).
 - **Procedimiento**:
