@@ -63,15 +63,15 @@ serwist.addEventListeners();
 // @ts-expect-error - ServiceWorkerGlobalScope types
 self.addEventListener('message', (event: MessageEvent) => {
   if (event.data?.type === 'PROCESS_MUTATIONS') {
-    // Notificar a todas las pestañas que deben procesar mutations
-    // @ts-expect-error - ServiceWorkerGlobalScope types
-    self.clients.matchAll().then((clients: readonly any[]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (self as any).clients.matchAll().then((clients: readonly any[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       clients.forEach((client: any) => {
         client.postMessage({ type: 'PROCESS_MUTATIONS' });
       });
     });
   }
-  
+
   if (event.data?.type === 'SKIP_WAITING') {
     // @ts-expect-error - ServiceWorkerGlobalScope types
     self.skipWaiting();

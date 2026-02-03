@@ -5,6 +5,7 @@ import { useNetworkStatus } from './use-network-status';
 import { getPendingMutations, removeMutation, incrementRetryCount } from '@/lib/db';
 import { createClient } from '@/lib/supabase';
 import { showError, showSuccess } from '@/lib/error-handler';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SyncStatus {
     isSyncing: boolean;
@@ -21,6 +22,7 @@ export function useOfflineSync() {
         lastSync: null,
         error: null,
     });
+    const queryClient = useQueryClient();
 
     // Verificar cuántas mutaciones pendientes hay
     const checkPending = useCallback(async () => {
@@ -132,6 +134,11 @@ export function useOfflineSync() {
         }));
 
         if (successCount > 0) {
+            // Invalidar queries para forzar refetch tras sincronización exitosa
+            queryClient.invalidateQueries({ queryKey: ['hermanos'] });
+            queryClient.invalidateQueries({ queryKey: ['pagos'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
+
             showSuccess(`¡Sincronizado!`, `${successCount} cambios enviados a la nube`);
         }
         if (errorCount > 0) {

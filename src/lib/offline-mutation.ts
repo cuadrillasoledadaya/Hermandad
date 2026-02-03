@@ -19,9 +19,9 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
     try {
         let result: { data: unknown; error: { code?: string; message: string } | null } = { data: null, error: null };
 
-        // TIMEOUT PROTECTION: No esperar más de 2 segundos por Supabase
+        // TIMEOUT PROTECTION: No esperar más de 8 segundos por Supabase (aumentado de 2s)
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Network timeout')), 2000);
+            setTimeout(() => reject(new Error('Network timeout')), 8000);
         });
 
         const supabaseOperation = (async () => {
