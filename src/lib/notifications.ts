@@ -4,6 +4,7 @@ export interface NotificationPayload {
     title: string;
     content: string;
     platforms: string[];
+    media?: Array<{ url: string; type: string; name: string }>;
 }
 
 export async function sendToSocialMedia(payload: NotificationPayload) {

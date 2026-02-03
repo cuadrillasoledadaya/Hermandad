@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Send, Edit, Globe, History, AlertCircle, Loader2 } from 'lucide-react';
+import { Trash2, Send, Edit, Globe, History, AlertCircle, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/providers/auth-provider';
 import { sendToSocialMedia } from '@/lib/notifications';
@@ -21,6 +21,7 @@ interface Publicacion {
     plataformas: string[];
     estado: string;
     fecha_publicacion: string;
+    archivos?: Array<{ url: string; type: string; name: string }>;
 }
 
 export function ExternalManager() {
@@ -28,6 +29,10 @@ export function ExternalManager() {
     const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+
+    // State for files
+    const [files, setFiles] = useState<Array<{ url: string; type: string; name: string }>>([]);
+    const [uploading, setUploading] = useState(false);
 
     // Create Form
     const [formData, setFormData] = useState({
@@ -51,8 +56,7 @@ export function ExternalManager() {
             const { data, error } = await supabase
                 .from('publicaciones_redes')
                 .select('*')
-                .neq('estado', 'eliminado') // Don't show soft deleted ?? Or show them? Prompt said "borrar cualquier cosa... sin tener que ir a red a red". 
-                // Currently only hiding locally deleted ones.
+                .neq('estado', 'eliminado') // Don't show soft deleted
                 .order('fecha_publicacion', { ascending: false });
 
             if (error) throw error;
@@ -63,6 +67,49 @@ export function ExternalManager() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+
+        setUploading(true);
+        const file = e.target.files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        try {
+            const { error: uploadError } = await supabase.storage
+                .from('social-media')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // Get Public URL
+            const { data } = supabase.storage
+                .from('social-media')
+                .getPublicUrl(filePath);
+
+            const newFile = {
+                url: data.publicUrl,
+                type: file.type,
+                name: file.name
+            };
+
+            setFiles(prev => [...prev, newFile]);
+            toast.success('Archivo subido correctamente');
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            toast.error('Error al subir el archivo');
+        } finally {
+            setUploading(false);
+            // Reset input
+            e.target.value = '';
+        }
+    };
+
+    const removeFile = (index: number) => {
+        setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -77,7 +124,8 @@ export function ExternalManager() {
                 contenido: formData.content,
                 plataformas: ['Facebook', 'Instagram', 'Twitter'], // Default for now
                 autor_id: user?.id,
-                estado: 'publicado'
+                estado: 'publicado',
+                archivos: files // Save file metadata
             }).select().single();
 
             if (error) throw error;
@@ -90,7 +138,8 @@ export function ExternalManager() {
                 id: newPost.id,
                 title: newPost.titulo,
                 content: newPost.contenido,
-                platforms: newPost.plataformas || ['Facebook', 'Instagram', 'Twitter']
+                platforms: newPost.plataformas || ['Facebook', 'Instagram', 'Twitter'],
+                media: files // Send files to Make
             });
 
             if (!makeResult.success) {
@@ -100,6 +149,7 @@ export function ExternalManager() {
             }
 
             setFormData({ title: '', content: '' });
+            setFiles([]); // Reset files
             fetchPublicaciones();
         } catch (error) {
             console.error('Error creating post:', error);
@@ -112,6 +162,8 @@ export function ExternalManager() {
     const handleEditClick = (post: Publicacion) => {
         setEditingId(post.id);
         setEditForm({ title: post.titulo, content: post.contenido });
+        // Restore files if existing
+        setFiles(post.archivos || []);
         setIsEditDialogOpen(true);
     };
 
@@ -127,7 +179,8 @@ export function ExternalManager() {
                     titulo: editForm.title,
                     contenido: editForm.content,
                     estado: 'editado',
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    archivos: files
                 })
                 .eq('id', editingId);
 
@@ -140,7 +193,8 @@ export function ExternalManager() {
                 id: editingId,
                 title: editForm.title,
                 content: editForm.content,
-                platforms: ['Facebook', 'Instagram', 'Twitter']
+                platforms: ['Facebook', 'Instagram', 'Twitter'],
+                media: files
             });
 
             if (!makeResult.success) {
@@ -151,6 +205,7 @@ export function ExternalManager() {
 
             setIsEditDialogOpen(false);
             setEditingId(null);
+            setFiles([]);
             fetchPublicaciones();
         } catch (error) {
             console.error('Error updating post:', error);
@@ -179,7 +234,8 @@ export function ExternalManager() {
                 id: id,
                 title: currentTitle,
                 content: '',
-                platforms: []
+                platforms: [],
+                media: []
             });
 
             if (!makeResult.success) {
@@ -226,7 +282,47 @@ export function ExternalManager() {
                                 required
                             />
                         </div>
-                        <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+
+                        {/* File Upload Section */}
+                        <div className="space-y-2">
+                            <Label>Multimedia (Fotos/Documentos)</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {files.map((file, idx) => (
+                                    <div key={idx} className="relative group bg-white p-2 border rounded-md flex items-center gap-2 pr-8">
+                                        {file.type.startsWith('image/') ? (
+                                            <img src={file.url} alt="preview" className="w-8 h-8 object-cover rounded" />
+                                        ) : (
+                                            <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded text-xs font-bold text-slate-500">DOC</div>
+                                        )}
+                                        <span className="text-xs truncate max-w-[100px]" title={file.name}>{file.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(idx)}
+                                            className="absolute top-1 right-1 p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <label className={`cursor-pointer border-2 border-dashed border-slate-300 hover:border-primary/50 hover:bg-slate-50 rounded-md p-2 flex items-center justify-center w-12 h-12 transition-all ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        onChange={handleFileUpload}
+                                        accept="image/*,.pdf,.doc,.docx"
+                                        disabled={uploading}
+                                    />
+                                    {uploading ? (
+                                        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                                    ) : (
+                                        <Plus className="w-5 h-5 text-slate-400" />
+                                    )}
+                                </label>
+                            </div>
+                        </div>
+
+                        <Button type="submit" disabled={submitting || uploading} className="w-full sm:w-auto">
                             {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                             Publicar en Todas las Redes
                         </Button>
@@ -276,6 +372,24 @@ export function ExternalManager() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm text-slate-600 mb-2">{post.contenido}</p>
+                                    {/* Preview attachments in history */}
+                                    {post.archivos && post.archivos.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                                            {post.archivos.map((file, i) => (
+                                                <div key={i} className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded text-xs text-slate-600">
+                                                    {file.type.startsWith('image/') ? (
+                                                        <a href={file.url} target="_blank" rel="noopener noreferrer" className='flex items-center gap-1 hover:underline'>
+                                                            <span>📷</span> {file.name}
+                                                        </a>
+                                                    ) : (
+                                                        <a href={file.url} target="_blank" rel="noopener noreferrer" className='flex items-center gap-1 hover:underline'>
+                                                            <span>📎</span> {file.name}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                     <div className="flex gap-2">
                                         {post.plataformas?.map((p) => (
                                             <Badge key={p} variant="outline" className="text-xs">{p}</Badge>
@@ -313,10 +427,49 @@ export function ExternalManager() {
                                 onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                             />
                         </div>
+
+                        {/* File Upload Section in Edit Modal */}
+                        <div className="space-y-2">
+                            <Label>Multimedia (Fotos/Documentos)</Label>
+                            <div className="flex gap-2 flex-wrap">
+                                {files.map((file, idx) => (
+                                    <div key={idx} className="relative group bg-white p-2 border rounded-md flex items-center gap-2 pr-8">
+                                        {file.type.startsWith('image/') ? (
+                                            <img src={file.url} alt="preview" className="w-8 h-8 object-cover rounded" />
+                                        ) : (
+                                            <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded text-xs font-bold text-slate-500">DOC</div>
+                                        )}
+                                        <span className="text-xs truncate max-w-[100px]" title={file.name}>{file.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(idx)}
+                                            className="absolute top-1 right-1 p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <label className={`cursor-pointer border-2 border-dashed border-slate-300 hover:border-primary/50 hover:bg-slate-50 rounded-md p-2 flex items-center justify-center w-12 h-12 transition-all ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        onChange={handleFileUpload}
+                                        accept="image/*,.pdf,.doc,.docx"
+                                        disabled={uploading}
+                                    />
+                                    {uploading ? (
+                                        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                                    ) : (
+                                        <Plus className="w-5 h-5 text-slate-400" />
+                                    )}
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleUpdate} disabled={submitting}>
+                        <Button onClick={handleUpdate} disabled={submitting || uploading}>
                             {submitting ? 'Guardando...' : 'Guardar Cambios'}
                         </Button>
                     </DialogFooter>
