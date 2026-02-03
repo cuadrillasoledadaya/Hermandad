@@ -116,16 +116,53 @@ export function useOfflineSync() {
         };
     }, [processMutations]);
 
+    // Sincronizar datos maestros cuando volvemos online
+    const syncMasterData = useCallback(async () => {
+        if (!isOnline) return;
+
+        const supabase = createClient();
+
+        try {
+            // Sincronizar hermanos
+            const { data: hermanos, error: hermanosError } = await Promise.race([
+                supabase.from('hermanos').select('*'),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+            ]);
+
+            if (!hermanosError && hermanos) {
+                const { saveHermanosLocal } = await import('@/lib/db');
+                await saveHermanosLocal(hermanos);
+                console.log(`✅ Sincronizados ${hermanos.length} hermanos a IndexedDB`);
+            }
+
+            // Sincronizar configuración de precios
+            const { data: config, error: configError } = await Promise.race([
+                supabase.from('configuracion_precios').select('*').eq('id', 1).single(),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+            ]);
+
+            if (!configError && config) {
+                const { initDB } = await import('@/lib/db');
+                const db = await initDB();
+                await db.put('configuracion', config);
+                console.log('✅ Configuración de precios sincronizada a IndexedDB');
+            }
+        } catch (err) {
+            console.warn('No se pudieron sincronizar datos maestros:', err);
+        }
+    }, [isOnline]);
+
     // Sincronizar automáticamente cuando volvemos online
     useEffect(() => {
         if (isOnline) {
             // Pequeña espera para asegurar conexión estable
             const timer = setTimeout(() => {
-                processMutations();
+                syncMasterData(); // Primero sincronizar datos maestros
+                processMutations(); // Luego procesar cambios pendientes
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, [isOnline, processMutations]);
+    }, [isOnline, syncMasterData, processMutations]);
 
     // Verificar pendientes al montar
     useEffect(() => {
