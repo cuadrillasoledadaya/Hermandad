@@ -24,7 +24,7 @@ export default function LogsPage() {
 
     useEffect(() => {
         // Cargar logs si tiene permiso
-        if (role === 'SUPERADMIN' || role === 'JUNTA' || role === 'CAPATAZ') {
+        if (role === 'SUPERADMIN' || role === 'JUNTA') {
             loadLogs();
         }
     }, [role]);
@@ -44,7 +44,7 @@ export default function LogsPage() {
     };
 
     // Permitimos ver logs a roles de administración
-    if (role !== 'SUPERADMIN' && role !== 'JUNTA' && role !== 'CAPATAZ') {
+    if (role !== 'SUPERADMIN' && role !== 'JUNTA') {
         return <div className="p-8 text-center text-red-500">No tienes permisos para ver esta página.</div>;
     }
 
@@ -75,8 +75,8 @@ export default function LogsPage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    logs.map((log) => (
-                        <Card key={`${log.timestamp}-${Math.random()}`} className={log.level === 'error' ? 'border-l-4 border-l-red-500' : ''}>
+                    logs.map((log, index) => (
+                        <Card key={log.id || `${log.timestamp}-${index}`} className={log.level === 'error' ? 'border-l-4 border-l-red-500' : ''}>
                             <CardContent className="p-4 pt-4">
                                 <div className="flex justify-between items-start gap-4">
                                     <div className="flex-1 space-y-1">
@@ -85,8 +85,8 @@ export default function LogsPage() {
                                                 log.level === 'warn' ? <AlertTriangle className="w-4 h-4 text-orange-500" /> :
                                                     <Info className="w-4 h-4 text-blue-500" />}
                                             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${log.level === 'error' ? 'bg-red-100 text-red-700' :
-                                                    log.level === 'warn' ? 'bg-orange-100 text-orange-700' :
-                                                        'bg-blue-100 text-blue-700'
+                                                log.level === 'warn' ? 'bg-orange-100 text-orange-700' :
+                                                    'bg-blue-100 text-blue-700'
                                                 }`}>
                                                 {log.level}
                                             </span>
