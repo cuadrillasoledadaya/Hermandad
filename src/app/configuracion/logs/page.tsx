@@ -23,10 +23,21 @@ export default function LogsPage() {
     };
 
     useEffect(() => {
-        // Cargar logs si tiene permiso
-        if (role === 'SUPERADMIN' || role === 'JUNTA') {
-            loadLogs();
+        let mounted = true;
+
+        async function fetchInitialLogs() {
+            if (role === 'SUPERADMIN' || role === 'JUNTA') {
+                const data = await getSystemLogs(200);
+                if (mounted) {
+                    setLogs(data);
+                    setLoading(false);
+                }
+            }
         }
+
+        fetchInitialLogs();
+
+        return () => { mounted = false; };
     }, [role]);
 
     const handleClear = async () => {
