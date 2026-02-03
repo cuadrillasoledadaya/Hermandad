@@ -110,7 +110,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
                 .neq('estado', 'cancelada')
                 .maybeSingle();
 
-            // @ts-ignore - Promise race typing
+            // @ts-expect-error - Promise race typing
             const { data: existingPapeleta, error: checkError } = await Promise.race([validationQuery, timeoutPromise]);
 
             if (checkError) {
@@ -144,7 +144,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
                 .limit(1)
                 .maybeSingle();
 
-            // @ts-ignore - Promise race typing
+            // @ts-expect-error - Promise race typing
             const { data: ultimaPapeleta, error: numError } = await Promise.race([numberQuery, timeoutPromise]);
 
             if (numError) {
