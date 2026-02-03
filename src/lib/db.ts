@@ -133,6 +133,37 @@ export async function queueMutation(mutation: Omit<MutationQueueItem, 'id' | 'ti
         retryCount: 0
     };
     await db.add('mutation_queue', item);
+
+    // OPTIMISTIC UPDATE: Si es un INSERT, guardamos los datos inmediatamente en la tabla local
+    // para que las queries puedan mostrarlo mientras se sincroniza
+    if (mutation.type === 'insert') {
+        const storeName = mutation.table;
+
+        // Verificar que el store existe
+        if (db.objectStoreNames.contains(storeName)) {
+            if (Array.isArray(mutation.data)) {
+                // Bulk insert
+                const tx = db.transaction(storeName, 'readwrite');
+                for (const record of mutation.data) {
+                    const withId = {
+                        ...record,
+                        id: record.id || crypto.randomUUID(),
+                        _offline: true // Marcar como pendiente de sincronización
+                    };
+                    await tx.store.put(withId);
+                }
+                await tx.done;
+            } else {
+                // Single insert
+                const withId = {
+                    ...mutation.data,
+                    id: mutation.data.id || crypto.randomUUID(),
+                    _offline: true
+                };
+                await db.put(storeName, withId);
+            }
+        }
+    }
 }
 
 // OBTENER TODAS LAS MUTACIONES PENDIENTES

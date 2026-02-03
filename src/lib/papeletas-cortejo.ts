@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { getPreciosConfig } from './configuracion';
 import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
-import { savePapeletasLocal, getPapeletasLocal, addPapeletaLocal, addPagoLocal } from './db';
+import { savePapeletasLocal, getPapeletasLocal } from './db';
 
 // =====================================================
 // TIPOS Y CONSTANTES
@@ -174,9 +174,6 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
 
     if (!pagoSuccess) throw new Error(pagoError || 'Error creando pago');
 
-    // Guardar en local inmediatamente para reflejar cambios
-    await addPagoLocal(pagoData);
-
     // 3. Crear la papeleta
     const papeletaData = {
         id: papeletaId,
@@ -200,11 +197,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
         throw new Error(papeletaError || 'Error creando papeleta');
     }
 
-    // Guardar en local inmediatamente
-    const finalPapeleta = (papeleta || papeletaData) as PapeletaCortejo;
-    await addPapeletaLocal(finalPapeleta as unknown as Record<string, unknown>);
-
-    return finalPapeleta;
+    return (papeleta || papeletaData) as PapeletaCortejo;
 }
 
 /**

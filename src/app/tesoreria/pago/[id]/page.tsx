@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { showError, showSuccess } from '@/lib/error-handler';
 import { offlineInsert } from '@/lib/offline-mutation';
-import { addPagoLocal } from '@/lib/db';
 import { Wallet, Trash2, Calendar, Euro, Check } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -85,17 +84,6 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
             const { offline, error, data } = await offlineInsert('pagos', records);
 
             if (!offline && error) throw new Error(error);
-
-            // Si es offline, guardamos en el store local para que la UI se actualice
-            if (offline) {
-                for (const record of records) {
-                    await addPagoLocal({
-                        ...record,
-                        id: crypto.randomUUID(), // ID temporal para la UI
-                        offline: true
-                    });
-                }
-            }
 
             return { offline, data };
         },
