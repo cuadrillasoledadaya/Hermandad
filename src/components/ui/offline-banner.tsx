@@ -9,54 +9,48 @@ export function OfflineBanner() {
     const { isOnline, isSyncing, pendingCount, syncNow } = useOfflineSync();
     const [isVisible, setIsVisible] = useState(false);
     const [isDismissed, setIsDismissed] = useState(false);
+    const [prevOnline, setPrevOnline] = useState(isOnline);
+    const [prevSyncing, setPrevSyncing] = useState(isSyncing);
 
-    useEffect(() => {
-        // Cuando cambia el estado de conexión
+    // Ajustar estado durante el render cuando cambian las props/hooks
+    // (Patrón recomendado en React para evitar useEffect innecesarios)
+    if (isOnline !== prevOnline) {
+        setPrevOnline(isOnline);
         if (!isOnline) {
-            // Aparecer cuando perdemos conexión
             setIsVisible(true);
             setIsDismissed(false);
-
-            // Auto-ocultar después de 8 segundos
-            const timer = setTimeout(() => {
-                setIsVisible(false);
-            }, 8000);
-
-            return () => clearTimeout(timer);
-        } else {
-            // Cuando recuperamos conexión
-            if (pendingCount > 0 && !isSyncing) {
-                // Mostrar brevemente que hay cambios pendientes
-                setIsVisible(true);
-                setIsDismissed(false);
-
-                const timer = setTimeout(() => {
-                    setIsVisible(false);
-                }, 5000);
-
-                return () => clearTimeout(timer);
-            } else if (!isSyncing) {
-                // Si no hay pendientes, ocultar
-                setIsVisible(false);
-                setIsDismissed(false);
-            }
         }
-    }, [isOnline, pendingCount, isSyncing]);
+    }
 
-    // Mostrar durante la sincronización
-    useEffect(() => {
+    if (isSyncing !== prevSyncing) {
+        setPrevSyncing(isSyncing);
         if (isSyncing) {
             setIsVisible(true);
             setIsDismissed(false);
-        } else if (isOnline && pendingCount === 0) {
-            // Cuando termina la sincronización exitosamente
-            const timer = setTimeout(() => {
-                setIsVisible(false);
-            }, 3000);
+        }
+    }
 
+    // Efecto para auto-ocultar después de un tiempo
+    useEffect(() => {
+        if (!isVisible || isDismissed) return;
+
+        let delay = 0;
+        if (!isOnline) {
+            delay = 8000;
+        } else if (isSyncing) {
+            return; // No ocultar mientras sincroniza
+        } else if (pendingCount > 0) {
+            delay = 5000;
+        } else {
+            // Todo ok
+            delay = 3000;
+        }
+
+        if (delay > 0) {
+            const timer = setTimeout(() => setIsVisible(false), delay);
             return () => clearTimeout(timer);
         }
-    }, [isSyncing, isOnline, pendingCount]);
+    }, [isOnline, isSyncing, pendingCount, isVisible, isDismissed]);
 
     // No mostrar si fue cerrado manualmente o si está oculto
     if (!isVisible || isDismissed) {

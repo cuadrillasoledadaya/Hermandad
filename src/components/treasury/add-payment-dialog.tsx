@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { offlineInsert } from '@/lib/offline-mutation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,21 +29,29 @@ export function AddPaymentDialog({ id_hermano, nombre_hermano }: AddPaymentProps
 
     const paymentMutation = useMutation({
         mutationFn: async () => {
-            const { data, error } = await supabase
-                .from('pagos')
-                .insert([{
-                    id_hermano,
-                    cantidad: parseFloat(amount),
-                    concepto: concepto || `Cuota ${new Date().getFullYear()}`,
-                    anio: new Date().getFullYear(),
-                    fecha_pago: new Date().toISOString().split('T')[0]
-                }]);
-            if (error) throw error;
-            return data;
+            const { success, data, offline, error } = await offlineInsert('pagos', {
+                id_hermano,
+                cantidad: parseFloat(amount),
+                concepto: concepto || `Cuota ${new Date().getFullYear()}`,
+                anio: new Date().getFullYear(),
+                fecha_pago: new Date().toISOString().split('T')[0]
+            });
+
+            if (!success) throw new Error(error || 'Error registrando pago');
+
+            if (offline) {
+                // If offline, we might want to return a mock object or handle it in onSuccess
+                return { offline: true };
+            }
+            return data as { offline?: boolean } | null | undefined;
         },
-        onSuccess: () => {
+        onSuccess: (data: { offline?: boolean } | null | undefined) => {
             queryClient.invalidateQueries({ queryKey: ['pagos'] });
-            toast.success('Pago registrado correctamente');
+            if (data?.offline) {
+                toast.success('Pago guardado localmente (Offline).');
+            } else {
+                toast.success('Pago registrado correctamente');
+            }
             setOpen(false);
         },
         onError: () => {

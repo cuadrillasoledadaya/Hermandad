@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { getPreciosConfig } from './configuracion';
+import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
 
 // =====================================================
 // TIPOS Y CONSTANTES
@@ -95,91 +96,101 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     const year = input.anio || new Date().getFullYear();
     const importe = input.importe ?? await getPrecioPapeleta(input.tipo);
 
-    // 0. Validación: Verificar si el hermano ya tiene papeleta este año
-    const { data: existingPapeleta, error: checkError } = await supabase
-        .from('papeletas_cortejo')
-        .select('id, numero')
-        .eq('id_hermano', input.id_hermano)
-        .eq('anio', year)
-        .neq('estado', 'cancelada') // Ignorar las canceladas/borradas si las hubiera
-        .single();
+    // 0. Validación: Verificar si el hermano ya tiene papeleta este año (Esta validación requiere online idealmente, 
+    // pero si estamos offline asumimos que se puede validando luego en servidor o confiando en el cliente)
+    if (navigator.onLine) {
+        const { data: existingPapeleta, error: checkError } = await supabase
+            .from('papeletas_cortejo')
+            .select('id, numero')
+            .eq('id_hermano', input.id_hermano)
+            .eq('anio', year)
+            .neq('estado', 'cancelada')
+            .maybeSingle();
 
-    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+        if (checkError) throw checkError;
 
-    if (existingPapeleta) {
-        throw new Error(`Este hermano ya tiene la papeleta #${existingPapeleta.numero} activa para este año.`);
+        if (existingPapeleta) {
+            throw new Error(`Este hermano ya tiene la papeleta #${existingPapeleta.numero} activa para este año.`);
+        }
     }
 
-    // 1. Obtener el siguiente número de papeleta disponible
-    const { data: ultimaPapeleta, error: numError } = await supabase
-        .from('papeletas_cortejo')
-        .select('numero')
-        .eq('anio', year)
-        .order('numero', { ascending: false })
-        .limit(1)
-        .single();
+    // 1. Obtener el siguiente número de papeleta disponible (optimista si offline)
+    let siguienteNumero = 0;
+    if (navigator.onLine) {
+        const { data: ultimaPapeleta, error: numError } = await supabase
+            .from('papeletas_cortejo')
+            .select('numero')
+            .eq('anio', year)
+            .order('numero', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-    if (numError && numError.code !== 'PGRST116') throw numError;
+        if (numError) throw numError;
+        siguienteNumero = ultimaPapeleta ? ultimaPapeleta.numero + 1 : 1;
+    } else {
+        // En offline no podemos saber el número real. Usamos 0 o un placeholder.
+        // El servidor (o sync) tendrá que recalcularlo o el usuario aceptará que se asigne al sincronizar.
+        // Para MVP, usamos 0 para indicar "pendiente de asignar".
+        siguienteNumero = 0;
+    }
 
-    const siguienteNumero = ultimaPapeleta ? ultimaPapeleta.numero + 1 : 1;
+    // Generar IDs cliente para mantener integridad referencial offline
+    const pagoId = crypto.randomUUID();
+    const papeletaId = crypto.randomUUID();
 
     // 2. Crear el pago en tesorería (tabla pagos)
-    const { data: pago, error: pagoError } = await supabase
-        .from('pagos')
-        .insert({
-            id_hermano: input.id_hermano,
-            cantidad: importe,
-            fecha_pago: new Date().toISOString(),
-            anio: year,
-            tipo_pago: 'papeleta_cortejo',
-            concepto: `Papeleta #${siguienteNumero} - ${TIPOS_PAPELETA[input.tipo]}`
-        })
-        .select()
-        .single();
+    const { success: pagoSuccess, error: pagoError } = await offlineInsert('pagos', {
+        id: pagoId,
+        id_hermano: input.id_hermano,
+        cantidad: importe,
+        fecha_pago: new Date().toISOString(),
+        anio: year,
+        tipo_pago: 'papeleta_cortejo',
+        concepto: `Papeleta ${siguienteNumero > 0 ? '#' + siguienteNumero : '(Pendiente)'} - ${TIPOS_PAPELETA[input.tipo]}`,
+        id_papeleta: papeletaId // Vinculación cruzada anticipada
+    });
 
-    if (pagoError) throw pagoError;
+    if (!pagoSuccess) throw new Error(pagoError || 'Error creando pago');
 
     // 3. Crear la papeleta
-    const { data: papeleta, error: papeletaError } = await supabase
-        .from('papeletas_cortejo')
-        .insert({
-            id_hermano: input.id_hermano,
-            numero: siguienteNumero,
-            anio: year,
-            tipo: input.tipo,
-            tramo: input.tramo || null,
-            importe,
-            id_ingreso: pago.id,
-            estado: 'pagada'
-        })
-        .select()
-        .single();
+    const papeletaData = {
+        id: papeletaId,
+        id_hermano: input.id_hermano,
+        numero: siguienteNumero,
+        anio: year,
+        tipo: input.tipo,
+        tramo: input.tramo || null,
+        importe,
+        id_ingreso: pagoId,
+        estado: 'pagada' as const
+    };
 
-    if (papeletaError) {
-        // Rollback pago si falla papeleta
-        await supabase.from('pagos').delete().eq('id', pago.id);
-        throw papeletaError;
+    const { success: papeletaSuccess, data: papeleta, error: papeletaError } = await offlineInsert('papeletas_cortejo', papeletaData);
+
+    if (!papeletaSuccess) {
+        // Rollback pago si falla papeleta (esto en offline es borrar de la cola, pero offlineDelete lo maneja)
+        await offlineDelete('pagos', pagoId);
+        throw new Error(papeletaError || 'Error creando papeleta');
     }
 
-    // 4. Actualizar el pago con la referencia a la papeleta
-    await supabase
-        .from('pagos')
-        .update({ id_papeleta: papeleta.id })
-        .eq('id', pago.id);
+    // No necesitamos paso 4 (update pago) porque ya insertamos con el id_papeleta generado
 
-    return papeleta;
+    return (papeleta || papeletaData) as PapeletaCortejo;
 }
 
 /**
  * Cancela una papeleta (marca como cancelada, no elimina)
  */
+/**
+ * Cancela una papeleta (marca como cancelada, no elimina)
+ */
 export async function cancelarPapeleta(id_papeleta: string): Promise<void> {
-    const { error } = await supabase
-        .from('papeletas_cortejo')
-        .update({ estado: 'cancelada' })
-        .eq('id', id_papeleta);
+    const { success, error } = await offlineUpdate('papeletas_cortejo', {
+        id: id_papeleta,
+        estado: 'cancelada'
+    });
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error cancelando papeleta');
 }
 
 /**
@@ -198,38 +209,34 @@ export async function eliminarPapeleta(id_papeleta: string): Promise<void> {
 
     // 2. Si tiene asignación de puesto, borrarla en cortejo_asignaciones
     if (papeleta.id_posicion_asignada) {
-        const { error: delAsigError } = await supabase
+        // Necesitamos el ID de la asignación. Lo buscamos.
+        const { data: asignacion } = await supabase
             .from('cortejo_asignaciones')
-            .delete()
+            .select('id')
             .eq('id_posicion', papeleta.id_posicion_asignada)
-            .eq('anio', papeleta.anio);
+            .eq('anio', papeleta.anio)
+            .maybeSingle();
 
-        if (delAsigError) throw delAsigError;
+        if (asignacion) {
+            const { success: delAsigSuccess, error: delAsigError } = await offlineDelete('cortejo_asignaciones', asignacion.id);
+            if (!delAsigSuccess) throw new Error(delAsigError || 'Error borrando asignación');
+        }
     }
 
-    // 3. Eliminar la papeleta (esto debería ser lo último por integridad, pero lo hacemos antes del pago)
-    // Primero desvinculamos el pago para evitar constraints si las hubiera
+    // 3. Eliminar la papeleta
+    // Primero desvinculamos el pago para evitar constraints si las hubiera (offlineUpdate maneja esto en cola)
     if (papeleta.id_ingreso) {
-        await supabase.from('pagos').update({ id_papeleta: null }).eq('id', papeleta.id_ingreso);
+        await offlineUpdate('pagos', { id: papeleta.id_ingreso, id_papeleta: null });
     }
 
-    const { error: delPapError } = await supabase
-        .from('papeletas_cortejo')
-        .delete()
-        .eq('id', id_papeleta);
-
-    if (delPapError) throw delPapError;
+    const { success: delPapSuccess, error: delPapError } = await offlineDelete('papeletas_cortejo', id_papeleta);
+    if (!delPapSuccess) throw new Error(delPapError || 'Error borrando papeleta');
 
     // 4. Eliminar el pago asociado
     if (papeleta.id_ingreso) {
-        const { error: delPagoError } = await supabase
-            .from('pagos')
-            .delete()
-            .eq('id', papeleta.id_ingreso);
-
-        if (delPagoError) {
+        const { success: delPagoSuccess, error: delPagoError } = await offlineDelete('pagos', papeleta.id_ingreso);
+        if (!delPagoSuccess) {
             console.error('Error borrando pago de papeleta eliminada:', delPagoError);
-            // No lanzamos error aquí porque la papeleta ya se borró, es cleanup best-effort
         }
     }
 }
@@ -394,6 +401,9 @@ export async function asignarPosicionAPapeleta(
 /**
  * Quita la asignación de una papeleta (vuelve a estado 'pagada')
  */
+/**
+ * Quita la asignación de una papeleta (vuelve a estado 'pagada')
+ */
 export async function quitarAsignacionDePapeleta(id_papeleta: string): Promise<void> {
     // 1. Obtener la papeleta
     const papeleta = await getPapeleta(id_papeleta);
@@ -403,27 +413,33 @@ export async function quitarAsignacionDePapeleta(id_papeleta: string): Promise<v
     }
 
     // 2. Eliminar la asignación del cortejo
+    // NOTA: offlineDelete requiere ID. Aquí borramos por id_posicion + anio. 
+    // Necesitamos buscar el ID de la asignación primero.
     if (papeleta.id_posicion_asignada) {
-        const { error: deleteError } = await supabase
+        const { data: asignacion, error: fetchError } = await supabase
             .from('cortejo_asignaciones')
-            .delete()
+            .select('id')
             .eq('id_posicion', papeleta.id_posicion_asignada)
-            .eq('anio', papeleta.anio);
+            .eq('anio', papeleta.anio)
+            .single();
 
-        if (deleteError) throw deleteError;
+        if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+
+        if (asignacion) {
+            const { success: delSuccess, error: deleteError } = await offlineDelete('cortejo_asignaciones', asignacion.id);
+            if (!delSuccess) throw new Error(deleteError || 'Error borrando asignación');
+        }
     }
 
     // 3. Actualizar la papeleta
-    const { error: updateError } = await supabase
-        .from('papeletas_cortejo')
-        .update({
-            estado: 'pagada',
-            id_posicion_asignada: null,
-            fecha_asignacion: null
-        })
-        .eq('id', id_papeleta);
+    const { success: updateSuccess, error: updateError } = await offlineUpdate('papeletas_cortejo', {
+        id: id_papeleta,
+        estado: 'pagada',
+        id_posicion_asignada: null,
+        fecha_asignacion: null
+    });
 
-    if (updateError) throw updateError;
+    if (!updateSuccess) throw new Error(updateError || 'Error actualizando papeleta');
 }
 
 // =====================================================

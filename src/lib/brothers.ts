@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
 
 export interface Hermano {
     id: string;
@@ -45,17 +46,15 @@ export async function recalibrarNumeros() {
 }
 
 export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_hermano' | 'activo'>) {
-    // 1. Insert the new brother
-    const { data, error } = await supabase
-        .from('hermanos')
-        .insert([hermano])
-        .select()
-        .single();
+    // 1. Insert the new brother using offline system
+    const { success, data, offline, error } = await offlineInsert('hermanos', hermano);
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error creando hermano');
 
-    // 2. Trigger a recalibration to ensure the number is correct by seniority
-    await recalibrarNumeros();
+    // 2. Trigger a recalibration only if online
+    if (!offline) {
+        await recalibrarNumeros();
+    }
 
     return data;
 }
@@ -72,33 +71,27 @@ export async function getHermanoById(id: string) {
 }
 
 export async function updateHermano(id: string, updates: Partial<Hermano>) {
-    const { data, error } = await supabase
-        .from('hermanos')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+    const { success, data, offline, error } = await offlineUpdate('hermanos', { ...updates, id });
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error actualizando hermano');
 
-    // If seniority relevant fields change, recalibrate
-    if (updates.fecha_alta) {
+    // If seniority relevant fields change and online, recalibrate
+    if (!offline && updates.fecha_alta) {
         await recalibrarNumeros();
     }
 
-    return data;
+    return data as Hermano;
 }
 
 export async function deleteHermano(id: string) {
-    const { error } = await supabase
-        .from('hermanos')
-        .delete()
-        .eq('id', id);
+    const { success, offline, error } = await offlineDelete('hermanos', id);
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error eliminando hermano');
 
-    // Recalibrate after deletion
-    await recalibrarNumeros();
+    // Recalibrate after deletion if online
+    if (!offline) {
+        await recalibrarNumeros();
+    }
 }
 
 export async function getPagosByHermano(id_hermano: string, anio?: number) {

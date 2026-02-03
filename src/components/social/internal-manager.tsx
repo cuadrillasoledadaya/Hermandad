@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { offlineInsert, offlineUpdate } from '@/lib/offline-mutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,20 +74,26 @@ export function InternalManager() {
 
         setSubmitting(true);
         try {
-            const { error } = await supabase.from('avisos_internos').insert({
+            const { success, offline, error } = await offlineInsert('avisos_internos', {
                 titulo: formData.title,
                 contenido: formData.content,
                 autor_id: user?.id,
             });
 
-            if (error) throw error;
+            if (!success) throw new Error(error || 'Error publicando aviso');
 
-            toast.success('Aviso interno publicado correctamente');
+            if (offline) {
+                toast.success('Aviso guardado localmente (Offline). Se publicará al recuperar la conexión.');
+            } else {
+                toast.success('Aviso interno publicado correctamente');
+            }
+
             setFormData({ title: '', content: '' });
             fetchAvisos();
         } catch (error) {
             console.error('Error creating aviso:', error);
-            toast.error('Error al publicar el aviso');
+            const msg = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error('Error al publicar el aviso: ' + msg);
         } finally {
             setSubmitting(false);
         }
@@ -104,18 +111,21 @@ export function InternalManager() {
         if (!editingId) return;
         setSubmitting(true);
         try {
-            const { error } = await supabase
-                .from('avisos_internos')
-                .update({
-                    titulo: editForm.title,
-                    contenido: editForm.content,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', editingId);
+            const { success, offline, error } = await offlineUpdate('avisos_internos', {
+                id: editingId,
+                titulo: editForm.title,
+                contenido: editForm.content,
+                updated_at: new Date().toISOString()
+            });
 
-            if (error) throw error;
+            if (!success) throw new Error(error || 'Error actualizando');
 
-            toast.success('Aviso actualizado correctamente');
+            if (offline) {
+                toast.success('Cambios guardados localmente (Offline).');
+            } else {
+                toast.success('Aviso actualizado correctamente');
+            }
+
             setEditingId(null);
             fetchAvisos();
         } catch (error: unknown) {
@@ -132,21 +142,26 @@ export function InternalManager() {
         if (!confirm('¿Estás seguro de que deseas borrar este aviso?')) return;
 
         try {
-            const { error } = await supabase
-                .from('avisos_internos')
-                .update({ activo: false })
-                .eq('id', id);
+            const { success, offline, error } = await offlineUpdate('avisos_internos', {
+                id,
+                activo: false
+            });
 
-            if (error) {
-                console.error('Supabase RLS/Error:', error);
-                throw error;
+            if (!success) {
+                throw new Error(error || 'Error eliminando aviso');
             }
 
-            toast.success('Aviso eliminado');
-            fetchAvisos();
+            if (offline) {
+                toast.success('Borrado registrado localmente (Offline).');
+            } else {
+                toast.success('Aviso eliminado');
+            }
+
+            // Optimistic update for UI list
+            setAvisos(prev => prev.filter(a => a.id !== id));
         } catch (error: unknown) {
             console.error('Error deleting aviso:', error);
-            toast.error('No se pudo borrar el aviso. Verifica tus permisos o si la tabla tiene RLS activo.');
+            toast.error('No se pudo borrar el aviso.');
         }
     };
 

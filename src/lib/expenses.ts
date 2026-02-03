@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
 
 // ============================================
 // TIPOS Y CONSTANTES
@@ -112,16 +113,12 @@ export async function createExpense(expense: CreateExpenseInput): Promise<Expens
         throw new Error('Usuario no autenticado');
     }
 
-    const { data, error } = await supabase
-        .from('gastos')
-        .insert([{
-            ...expense,
-            created_by: user.id
-        }])
-        .select()
-        .single();
+    const { success, data, error } = await offlineInsert('gastos', {
+        ...expense,
+        created_by: user.id
+    });
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error creando gasto');
     return data as Expense;
 }
 
@@ -132,14 +129,9 @@ export async function updateExpense(
     id: string,
     updates: UpdateExpenseInput
 ): Promise<Expense> {
-    const { data, error } = await supabase
-        .from('gastos')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+    const { success, data, error } = await offlineUpdate('gastos', { ...updates, id });
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error actualizando gasto');
     return data as Expense;
 }
 
@@ -147,12 +139,9 @@ export async function updateExpense(
  * Eliminar un gasto
  */
 export async function deleteExpense(id: string): Promise<void> {
-    const { error } = await supabase
-        .from('gastos')
-        .delete()
-        .eq('id', id);
+    const { success, error } = await offlineDelete('gastos', id);
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error eliminando gasto');
 }
 
 // ============================================

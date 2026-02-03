@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { offlineInsert, offlineUpdate } from '@/lib/offline-mutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -118,28 +119,36 @@ export function ExternalManager() {
 
         setSubmitting(true);
         try {
-            // 1. Insert into DB first to get ID
-            const { data, error } = await supabase.from('publicaciones_redes').insert({
+            // 1. Insert into DB first
+            const { success, data, offline, error } = await offlineInsert('publicaciones_redes', {
                 titulo: formData.title,
                 contenido: formData.content,
-                plataformas: ['Facebook', 'Instagram', 'Twitter'], // Default for now
+                plataformas: ['Facebook', 'Instagram', 'Twitter'],
                 autor_id: user?.id,
                 estado: 'publicado',
-                archivos: files // Save file metadata
-            }).select().single();
+                archivos: files
+            });
 
-            if (error) throw error;
+            if (!success) throw new Error(error || 'Error guardando publicación');
 
-            const newPost = data;
+            if (offline) {
+                toast.success('Publicación guardada localmente (Offline). Se enviará a redes cuando haya conexión.');
+                setFormData({ title: '', content: '' });
+                setFiles([]);
+                fetchPublicaciones();
+                return;
+            }
 
-            // 2. Send to Make
+            const newPost = data as Publicacion;
+
+            // 2. Send to Make (Only if online)
             const makeResult = await sendToSocialMedia({
                 action: 'create',
                 id: newPost.id,
                 title: newPost.titulo,
                 content: newPost.contenido,
                 platforms: newPost.plataformas || ['Facebook', 'Instagram', 'Twitter'],
-                media: files // Send files to Make
+                media: files
             });
 
             if (!makeResult.success) {
@@ -153,7 +162,8 @@ export function ExternalManager() {
             fetchPublicaciones();
         } catch (error) {
             console.error('Error creating post:', error);
-            toast.error('Error al crear la publicación');
+            const msg = error instanceof Error ? error.message : '';
+            toast.error('Error al crear la publicación: ' + msg);
         } finally {
             setSubmitting(false);
         }
@@ -173,21 +183,27 @@ export function ExternalManager() {
 
         try {
             // 1. Update DB
-            const { error } = await supabase
-                .from('publicaciones_redes')
-                .update({
-                    titulo: editForm.title,
-                    contenido: editForm.content,
-                    estado: 'editado',
-                    updated_at: new Date().toISOString(),
-                    archivos: files
-                })
-                .eq('id', editingId);
+            const { success, offline, error } = await offlineUpdate('publicaciones_redes', {
+                id: editingId,
+                titulo: editForm.title,
+                contenido: editForm.content,
+                estado: 'editado',
+                updated_at: new Date().toISOString(),
+                archivos: files
+            });
 
-            if (error) throw error;
+            if (!success) throw new Error(error || 'Error actualizando');
+
+            if (offline) {
+                toast.success('Editado localmente (Offline). Se notificará a redes al conectar.');
+                setIsEditDialogOpen(false);
+                setEditingId(null);
+                setFiles([]);
+                fetchPublicaciones();
+                return;
+            }
 
             // 2. Send to Make (Update)
-            // Note: Make scenario needs to handle finding the post via our internal ID or just creating a "Correction" post
             const makeResult = await sendToSocialMedia({
                 action: 'update',
                 id: editingId,
@@ -209,7 +225,8 @@ export function ExternalManager() {
             fetchPublicaciones();
         } catch (error) {
             console.error('Error updating post:', error);
-            toast.error('Error al actualizar la publicación');
+            const msg = error instanceof Error ? error.message : '';
+            toast.error('Error al actualizar la publicación: ' + msg);
         } finally {
             setSubmitting(false);
         }
@@ -221,12 +238,18 @@ export function ExternalManager() {
 
         try {
             // 1. Update DB to deleted
-            const { error } = await supabase
-                .from('publicaciones_redes')
-                .update({ estado: 'eliminado' })
-                .eq('id', id);
+            const { success, offline, error } = await offlineUpdate('publicaciones_redes', {
+                id,
+                estado: 'eliminado'
+            });
 
-            if (error) throw error;
+            if (!success) throw new Error(error || 'Error eliminando');
+
+            if (offline) {
+                toast.success('Marcado como eliminado localmente. Se procesará al conectar.');
+                fetchPublicaciones();
+                return;
+            }
 
             // 2. Send to Make (Delete)
             const makeResult = await sendToSocialMedia({
@@ -247,7 +270,8 @@ export function ExternalManager() {
             fetchPublicaciones();
         } catch (error) {
             console.error('Error deleting post:', error);
-            toast.error('Error al eliminar');
+            const msg = error instanceof Error ? error.message : '';
+            toast.error('Error al eliminar: ' + msg);
         }
     };
 

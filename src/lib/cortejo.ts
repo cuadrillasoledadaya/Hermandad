@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
 
 // =====================================================
 // TIPOS Y CONSTANTES
@@ -266,33 +267,26 @@ export async function asignarPosicion(input: AsignarPosicionInput): Promise<Cort
     }
 
     // Crear asignación
-    const { data, error } = await supabase
-        .from('cortejo_asignaciones')
-        .insert({
-            id_hermano: input.id_hermano,
-            id_posicion: input.id_posicion,
-            anio: year,
-            numero_papeleta: input.numero_papeleta || null,
-            notas: input.notas || null,
-            forma_asignacion: 'manual'
-        })
-        .select()
-        .single();
+    const { success, data, error } = await offlineInsert('cortejo_asignaciones', {
+        id_hermano: input.id_hermano,
+        id_posicion: input.id_posicion,
+        anio: year,
+        numero_papeleta: input.numero_papeleta || null,
+        notas: input.notas || null,
+        forma_asignacion: 'manual'
+    });
 
-    if (error) throw error;
-    return data;
+    if (!success) throw new Error(error || 'Error creando asignación');
+    return data as CortejoAsignacion;
 }
 
 /**
  * Elimina una asignación
  */
 export async function quitarAsignacion(id_asignacion: string): Promise<void> {
-    const { error } = await supabase
-        .from('cortejo_asignaciones')
-        .delete()
-        .eq('id', id_asignacion);
+    const { success, error } = await offlineDelete('cortejo_asignaciones', id_asignacion);
 
-    if (error) throw error;
+    if (!success) throw new Error(error || 'Error eliminando asignación');
 }
 
 /**
@@ -302,15 +296,10 @@ export async function actualizarAsignacion(
     id_asignacion: string,
     updates: Partial<Pick<CortejoAsignacion, 'numero_papeleta' | 'notas'>>
 ): Promise<CortejoAsignacion> {
-    const { data, error } = await supabase
-        .from('cortejo_asignaciones')
-        .update(updates)
-        .eq('id', id_asignacion)
-        .select()
-        .single();
+    const { success, data, error } = await offlineUpdate('cortejo_asignaciones', { ...updates, id: id_asignacion });
 
-    if (error) throw error;
-    return data;
+    if (!success) throw new Error(error || 'Error actualizando asignación');
+    return data as CortejoAsignacion;
 }
 
 /**
