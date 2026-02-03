@@ -148,74 +148,60 @@ export async function searchHermanos(term: string): Promise<BrotherSearchResult[
     // Validación básica
     if (term.length < 2) return [];
 
-    try {
-        // Timeout de 2 segundos
-        const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('timeout')), 2000);
-        });
+    // SIEMPRE usar búsqueda local para resultados consistentes y relevantes
+    const { getHermanosLocal } = await import('./db');
+    const allHermanos = await getHermanosLocal();
+    const normalizedTerm = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        const supabaseQuery = supabase.rpc('search_hermanos', { term });
+    const results = allHermanos
+        .map((h: Record<string, unknown>) => {
+            const nombre = (h.nombre as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const apellidos = (h.apellidos as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const fullName = `${nombre} ${apellidos}`;
 
-        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
+            // Calcular relevancia
+            let score = 0;
 
-        if (error) throw error;
+            // Coincidencia exacta al inicio del nombre (máxima prioridad)
+            if (nombre.startsWith(normalizedTerm)) {
+                score = 1000;
+            }
+            // Coincidencia exacta al inicio de apellidos
+            else if (apellidos.startsWith(normalizedTerm)) {
+                score = 900;
+            }
+            // Coincidencia al inicio del nombre completo
+            else if (fullName.startsWith(normalizedTerm)) {
+                score = 800;
+            }
+            // Coincidencia en cualquier parte del nombre
+            else if (nombre.includes(normalizedTerm)) {
+                score = 500;
+            }
+            // Coincidencia en apellidos
+            else if (apellidos.includes(normalizedTerm)) {
+                score = 400;
+            }
+            // No coincide
+            else {
+                score = 0;
+            }
 
-        return data as BrotherSearchResult[];
-    } catch (e) {
-        const error = e as Error;
-        console.warn('Online search failed, using local search:', error.message);
+            return {
+                id: h.id as string,
+                nombre: h.nombre as string,
+                apellidos: h.apellidos as string,
+                score
+            };
+        })
+        .filter(h => h.score > 0)
+        .sort((a, b) => {
+            // Ordenar por score descendente, y luego alfabéticamente
+            if (b.score !== a.score) return b.score - a.score;
+            return `${a.nombre} ${a.apellidos}`.localeCompare(`${b.nombre} ${b.apellidos}`);
+        })
+        .slice(0, 10)
+        .map(({ score, ...rest }) => rest); // Eliminar el score del resultado final
 
-        // Búsqueda local mejorada
-        const { getHermanosLocal } = await import('./db');
-        const allHermanos = await getHermanosLocal();
-        const normalizedTerm = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-        const results = allHermanos
-            .map((h: Record<string, unknown>) => {
-                const nombre = (h.nombre as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const apellidos = (h.apellidos as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const fullName = `${nombre} ${apellidos}`;
-
-                // Calcular relevancia
-                let score = 0;
-
-                // Coincidencia exacta al inicio (máxima prioridad)
-                if (nombre.startsWith(normalizedTerm) || apellidos.startsWith(normalizedTerm)) {
-                    score = 1000;
-                }
-                // Coincidencia al inicio del nombre completo
-                else if (fullName.startsWith(normalizedTerm)) {
-                    score = 900;
-                }
-                // Coincidencia en cualquier palabra del nombre
-                else if (nombre.includes(normalizedTerm)) {
-                    score = 500;
-                }
-                // Coincidencia en apellidos
-                else if (apellidos.includes(normalizedTerm)) {
-                    score = 400;
-                }
-                // No coincide
-                else {
-                    score = 0;
-                }
-
-                return {
-                    id: h.id as string,
-                    nombre: h.nombre as string,
-                    apellidos: h.apellidos as string,
-                    score
-                };
-            })
-            .filter(h => h.score > 0)
-            .sort((a, b) => {
-                // Ordenar por score descendente, y luego alfabéticamente
-                if (b.score !== a.score) return b.score - a.score;
-                return `${a.nombre} ${a.apellidos}`.localeCompare(`${b.nombre} ${b.apellidos}`);
-            })
-            .slice(0, 10)
-            .map(({ score, ...rest }) => rest); // Eliminar el score del resultado final
-
-        return results;
-    }
+    return results;
 }
