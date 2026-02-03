@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { getSystemLogs, clearSystemLogs, LogEntry } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, RefreshCw, Copy, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Trash2, RefreshCw, Copy, AlertTriangle, AlertCircle, Info, Database, CloudOff } from 'lucide-react';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 export default function LogsPage() {
     const { role } = useAuth();
+    const { pendingCount, clearQueue, processMutations, isSyncing } = useOfflineSync();
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -77,6 +79,47 @@ export default function LogsPage() {
                     </Button>
                 </div>
             </div>
+
+            {/* Sección Sincronización */}
+            <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Database className="w-5 h-5 text-orange-600" />
+                        Cola de Sincronización Offline
+                    </CardTitle>
+                    <CardDescription>
+                        Gestiona los cambios pendientes de subir a la nube.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="bg-white dark:bg-slate-900 p-2 rounded border px-4 flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Pendientes:</span>
+                            <span className="font-bold text-xl">{pendingCount}</span>
+                        </div>
+
+                        <Button variant="outline" onClick={() => processMutations()} disabled={pendingCount === 0 || isSyncing}>
+                            {isSyncing ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Forzar Sincronización
+                        </Button>
+
+                        <Button variant="destructive" onClick={async () => {
+                            if (confirm('¿Estás seguro? Se perderán los cambios offline no guardados (ventas, etc).')) {
+                                await clearQueue();
+                                toast.success('Cola de sincronización vaciada');
+                            }
+                        }} disabled={pendingCount === 0}>
+                            <CloudOff className="mr-2 h-4 w-4" />
+                            Descartar Todo (Reset)
+                        </Button>
+                    </div>
+                    {pendingCount > 0 && (
+                        <p className="text-xs text-orange-700 mt-2">
+                            Advertencia: Tienes {pendingCount} operaciones esperando conexión. Si las descartas, los datos creados offline se perderán permanentemente.
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
 
             <div className="space-y-4">
                 {logs.length === 0 ? (

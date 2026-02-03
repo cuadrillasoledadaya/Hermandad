@@ -212,3 +212,9 @@ export async function getSyncMetadata(key: string): Promise<unknown | undefined>
     const result = await db.get('sync_metadata', key);
     return result?.value;
 }
+
+// LIMPIAR TODA LA COLA DE MUTACIONES (usar con precaución)
+export async function clearMutationQueue() {
+    const db = await initDB();
+    await db.clear('mutation_queue');
+}

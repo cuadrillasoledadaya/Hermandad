@@ -178,10 +178,21 @@ export function useOfflineSync() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Limpiar cola manualmente
+    const clearQueue = async () => {
+        const { clearMutationQueue } = await import('@/lib/db');
+        await clearMutationQueue();
+        setStatus(prev => ({ ...prev, pendingCount: 0, error: null }));
+    };
+
     return {
         ...status,
         isOnline,
         syncNow: processMutations,
         refreshPending: checkPending,
+        checkPending,
+        processMutations,
+        syncMasterData,
+        clearQueue // Nueva función
     };
 }
