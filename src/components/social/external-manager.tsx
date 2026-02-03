@@ -290,7 +290,12 @@ export function ExternalManager() {
                                 {files.map((file, idx) => (
                                     <div key={idx} className="relative group bg-white p-2 border rounded-md flex items-center gap-2 pr-8">
                                         {file.type.startsWith('image/') ? (
-                                            <img src={file.url} alt="preview" className="w-8 h-8 object-cover rounded" />
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={file.url}
+                                                alt="preview"
+                                                className="w-8 h-8 object-cover rounded"
+                                            />
                                         ) : (
                                             <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded text-xs font-bold text-slate-500">DOC</div>
                                         )}
@@ -435,7 +440,12 @@ export function ExternalManager() {
                                 {files.map((file, idx) => (
                                     <div key={idx} className="relative group bg-white p-2 border rounded-md flex items-center gap-2 pr-8">
                                         {file.type.startsWith('image/') ? (
-                                            <img src={file.url} alt="preview" className="w-8 h-8 object-cover rounded" />
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={file.url}
+                                                alt="preview"
+                                                className="w-8 h-8 object-cover rounded"
+                                            />
                                         ) : (
                                             <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded text-xs font-bold text-slate-500">DOC</div>
                                         )}

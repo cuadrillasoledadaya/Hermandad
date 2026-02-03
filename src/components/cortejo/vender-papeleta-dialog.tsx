@@ -52,7 +52,8 @@ export function VenderPapeletaDialog() {
             if (!hermanosFound || hermanosFound.length === 0) return [];
 
             // 2. Verificar si tienen papeleta este año
-            const ids = hermanosFound.map(h => h.id);
+            const hermanosList = hermanosFound as BrotherSearchResult[];
+            const ids = hermanosList.map((h: BrotherSearchResult) => h.id);
             const year = new Date().getFullYear();
 
             const { data: papeletas } = await supabase
@@ -64,7 +65,7 @@ export function VenderPapeletaDialog() {
 
             const hermanosConPapeletaSet = new Set(papeletas?.map(p => p.id_hermano));
 
-            return hermanosFound.map(h => ({
+            return hermanosList.map((h: BrotherSearchResult) => ({
                 ...h,
                 tiene_papeleta: hermanosConPapeletaSet.has(h.id)
             }));
