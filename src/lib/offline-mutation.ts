@@ -92,4 +92,4 @@ export async function offlineDelete(table: string, id: string | number) {
     return offlineMutation({ type: 'delete', table, data: { id } });
 }
 
-// trigger deployment v1.1.42
+// trigger deployment v1.1.64

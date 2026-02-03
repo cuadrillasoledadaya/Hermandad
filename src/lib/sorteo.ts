@@ -24,7 +24,7 @@ export interface ResultadoSorteo {
 
 export async function getCandidatos(tipo: string): Promise<CandidatoSorteo[]> {
     // Debug log
-    console.log(`[Sorteo] Fetching candidatos for tipo: ${tipo} (v1.1.09)`);
+    console.log(`[Sorteo] Fetching candidatos for tipo: ${tipo} (v1.1.64)`);
 
     const { data: allTickets, error: allError } = await supabase
         .from('papeletas_cortejo')
