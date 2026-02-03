@@ -16,7 +16,7 @@ export function Sidebar() {
         { name: 'Inicio', icon: Home, href: '/' },
         { name: 'Hermanos', icon: Users, href: '/hermanos' },
         { name: 'Tesorería', icon: Wallet, href: '/tesoreria' },
-        { name: 'Avisos', icon: Share2, href: '/avisos' },
+        { name: 'Redes Sociales', icon: Share2, href: '/redes-sociales' },
         { name: 'Configuración', icon: Settings, href: '/configuracion' },
     ];
 
