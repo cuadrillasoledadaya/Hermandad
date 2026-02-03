@@ -27,9 +27,11 @@ export function VenderPapeletaDialog() {
         queryKey: ['papeleta-price', tipo],
         queryFn: async () => {
             const price = await getPrecioPapeleta(tipo);
-            setImporte(prev => prev !== price ? price : prev);
+            setImporte(price); // Siempre actualizar al precio correcto
             return price;
         },
+        staleTime: 0, // Siempre refrescar
+        gcTime: 0, // No cachear
     });
 
     const queryClient = useQueryClient();
