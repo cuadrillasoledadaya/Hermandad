@@ -2,13 +2,18 @@
 
 Este documento contiene reglas críticas que el agente (Antigravity) DEBE seguir en todo momento para este proyecto.
 
-## 1. Gestión de Versiones
+## 1. Gestión de Versiones y Sincronización
 
-- **REGLA**: Siempre que se realice un cambio en el código fuente (src, scripts, etc.), se DEBE incrementar la versión en `package.json`.
-- **Procedimiento**: El incremento debe ser de parche (patch) a menos que se indique lo contrario.
-- **Sincronización**: Después del incremento, se debe realizar el commit y el push para asegurar que el despliegue refleje los cambios.
+- **REGLA**: Todo cambio en el código DEBE acompañarse de un incremento de versión.
+- **Formato**: `X.X.XX` (Ej: `1.1.44`).
+- **Workflow Obligatorio**: Se debe seguir estrictamente [github-sync.md](file:///c:/Users/chiqui/Hermandad/web/.agent/workflows/github-sync.md).
+- **Procedimiento**:
+    1. Actualizar `package.json` y `sidebar.tsx` con la nueva versión.
+    2. Ejecutar el script: `.\scripts\sync-github.ps1 -Message "Version X.X.XX: Resumen"`
+- **Proactividad**: El agente tiene permiso (`turbo-all`) para ejecutar este script automáticamente después de realizar cambios.
 
 ## 2. Auditoría y Calidad
 
 - Se prefiere el uso de `unknown` sobre `any` en bloques catch.
 - Los imports no utilizados deben eliminarse proactivamente.
+- Las notificaciones de error deben usar `showError` de `error-handler.ts`.
