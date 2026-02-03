@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { type BrotherSearchResult } from '@/lib/brothers';
-import { venderPapeleta, TIPOS_PAPELETA, TipoPapeleta, PRECIO_PAPELETA_DEFAULT, getPrecioPapeleta } from '@/lib/papeletas-cortejo';
+import { type BrotherSearchResult, searchHermanos } from '@/lib/brothers';
+import { venderPapeleta, TIPOS_PAPELETA, TipoPapeleta, PRECIO_PAPELETA_DEFAULT, getPrecioPapeleta, getPapeletasDelAnio } from '@/lib/papeletas-cortejo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,28 +40,28 @@ export function VenderPapeletaDialog() {
         queryFn: async () => {
             if (searchTerm.length < 2) return [];
 
-            // 1. Buscar hermanos (usando función RPC con unaccent para ignorar tildes)
-            const { data: hermanosFound, error } = await supabase
-                .rpc('search_hermanos', { term: searchTerm });
-
-            if (error) {
-                console.error('Error searching brothers:', error);
-                return [];
-            }
-
-            if (!hermanosFound || hermanosFound.length === 0) return [];
+            // 1. Buscar hermanos (con fallback offline interno)
+            const hermanosList = await searchHermanos(searchTerm);
+            if (hermanosList.length === 0) return [];
 
             // 2. Verificar si tienen papeleta este año
-            const hermanosList = hermanosFound as BrotherSearchResult[];
             const ids = hermanosList.map((h: BrotherSearchResult) => h.id);
             const year = new Date().getFullYear();
 
-            const { data: papeletas } = await supabase
-                .from('papeletas_cortejo')
-                .select('id_hermano')
-                .in('id_hermano', ids)
-                .eq('anio', year)
-                .neq('estado', 'cancelada');
+            let papeletas;
+            try {
+                const { data } = await supabase
+                    .from('papeletas_cortejo')
+                    .select('id_hermano')
+                    .in('id_hermano', ids)
+                    .eq('anio', year)
+                    .neq('estado', 'cancelada');
+                papeletas = data;
+            } catch {
+                console.warn('Offline check for papeletas, using local cache');
+                const localPapeletas = await getPapeletasDelAnio(year);
+                papeletas = localPapeletas.filter(p => ids.includes(p.id_hermano));
+            }
 
             const hermanosConPapeletaSet = new Set(papeletas?.map(p => p.id_hermano));
 

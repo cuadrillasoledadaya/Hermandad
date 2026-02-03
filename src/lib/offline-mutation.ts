@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import { queueMutation } from './db';
 
 // Tipo de operación de base de datos
@@ -9,57 +10,53 @@ interface MutationOptions {
 
 // Función principal para realizar mutations con soporte offline
 export async function offlineMutation(options: MutationOptions): Promise<{ success: boolean; offline: boolean; data?: unknown; error?: string }> {
+    // Si sabemos que estamos offline, ni siquiera intentamos
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await queueMutation(options);
+        return { success: true, offline: true };
+    }
+
     try {
-        let url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/${options.table}`;
+        let result: { data: unknown; error: { code?: string; message: string } | null } = { data: null, error: null };
 
-        // Para UPDATE y DELETE, necesitamos especificar el ID en la URL
-        if (options.type !== 'insert' && options.data?.id) {
-            url += `?id=eq.${options.data.id}`;
+        // Intentar la operación con el cliente de Supabase (gestiona Auth automáticamente)
+        switch (options.type) {
+            case 'insert':
+                result = await supabase.from(options.table).insert(options.data).select().single();
+                break;
+            case 'update':
+                result = await supabase.from(options.table).update(options.data).eq('id', options.data.id).select().single();
+                break;
+            case 'delete':
+                result = await supabase.from(options.table).delete().eq('id', options.data.id);
+                break;
         }
 
-        // Si es INSERT, necesitamos que devuelva el objeto creado
-        if (options.type === 'insert') {
-            // Header Prefer: return=representation es necesario para que devuelva el objeto
-            // Pero Supabase JS lo añade automáticamente. Aquí hacemos fetch directo.
-            // Para mantener consistencia con el cliente JS, añadimos param select o header
-            url += '?select=*';
-        }
+        if (result.error) {
+            // Si el error es de conexión (pero navigator.onLine dijo que sí), guardamos en cola
+            // Supabase suele devolver un error con code vacío o mensajes de fetch para red
+            const isNetworkError = !result.error.code ||
+                result.error.message?.toLowerCase().includes('fetch') ||
+                result.error.message?.toLowerCase().includes('network');
 
-        // Intentar hacer la operación online primero
-        const response = await fetch(url, {
-            method: options.type === 'delete' ? 'DELETE' : options.type === 'insert' ? 'POST' : 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-                'Prefer': 'return=representation' // Para que devuelva los datos (importante para insert/update)
-            },
-            body: options.type !== 'delete' ? JSON.stringify(options.data) : undefined,
-        });
-
-        if (response.ok) {
-            let responseData = null;
-            try {
-                if (options.type !== 'delete') {
-                    const json = await response.json();
-                    responseData = json && json.length > 0 ? json[0] : json;
-                }
-            } catch {
-                // Ignore json parse error if empty body (e.g. delete)
+            if (isNetworkError) {
+                await queueMutation(options);
+                return { success: true, offline: true };
             }
-            return { success: true, offline: false, data: responseData };
+
+            return { success: false, offline: false, error: result.error.message };
         }
 
-        // Si falló por conexión, guardar en cola
-        if (!navigator.onLine || response.status === 0) {
-            await queueMutation(options);
-            return { success: true, offline: true };
-        }
-
-        return { success: false, offline: false, error: `Error ${response.status}: ${response.statusText}` };
+        return { success: true, offline: false, data: result.data };
 
     } catch (error) {
-        // Error de red: guardar en cola
-        if (!navigator.onLine || (error instanceof TypeError && error.message.includes('fetch'))) {
+        // Error inesperado o de red no capturado por Supabase
+        const errorMessage = String(error).toLowerCase();
+        const isNetworkError = errorMessage.includes('fetch') ||
+            errorMessage.includes('network') ||
+            errorMessage.includes('connection');
+
+        if (isNetworkError) {
             await queueMutation(options);
             return { success: true, offline: true };
         }

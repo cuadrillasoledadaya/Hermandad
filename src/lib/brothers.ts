@@ -118,3 +118,43 @@ export async function deletePago(id: string) {
 
     if (error) throw error;
 }
+export async function searchHermanos(term: string): Promise<BrotherSearchResult[]> {
+    try {
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+            const { data, error } = await supabase
+                .rpc('search_hermanos', { term });
+
+            if (error) {
+                if (error.message?.toLowerCase().includes('fetch') || !error.code) {
+                    throw new Error('offline');
+                }
+                throw error;
+            }
+            return data as BrotherSearchResult[];
+        } else {
+            throw new Error('offline');
+        }
+    } catch (e) {
+        const error = e as Error;
+        if (error.message === 'offline' || error.message?.includes('fetch')) {
+            // Local search in IndexedDB
+            const { getHermanosLocal } = await import('./db');
+            const allHermanos = await getHermanosLocal();
+            const normalizedTerm = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            return allHermanos
+                .filter((h: Record<string, unknown>) => {
+                    const nombre = (h.nombre as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const apellidos = (h.apellidos as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    return nombre.includes(normalizedTerm) || apellidos.includes(normalizedTerm);
+                })
+                .slice(0, 10)
+                .map((h: Record<string, unknown>) => ({
+                    id: h.id as string,
+                    nombre: h.nombre as string,
+                    apellidos: h.apellidos as string
+                }));
+        }
+        throw error;
+    }
+}

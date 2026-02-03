@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DATABASE_NAME = 'hermandad_offline_db';
-const DATABASE_VERSION = 2; // Incrementamos versión para migración
+const DATABASE_VERSION = 3; // Incrementamos versión para añadir papeletas_cortejo
 
 // Cola de operaciones pendientes (para cuando estamos offline)
 export interface MutationQueueItem {
@@ -32,10 +32,19 @@ export async function initDB(): Promise<IDBPDatabase> {
                 db.createObjectStore('sync_metadata', { keyPath: 'key' });
             }
 
-            // Versión 2 - Añadir stores adicionales si los necesitas
+            // Versión 2
             if (oldVersion < 2) {
                 if (!db.objectStoreNames.contains('configuracion')) {
                     db.createObjectStore('configuracion', { keyPath: 'id' });
+                }
+            }
+
+            // Versión 3 - Añadir store para papeletas_cortejo
+            if (oldVersion < 3) {
+                if (!db.objectStoreNames.contains('papeletas_cortejo')) {
+                    const papeletasStore = db.createObjectStore('papeletas_cortejo', { keyPath: 'id' });
+                    papeletasStore.createIndex('id_hermano', 'id_hermano', { unique: false });
+                    papeletasStore.createIndex('anio', 'anio', { unique: false });
                 }
             }
         },
@@ -81,6 +90,38 @@ export async function savePagosLocal(pagos: Record<string, unknown>[]) {
 export async function getPagosLocal(): Promise<Record<string, unknown>[]> {
     const db = await initDB();
     return db.getAll('pagos');
+}
+
+// Función para guardar papeletas en local
+export async function savePapeletasLocal(papeletas: Record<string, unknown>[]) {
+    const db = await initDB();
+    const tx = db.transaction('papeletas_cortejo', 'readwrite');
+    const store = tx.objectStore('papeletas_cortejo');
+
+    await store.clear();
+    for (const papeleta of papeletas) {
+        await store.put(papeleta);
+    }
+
+    await tx.done;
+}
+
+// Función para obtener papeletas de local
+export async function getPapeletasLocal(): Promise<Record<string, unknown>[]> {
+    const db = await initDB();
+    return db.getAll('papeletas_cortejo');
+}
+
+// Función para añadir una sola papeleta (usada tras venta offline)
+export async function addPapeletaLocal(papeleta: Record<string, unknown>) {
+    const db = await initDB();
+    await db.put('papeletas_cortejo', papeleta);
+}
+
+// Función para añadir un solo pago (usada tras venta offline)
+export async function addPagoLocal(pago: Record<string, unknown>) {
+    const db = await initDB();
+    await db.put('pagos', pago);
 }
 
 // AÑADIR UNA MUTACIÓN A LA COLA (cuando estamos offline)

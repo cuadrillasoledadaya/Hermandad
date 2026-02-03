@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { getPreciosConfig } from './configuracion';
 import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
+import { savePapeletasLocal, getPapeletasLocal, addPapeletaLocal, addPagoLocal } from './db';
 
 // =====================================================
 // TIPOS Y CONSTANTES
@@ -96,41 +97,60 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     const year = input.anio || new Date().getFullYear();
     const importe = input.importe ?? await getPrecioPapeleta(input.tipo);
 
-    // 0. Validación: Verificar si el hermano ya tiene papeleta este año (Esta validación requiere online idealmente, 
-    // pero si estamos offline asumimos que se puede validando luego en servidor o confiando en el cliente)
-    if (navigator.onLine) {
-        const { data: existingPapeleta, error: checkError } = await supabase
-            .from('papeletas_cortejo')
-            .select('id, numero')
-            .eq('id_hermano', input.id_hermano)
-            .eq('anio', year)
-            .neq('estado', 'cancelada')
-            .maybeSingle();
+    // 0. Validación: Verificar si el hermano ya tiene papeleta este año
+    try {
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+            const { data: existingPapeleta, error: checkError } = await supabase
+                .from('papeletas_cortejo')
+                .select('id, numero')
+                .eq('id_hermano', input.id_hermano)
+                .eq('anio', year)
+                .neq('estado', 'cancelada')
+                .maybeSingle();
 
-        if (checkError) throw checkError;
-
-        if (existingPapeleta) {
-            throw new Error(`Este hermano ya tiene la papeleta #${existingPapeleta.numero} activa para este año.`);
+            if (checkError) {
+                // Si es un error de red, lo ignoramos y seguimos (se validará en sync)
+                if (checkError.message?.toLowerCase().includes('fetch') || !checkError.code) {
+                    console.warn('Network error during validation, skipping online check');
+                } else {
+                    throw checkError;
+                }
+            } else if (existingPapeleta) {
+                throw new Error(`Este hermano ya tiene la papeleta #${existingPapeleta.numero} activa para este año.`);
+            }
         }
+    } catch (e) {
+        const error = e as Error;
+        if (error.message?.includes('ya tiene la papeleta')) throw error;
+        console.warn('Error verifying existing papeleta, proceeding offline:', error);
     }
 
     // 1. Obtener el siguiente número de papeleta disponible (optimista si offline)
     let siguienteNumero = 0;
-    if (navigator.onLine) {
-        const { data: ultimaPapeleta, error: numError } = await supabase
-            .from('papeletas_cortejo')
-            .select('numero')
-            .eq('anio', year)
-            .order('numero', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+    try {
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+            const { data: ultimaPapeleta, error: numError } = await supabase
+                .from('papeletas_cortejo')
+                .select('numero')
+                .eq('anio', year)
+                .order('numero', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
-        if (numError) throw numError;
-        siguienteNumero = ultimaPapeleta ? ultimaPapeleta.numero + 1 : 1;
-    } else {
-        // En offline no podemos saber el número real. Usamos 0 o un placeholder.
-        // El servidor (o sync) tendrá que recalcularlo o el usuario aceptará que se asigne al sincronizar.
-        // Para MVP, usamos 0 para indicar "pendiente de asignar".
+            if (numError) {
+                if (numError.message?.toLowerCase().includes('fetch') || !numError.code) {
+                    siguienteNumero = 0;
+                } else {
+                    throw numError;
+                }
+            } else {
+                siguienteNumero = ultimaPapeleta ? ultimaPapeleta.numero + 1 : 1;
+            }
+        } else {
+            siguienteNumero = 0;
+        }
+    } catch (e) {
+        console.warn('Error fetching last number, using placeholder:', e);
         siguienteNumero = 0;
     }
 
@@ -139,7 +159,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     const papeletaId = crypto.randomUUID();
 
     // 2. Crear el pago en tesorería (tabla pagos)
-    const { success: pagoSuccess, error: pagoError } = await offlineInsert('pagos', {
+    const pagoData = {
         id: pagoId,
         id_hermano: input.id_hermano,
         cantidad: importe,
@@ -148,9 +168,14 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
         tipo_pago: 'papeleta_cortejo',
         concepto: `Papeleta ${siguienteNumero > 0 ? '#' + siguienteNumero : '(Pendiente)'} - ${TIPOS_PAPELETA[input.tipo]}`,
         id_papeleta: papeletaId // Vinculación cruzada anticipada
-    });
+    };
+
+    const { success: pagoSuccess, error: pagoError } = await offlineInsert('pagos', pagoData);
 
     if (!pagoSuccess) throw new Error(pagoError || 'Error creando pago');
+
+    // Guardar en local inmediatamente para reflejar cambios
+    await addPagoLocal(pagoData);
 
     // 3. Crear la papeleta
     const papeletaData = {
@@ -162,20 +187,24 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
         tramo: input.tramo || null,
         importe,
         id_ingreso: pagoId,
-        estado: 'pagada' as const
+        estado: 'pagada' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
     };
 
     const { success: papeletaSuccess, data: papeleta, error: papeletaError } = await offlineInsert('papeletas_cortejo', papeletaData);
 
     if (!papeletaSuccess) {
-        // Rollback pago si falla papeleta (esto en offline es borrar de la cola, pero offlineDelete lo maneja)
+        // Rollback pago si falla papeleta
         await offlineDelete('pagos', pagoId);
         throw new Error(papeletaError || 'Error creando papeleta');
     }
 
-    // No necesitamos paso 4 (update pago) porque ya insertamos con el id_papeleta generado
+    // Guardar en local inmediatamente
+    const finalPapeleta = (papeleta || papeletaData) as PapeletaCortejo;
+    await addPapeletaLocal(finalPapeleta as unknown as Record<string, unknown>);
 
-    return (papeleta || papeletaData) as PapeletaCortejo;
+    return finalPapeleta;
 }
 
 /**
@@ -251,19 +280,32 @@ export async function eliminarPapeleta(id_papeleta: string): Promise<void> {
 export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDetalles[]> {
     const year = anio || new Date().getFullYear();
 
-    const { data, error } = await supabase
-        .from('papeletas_cortejo')
-        .select(`
-            *,
-            hermano:hermanos(id, nombre, apellidos),
-            posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
-            ingreso:pagos(id, tipo_pago)
-        `)
-        .eq('anio', year)
-        .order('numero', { ascending: true });
+    try {
+        const { data, error } = await supabase
+            .from('papeletas_cortejo')
+            .select(`
+                *,
+                hermano:hermanos(id, nombre, apellidos),
+                posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
+                ingreso:pagos(id, tipo_pago)
+            `)
+            .eq('anio', year)
+            .order('numero', { ascending: true });
 
-    if (error) throw error;
-    return data as unknown as PapeletaConDetalles[];
+        if (error) throw error;
+
+        // Guardar en local para uso posterior offline
+        if (data) {
+            await savePapeletasLocal(data);
+        }
+
+        return data as unknown as PapeletaConDetalles[];
+    } catch (e) {
+        console.error('Error fetching online papeletas, trying local:', e);
+        const localData = await getPapeletasLocal();
+        // Filtrar por año si es necesario (ya que getAll devuelve todo)
+        return localData.filter((p: Record<string, unknown>) => p.anio === year) as unknown as PapeletaConDetalles[];
+    }
 }
 
 /**
