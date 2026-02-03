@@ -10,9 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 
+import { useAutoScroll } from '@/hooks/use-auto-scroll';
+
 export default function NuevoHermanoPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
+
+    // Auto-scroll para mejorar UX en móviles
+    const formRef = useAutoScroll({ block: 'center', delay: 300 });
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -50,7 +55,7 @@ export default function NuevoHermanoPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label htmlFor="nombre">Nombre</Label>

@@ -10,10 +10,15 @@ import { toast } from 'sonner';
 import { LogIn } from 'lucide-react';
 import Link from 'next/link';
 
+import { useAutoScroll } from '@/hooks/use-auto-scroll';
+
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    // Auto-scroll para inputs
+    const formRef = useAutoScroll();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,7 +55,7 @@ export default function LoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form ref={formRef} onSubmit={handleLogin} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Correo Electrónico</Label>
                             <Input

@@ -10,11 +10,16 @@ import { toast } from 'sonner';
 import { UserPlus, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { useAutoScroll } from '@/hooks/use-auto-scroll';
+
 export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+
+    // Auto-scroll para inputs
+    const formRef = useAutoScroll();
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -67,7 +72,7 @@ export default function RegisterPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleRegister} className="space-y-4">
+                    <form ref={formRef} onSubmit={handleRegister} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Correo Electrónico registrado</Label>
                             <Input
