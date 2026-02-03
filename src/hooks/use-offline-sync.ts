@@ -169,6 +169,15 @@ export function useOfflineSync() {
         checkPending();
     }, [checkPending]);
 
+    // Sincronizar datos maestros al montar si ya estamos online
+    useEffect(() => {
+        if (isOnline) {
+            syncMasterData();
+        }
+        // Solo ejecutar una vez al montar
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return {
         ...status,
         isOnline,
