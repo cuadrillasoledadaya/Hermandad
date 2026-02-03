@@ -24,20 +24,52 @@ export const PRECIOS_DEFAULTS: PreciosConfig = {
 
 export async function getPreciosConfig(): Promise<PreciosConfig> {
     try {
-        const { data, error } = await supabase
+        // Intentar con timeout de 2 segundos
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('timeout')), 2000);
+        });
+
+        const supabaseQuery = supabase
             .from('configuracion_precios')
             .select('*')
             .eq('id', 1)
             .single();
 
+        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
+
         if (error) {
-            console.error('Error fetching precios config:', error);
-            return PRECIOS_DEFAULTS;
+            throw error;
+        }
+
+        // Si se obtuvo correctamente, guardar en IndexedDB para uso offline
+        if (data) {
+            try {
+                const { initDB } = await import('./db');
+                const db = await initDB();
+                await db.put('configuracion', data);
+            } catch (dbError) {
+                console.warn('Could not cache config to IndexedDB:', dbError);
+            }
         }
 
         return data as PreciosConfig;
     } catch (err) {
-        console.error('Exception fetching precios config:', err);
+        console.warn('Fetching from Supabase failed, trying IndexedDB:', err);
+
+        // Intentar leer de IndexedDB
+        try {
+            const { initDB } = await import('./db');
+            const db = await initDB();
+            const cachedConfig = await db.get('configuracion', 1);
+            if (cachedConfig) {
+                console.log('Using cached configuration from IndexedDB');
+                return cachedConfig as PreciosConfig;
+            }
+        } catch (dbError) {
+            console.error('IndexedDB also failed:', dbError);
+        }
+
+        console.warn('Falling back to default prices');
         return PRECIOS_DEFAULTS;
     }
 }
