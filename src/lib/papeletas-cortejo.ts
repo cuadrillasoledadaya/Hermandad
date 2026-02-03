@@ -100,13 +100,18 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     // 0. Validación: Verificar si el hermano ya tiene papeleta este año
     try {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
-            const { data: existingPapeleta, error: checkError } = await supabase
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
+
+            const validationQuery = supabase
                 .from('papeletas_cortejo')
                 .select('id, numero')
                 .eq('id_hermano', input.id_hermano)
                 .eq('anio', year)
                 .neq('estado', 'cancelada')
                 .maybeSingle();
+
+            // @ts-ignore - Promise race typing
+            const { data: existingPapeleta, error: checkError } = await Promise.race([validationQuery, timeoutPromise]);
 
             if (checkError) {
                 // Si es un error de red, lo ignoramos y seguimos (se validará en sync)
@@ -129,13 +134,18 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     let siguienteNumero = 0;
     try {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
-            const { data: ultimaPapeleta, error: numError } = await supabase
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
+
+            const numberQuery = supabase
                 .from('papeletas_cortejo')
                 .select('numero')
                 .eq('anio', year)
                 .order('numero', { ascending: false })
                 .limit(1)
                 .maybeSingle();
+
+            // @ts-ignore - Promise race typing
+            const { data: ultimaPapeleta, error: numError } = await Promise.race([numberQuery, timeoutPromise]);
 
             if (numError) {
                 if (numError.message?.toLowerCase().includes('fetch') || !numError.code) {
