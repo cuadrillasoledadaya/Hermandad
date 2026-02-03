@@ -145,42 +145,77 @@ export async function deletePago(id: string) {
     if (!success) throw new Error(error || 'Error eliminando pago');
 }
 export async function searchHermanos(term: string): Promise<BrotherSearchResult[]> {
-    try {
-        if (typeof navigator !== 'undefined' && navigator.onLine) {
-            const { data, error } = await supabase
-                .rpc('search_hermanos', { term });
+    // Validación básica
+    if (term.length < 2) return [];
 
-            if (error) {
-                if (error.message?.toLowerCase().includes('fetch') || !error.code) {
-                    throw new Error('offline');
-                }
-                throw error;
-            }
-            return data as BrotherSearchResult[];
-        } else {
-            throw new Error('offline');
-        }
+    try {
+        // Timeout de 2 segundos
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('timeout')), 2000);
+        });
+
+        const supabaseQuery = supabase.rpc('search_hermanos', { term });
+
+        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
+
+        if (error) throw error;
+
+        return data as BrotherSearchResult[];
     } catch (e) {
         const error = e as Error;
-        if (error.message === 'offline' || error.message?.includes('fetch')) {
-            // Local search in IndexedDB
-            const { getHermanosLocal } = await import('./db');
-            const allHermanos = await getHermanosLocal();
-            const normalizedTerm = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        console.warn('Online search failed, using local search:', error.message);
 
-            return allHermanos
-                .filter((h: Record<string, unknown>) => {
-                    const nombre = (h.nombre as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    const apellidos = (h.apellidos as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return nombre.includes(normalizedTerm) || apellidos.includes(normalizedTerm);
-                })
-                .slice(0, 10)
-                .map((h: Record<string, unknown>) => ({
+        // Búsqueda local mejorada
+        const { getHermanosLocal } = await import('./db');
+        const allHermanos = await getHermanosLocal();
+        const normalizedTerm = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        const results = allHermanos
+            .map((h: Record<string, unknown>) => {
+                const nombre = (h.nombre as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const apellidos = (h.apellidos as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const fullName = `${nombre} ${apellidos}`;
+
+                // Calcular relevancia
+                let score = 0;
+
+                // Coincidencia exacta al inicio (máxima prioridad)
+                if (nombre.startsWith(normalizedTerm) || apellidos.startsWith(normalizedTerm)) {
+                    score = 1000;
+                }
+                // Coincidencia al inicio del nombre completo
+                else if (fullName.startsWith(normalizedTerm)) {
+                    score = 900;
+                }
+                // Coincidencia en cualquier palabra del nombre
+                else if (nombre.includes(normalizedTerm)) {
+                    score = 500;
+                }
+                // Coincidencia en apellidos
+                else if (apellidos.includes(normalizedTerm)) {
+                    score = 400;
+                }
+                // No coincide
+                else {
+                    score = 0;
+                }
+
+                return {
                     id: h.id as string,
                     nombre: h.nombre as string,
-                    apellidos: h.apellidos as string
-                }));
-        }
-        throw error;
+                    apellidos: h.apellidos as string,
+                    score
+                };
+            })
+            .filter(h => h.score > 0)
+            .sort((a, b) => {
+                // Ordenar por score descendente, y luego alfabéticamente
+                if (b.score !== a.score) return b.score - a.score;
+                return `${a.nombre} ${a.apellidos}`.localeCompare(`${b.nombre} ${b.apellidos}`);
+            })
+            .slice(0, 10)
+            .map(({ score, ...rest }) => rest); // Eliminar el score del resultado final
+
+        return results;
     }
 }
