@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { type BrotherSearchResult, searchHermanos } from '@/lib/brothers';
@@ -23,16 +23,13 @@ export function VenderPapeletaDialog() {
     const [importe, setImporte] = useState(PRECIO_PAPELETA_DEFAULT);
 
     // Update price when type changes
-    useQuery({
-        queryKey: ['papeleta-price', tipo],
-        queryFn: async () => {
+    useEffect(() => {
+        const updatePrice = async () => {
             const price = await getPrecioPapeleta(tipo);
-            setImporte(price); // Siempre actualizar al precio correcto
-            return price;
-        },
-        staleTime: 0, // Siempre refrescar
-        gcTime: 0, // No cachear
-    });
+            setImporte(price);
+        };
+        updatePrice();
+    }, [tipo]);
 
     const queryClient = useQueryClient();
 
