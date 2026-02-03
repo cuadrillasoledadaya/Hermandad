@@ -17,21 +17,25 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
-      icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+      richColors
+      position="top-center"
+      toastOptions={{
+        style: {
+          padding: '18px 24px',
+          fontSize: '16px',
+          fontWeight: '600',
+          borderRadius: '16px',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
+          border: '2px solid rgba(0,0,0,0.05)',
+        },
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
+      icons={{
+        success: <CircleCheckIcon className="size-6 text-green-600" />,
+        info: <InfoIcon className="size-6 text-blue-600" />,
+        warning: <TriangleAlertIcon className="size-6 text-amber-600" />,
+        error: <OctagonXIcon className="size-6 text-red-600" />,
+        loading: <Loader2Icon className="size-6 animate-spin text-primary" />,
+      }}
       {...props}
     />
   )

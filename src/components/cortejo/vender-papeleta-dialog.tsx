@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Search, Receipt, UserPlus } from 'lucide-react';
-import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { showError, showSuccess } from '@/lib/error-handler';
 
 export function VenderPapeletaDialog() {
     const [open, setOpen] = useState(false);
@@ -78,13 +78,12 @@ export function VenderPapeletaDialog() {
         onSuccess: (papeleta) => {
             queryClient.invalidateQueries({ queryKey: ['papeletas-cortejo'] });
             queryClient.invalidateQueries({ queryKey: ['cortejo-stats'] });
-            toast.success(`Papeleta #${papeleta.numero} vendida correctamente`);
+            showSuccess(`¡Vendido!`, `Papeleta #${papeleta.numero} correctamente`);
             setOpen(false);
             resetForm();
         },
         onError: (error: Error) => {
-            console.error('Error al vender papeleta:', error);
-            toast.error(error.message || 'Error al procesar la venta');
+            showError('No se pudo vender la papeleta', error);
         },
     });
 
