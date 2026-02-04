@@ -181,8 +181,8 @@ export default function PapeletasPage() {
                     </Select>
                 </div>
 
-                <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                <div className="border rounded-lg overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[800px]">
                         <thead className="bg-slate-50 border-b">
                             <tr>
                                 <th className="px-4 py-3 font-medium">Nº</th>
@@ -190,6 +190,7 @@ export default function PapeletasPage() {
                                 <th className="px-4 py-3 font-medium">Tipo</th>
                                 <th className="px-4 py-3 font-medium">Importe</th>
                                 <th className="px-4 py-3 font-medium">Estado</th>
+                                <th className="px-4 py-3 font-medium">Tramo</th>
                                 <th className="px-4 py-3 font-medium">Posición Asignada</th>
                                 <th className="px-4 py-3 font-medium">Fecha</th>
                             </tr>
@@ -240,6 +241,13 @@ export default function PapeletasPage() {
                                                 }`}>
                                                 {papeleta.estado === 'pagada' ? 'Pendiente' : papeleta.estado}
                                             </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            {papeleta.tramo !== null ? (
+                                                <span className="font-bold text-slate-600">{papeleta.tramo}</span>
+                                            ) : (
+                                                <span className="text-xs italic text-muted-foreground">—</span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-muted-foreground">
                                             {papeleta.posicion ? (
