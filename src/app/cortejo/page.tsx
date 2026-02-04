@@ -37,9 +37,9 @@ export default function CortejoPage() {
         mutationFn: quitarAsignacionDePapeleta,
         onSuccess: () => {
             toast.success("Asignación eliminada correctamente");
-            queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
-            queryClient.invalidateQueries({ queryKey: ['cortejo-stats'] });
-            queryClient.invalidateQueries({ queryKey: ['papeletas-pendientes'] });
+            queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] });
+            queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] });
             setPapeletaToUnassign(null);
         },
         onError: (error: Error) => {
@@ -57,12 +57,12 @@ export default function CortejoPage() {
     };
 
     const { data: cortejo, isLoading: loadingCortejo } = useQuery({
-        queryKey: ['cortejo-completo'],
+        queryKey: ['cortejo_completo'],
         queryFn: () => getCortejoCompleto(),
     });
 
     const { data: stats } = useQuery({
-        queryKey: ['cortejo-stats'],
+        queryKey: ['cortejo_stats'],
         queryFn: () => getEstadisticasCortejo(),
     });
 

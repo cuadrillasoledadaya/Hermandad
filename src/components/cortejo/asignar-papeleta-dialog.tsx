@@ -42,7 +42,7 @@ export function AsignarPapeletaDialog({
     const tipoPapeleta = mapTipoPosicionToPapeleta(posicionTipo)
 
     const { data: papeletas, isLoading } = useQuery({
-        queryKey: ['papeletas-pendientes', tipoPapeleta],
+        queryKey: ['papeletas_pendientes', tipoPapeleta],
         queryFn: () => getPapeletasPendientes(tipoPapeleta || undefined),
         enabled: open && (!!tipoPapeleta || posicionTipo === 'cruz_guia')
     })
@@ -54,9 +54,9 @@ export function AsignarPapeletaDialog({
         },
         onSuccess: () => {
             toast.success("Posición asignada correctamente")
-            queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] })
-            queryClient.invalidateQueries({ queryKey: ['cortejo-stats'] })
-            queryClient.invalidateQueries({ queryKey: ['papeletas-pendientes'] })
+            queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] })
+            queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] })
+            queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] })
             onOpenChange(false)
             setSelectedPapeletaId(null)
         },
@@ -65,11 +65,14 @@ export function AsignarPapeletaDialog({
         }
     })
 
-    const filteredPapeletas = papeletas?.filter(p =>
-        p.hermano?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.hermano?.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.numero.toString().includes(searchTerm)
-    )
+    const filteredPapeletas = papeletas?.filter(p => {
+        const nombre = p.hermano?.nombre?.toLowerCase() || ''
+        const apellidos = p.hermano?.apellidos?.toLowerCase() || ''
+        const search = searchTerm.toLowerCase()
+        return nombre.includes(search) ||
+            apellidos.includes(search) ||
+            p.numero.toString().includes(searchTerm)
+    })
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

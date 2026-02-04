@@ -77,9 +77,13 @@ export default function PapeletasPage() {
     }, [queryClient]);
 
     const filteredPapeletas = papeletas?.filter(p => {
+        const nombreHermano = p.hermano?.nombre?.toLowerCase() || '';
+        const apellidosHermano = p.hermano?.apellidos?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+
         const matchesSearch =
-            p.hermano?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.hermano?.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            nombreHermano.includes(search) ||
+            apellidosHermano.includes(search) ||
             p.numero.toString().includes(searchTerm);
 
         const matchesEstado = filterEstado === 'all' || p.estado === filterEstado;
@@ -217,7 +221,11 @@ export default function PapeletasPage() {
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {papeleta.hermano?.nombre} {papeleta.hermano?.apellidos}
+                                            {papeleta.hermano ? (
+                                                `${papeleta.hermano.nombre} ${papeleta.hermano.apellidos}`
+                                            ) : (
+                                                <span className="text-red-500 italic text-xs">Hermano no visible (RLS)</span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 capitalize">
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${papeleta.tipo === 'vara'
@@ -226,7 +234,9 @@ export default function PapeletasPage() {
                                                     ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                                                     : papeleta.tipo === 'costalero'
                                                         ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                        : papeleta.tipo === 'cruz_guia'
+                                                            ? 'bg-slate-100 text-slate-700 border-slate-300 font-bold'
+                                                            : 'bg-blue-50 text-blue-700 border-blue-200'
                                                 }`}>
                                                 {TIPOS_PAPELETA[papeleta.tipo as keyof typeof TIPOS_PAPELETA] || papeleta.tipo}
                                             </span>

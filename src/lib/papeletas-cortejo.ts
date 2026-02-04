@@ -295,6 +295,7 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
     const year = anio || new Date().getFullYear();
 
     try {
+        console.log(`🔍 [PAPELETAS] Solicitando papeletas del año ${year}...`);
         const { data, error } = await supabase
             .from('papeletas_cortejo')
             .select(`
@@ -306,19 +307,23 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
             .eq('anio', year)
             .order('numero', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ [PAPELETAS] Error en query Supabase:', error);
+            throw error;
+        }
 
-        // Guardar en local para uso posterior offline
+        console.log(`✅ [PAPELETAS] Recibidas ${data?.length || 0} papeletas online`);
+
         if (data) {
             await savePapeletasLocal(data);
         }
-
         return data as unknown as PapeletaConDetalles[];
     } catch (e) {
-        console.error('Error fetching online papeletas, trying local:', e);
+        console.error('⚠️ [PAPELETAS] Fallo fetch online, intentando local:', e);
         const localData = await getPapeletasLocal();
-        // Filtrar por año si es necesario (ya que getAll devuelve todo)
-        return localData.filter((p: Record<string, unknown>) => p.anio === year) as unknown as PapeletaConDetalles[];
+        const filtered = localData.filter((p: Record<string, unknown>) => p.anio === year);
+        console.log(`📦 [PAPELETAS] Cargadas ${filtered.length} papeletas de cache local`);
+        return filtered as unknown as PapeletaConDetalles[];
     }
 }
 
