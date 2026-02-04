@@ -91,5 +91,3 @@ export async function offlineUpdate(table: string, data: Record<string, unknown>
 export async function offlineDelete(table: string, id: string | number) {
     return offlineMutation({ type: 'delete', table, data: { id } });
 }
-
-// trigger deployment v1.1.64

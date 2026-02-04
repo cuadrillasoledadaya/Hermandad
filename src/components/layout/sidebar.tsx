@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
+import { APP_VERSION } from '@/lib/version';
 
 export function Sidebar() {
     const { isSidebarOpen, toggleSidebar } = useAppStore();
@@ -102,7 +103,7 @@ export function Sidebar() {
                                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
                                     {role}
                                 </span>
-                                <p className="text-xs font-bold text-blue-600 mt-2 text-center">v1.1.64 ✅</p>
+                                <p className="text-xs font-bold text-blue-600 mt-2 text-center">v{APP_VERSION} ✅</p>
                             </div>
                         </div>
                         <button
