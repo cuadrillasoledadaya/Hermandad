@@ -62,12 +62,14 @@ export default function PapeletasPage() {
                     table: 'papeletas_cortejo'
                 },
                 () => {
-                    console.log('🔄 Cambio detectado en papeletas, recargando...');
+                    console.log('🔔 [REALTIME] Cambio detectado en papeletas, invalidando queries...');
                     queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
                     queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('📡 [REALTIME] Estado de suscripción:', status);
+            });
 
         return () => {
             supabase.removeChannel(channel);
