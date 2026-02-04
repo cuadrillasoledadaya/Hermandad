@@ -8,11 +8,12 @@ import { Loader2, Church, User, Users, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { AsignarPapeletaDialog } from '@/components/cortejo/asignar-papeleta-dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PosicionTipo } from '@/lib/cortejo';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { quitarAsignacionDePapeleta } from '@/lib/papeletas-cortejo';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -65,6 +66,44 @@ export default function CortejoPage() {
         queryKey: ['cortejo_stats'],
         queryFn: () => getEstadisticasCortejo(),
     });
+
+    // Suscripciones Realtime
+    useEffect(() => {
+        const channel = supabase
+            .channel('cortejo_realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'cortejo_asignaciones' },
+                () => {
+                    console.log('🔔 [REALTIME] Cambio en asignaciones, refrescando cortejo...');
+                    queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] });
+                    queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] });
+                    queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] });
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'papeletas_cortejo' },
+                () => {
+                    console.log('🔔 [REALTIME] Cambio en papeletas, refrescando stats...');
+                    queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] });
+                    queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] });
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'cortejo_estructura' },
+                () => {
+                    console.log('🔔 [REALTIME] Cambio en estructura, refrescando vista...');
+                    queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [queryClient]);
 
     if (loadingCortejo) {
         return (

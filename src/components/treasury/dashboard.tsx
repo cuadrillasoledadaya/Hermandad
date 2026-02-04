@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import {
     Table,
@@ -44,9 +44,34 @@ export function TreasuryDashboard() {
                 .select('*')
                 .eq('anio', effectiveYear);
             if (error) throw error;
-            return data as Pago[];
+            return (data || []) as Pago[];
         },
     });
+
+    const queryClient = useQueryClient();
+
+    // Suscripción Realtime para pagos
+    useEffect(() => {
+        const channel = supabase
+            .channel('treasury_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'pagos'
+                },
+                () => {
+                    console.log('🔔 [REALTIME] Cambio detectado en pagos, refrescando tablero...');
+                    queryClient.invalidateQueries({ queryKey: ['pagos'] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [queryClient]);
 
     if (loadingHermanos || loadingPagos) {
         return (
