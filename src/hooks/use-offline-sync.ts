@@ -5,6 +5,7 @@ import { useNetworkStatus } from './use-network-status';
 import { getPendingMutations, removeMutation, incrementRetryCount } from '@/lib/db';
 import { createClient } from '@/lib/supabase';
 import { showError, showSuccess } from '@/lib/error-handler';
+import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface SyncStatus {
@@ -51,7 +52,7 @@ export function useOfflineSync() {
                         // Re-asignar número si es provisional (<= 0) para papeletas_cortejo
                         if (mutation.table === 'papeletas_cortejo') {
                             const data = mutation.data as { numero: number; anio: number; id_ingreso?: string };
-                            if (typeof data.numero === 'number' && data.numero <= 0) {
+                            if ((typeof data.numero === 'number' && data.numero <= 0) || (typeof data.numero === 'string' && parseInt(data.numero) <= 0)) {
                                 try {
                                     const { data: ultima } = await supabase
                                         .from('papeletas_cortejo')
@@ -122,6 +123,7 @@ export function useOfflineSync() {
                 // Si ha fallado muchas veces, mostrar error
                 if (mutation.retryCount >= 3) {
                     setStatus(prev => ({ ...prev, error: `Fallo al sincronizar ${mutation.table}` }));
+                    toast.error(`Error sincronizando ${mutation.table}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
                 }
             }
         }

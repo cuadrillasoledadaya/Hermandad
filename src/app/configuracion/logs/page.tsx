@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Trash2, RefreshCw, Copy, AlertTriangle, AlertCircle, Info, Database, CloudOff, HardDriveDownload } from 'lucide-react';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { resetAndReload } from '@/lib/db-clear';
+import { getPendingMutations } from '@/lib/db';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -16,12 +17,15 @@ export default function LogsPage() {
     const { role } = useAuth();
     const { pendingCount, clearQueue, processMutations, isSyncing } = useOfflineSync();
     const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [mutations, setMutations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const loadLogs = async () => {
         setLoading(true);
         const data = await getSystemLogs(200); // Últimos 200 logs
+        const mutationList = await getPendingMutations();
         setLogs(data);
+        setMutations(mutationList);
         setLoading(false);
     };
 
@@ -33,6 +37,8 @@ export default function LogsPage() {
                 const data = await getSystemLogs(200);
                 if (mounted) {
                     setLogs(data);
+                    const mutationList = await getPendingMutations();
+                    setMutations(mutationList);
                     setLoading(false);
                 }
             }
@@ -115,9 +121,27 @@ export default function LogsPage() {
                         </Button>
                     </div>
                     {pendingCount > 0 && (
-                        <p className="text-xs text-orange-700 mt-2">
-                            Advertencia: Tienes {pendingCount} operaciones esperando conexión. Si las descartas, los datos creados offline se perderán permanentemente.
-                        </p>
+                        <div className="mt-4 space-y-2">
+                            <p className="text-xs text-orange-700 font-semibold">
+                                Detalle de Operaciones ({mutations.length}):
+                            </p>
+                            <div className="bg-slate-50 dark:bg-slate-900 rounded border max-h-60 overflow-y-auto p-2">
+                                {mutations.map((m, idx) => (
+                                    <div key={m.id || idx} className="text-xs border-b last:border-0 py-2">
+                                        <div className="flex justify-between font-bold">
+                                            <span className="uppercase text-orange-600">{m.type} {m.table}</span>
+                                            <span>Reintentos: {m.retryCount || 0}</span>
+                                        </div>
+                                        <div className="text-muted-foreground font-mono mt-1 break-all">
+                                            {JSON.stringify(m.data)}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-xs text-orange-700 mt-2">
+                                Advertencia: Tienes {pendingCount} operaciones esperando conexión. Si las descartas, los datos creados offline se perderán permanentemente.
+                            </p>
+                        </div>
                     )}
                 </CardContent>
             </Card>
