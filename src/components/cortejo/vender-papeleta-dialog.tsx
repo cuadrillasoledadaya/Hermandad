@@ -77,7 +77,10 @@ export function VenderPapeletaDialog() {
         onSuccess: (papeleta) => {
             queryClient.invalidateQueries({ queryKey: ['papeletas-cortejo'] });
             queryClient.invalidateQueries({ queryKey: ['cortejo-stats'] });
-            showSuccess(`¡Vendido!`, `Papeleta #${papeleta.numero} correctamente`);
+
+            const numeroDisplay = papeleta.numero > 0 ? `#${papeleta.numero}` : 'PENDIENTE (Offline)';
+            showSuccess(`¡Vendido!`, `Papeleta ${numeroDisplay} creada correctamente`);
+
             setOpen(false);
             resetForm();
         },

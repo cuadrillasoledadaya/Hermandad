@@ -121,7 +121,7 @@ export function AsignarPapeletaDialog({
                                                     {papeleta.hermano?.nombre} {papeleta.hermano?.apellidos}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Papeleta #{papeleta.numero} • {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(papeleta.importe)}
+                                                    Papeleta {papeleta.numero > 0 ? `#${papeleta.numero}` : '(OFFLINE)'} • {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(papeleta.importe)}
                                                 </p>
                                             </div>
                                             {selectedPapeletaId === papeleta.id && (

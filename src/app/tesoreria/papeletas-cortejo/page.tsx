@@ -178,7 +178,15 @@ export default function PapeletasPage() {
                             ) : (
                                 filteredPapeletas?.map((papeleta) => (
                                     <tr key={papeleta.id} className="hover:bg-slate-50/50">
-                                        <td className="px-4 py-3 font-bold text-slate-700">#{papeleta.numero}</td>
+                                        <td className="px-4 py-3 font-bold text-slate-700">
+                                            {papeleta.numero > 0 ? (
+                                                `#${papeleta.numero}`
+                                            ) : (
+                                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded font-bold whitespace-nowrap">
+                                                    OFFLINE
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3">
                                             {papeleta.hermano?.nombre} {papeleta.hermano?.apellidos}
                                         </td>
@@ -242,7 +250,7 @@ export default function PapeletasPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Estás a punto de eliminar la papeleta #{papeletaToDelete?.numero}.
+                            Estás a punto de eliminar la papeleta {papeletaToDelete?.numero && papeletaToDelete.numero > 0 ? `#${papeletaToDelete.numero}` : '(OFFLINE)'}.
                             Esta acción eliminará también el cobro asociado y liberará cualquier posición asignada.
                             <br /><br />
                             <span className="font-bold text-red-600">Esta acción no se puede deshacer.</span>
