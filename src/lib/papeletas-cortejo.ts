@@ -535,7 +535,7 @@ export async function getEstadisticasPapeletas(anio?: number): Promise<Papeletas
         total_canceladas: papeletas?.filter(p => p.estado === 'cancelada').length || 0,
         ingresos_totales: papeletas?.reduce((sum, p) => sum + Number(p.importe), 0) || 0,
         por_tipo: {
-            insignia: papeletas?.filter(p => p.tipo === 'insignia').length || 0,
+            insignia: papeletas?.filter(p => ['insignia', 'cruz_guia', 'vara', 'bocina'].includes(p.tipo)).length || 0,
             nazareno: papeletas?.filter(p => p.tipo === 'nazareno').length || 0,
             costalero: papeletas?.filter(p => p.tipo === 'costalero').length || 0
         }

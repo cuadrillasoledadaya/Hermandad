@@ -75,8 +75,8 @@ export function VenderPapeletaDialog() {
     const venderMutation = useMutation({
         mutationFn: venderPapeleta,
         onSuccess: (papeleta) => {
-            queryClient.invalidateQueries({ queryKey: ['papeletas-cortejo'] });
-            queryClient.invalidateQueries({ queryKey: ['cortejo-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
 
             const numeroDisplay = papeleta.numero > 0 ? `#${papeleta.numero}` : 'PENDIENTE (Offline)';
             showSuccess(`¡Vendido!`, `Papeleta ${numeroDisplay} creada correctamente`);

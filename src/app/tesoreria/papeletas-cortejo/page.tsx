@@ -8,9 +8,11 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { VenderPapeletaDialog } from '@/components/cortejo/vender-papeleta-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { supabase } from '@/lib/supabase';
+import { TIPOS_PAPELETA } from '@/lib/papeletas-cortejo';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -39,14 +41,38 @@ export default function PapeletasPage() {
     const queryClient = useQueryClient(); // Need queryClient for invalidation
 
     const { data: papeletas, isLoading } = useQuery({
-        queryKey: ['papeletas-cortejo'],
+        queryKey: ['papeletas_cortejo'],
         queryFn: () => getPapeletasDelAnio(),
     });
 
     const { data: stats } = useQuery({
-        queryKey: ['papeletas-stats'],
+        queryKey: ['papeletas_stats'],
         queryFn: () => getEstadisticasPapeletas(),
     });
+
+    // Suscripción Realtime
+    useEffect(() => {
+        const channel = supabase
+            .channel('papeletas_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'papeletas_cortejo'
+                },
+                () => {
+                    console.log('🔄 Cambio detectado en papeletas, recargando...');
+                    queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
+                    queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [queryClient]);
 
     const filteredPapeletas = papeletas?.filter(p => {
         const matchesSearch =
@@ -81,8 +107,8 @@ export default function PapeletasPage() {
             await eliminarPapeleta(papeletaToDelete.id);
             toast.success(`Papeleta #${papeletaToDelete.numero} eliminada correctamente`);
             setDeleteDialogOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['papeletas-cortejo'] });
-            queryClient.invalidateQueries({ queryKey: ['papeletas-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
         } catch (error: unknown) {
             console.error('Error deleting:', error);
             const msg = error instanceof Error ? error.message : 'Error desconocido';
@@ -199,7 +225,7 @@ export default function PapeletasPage() {
                                                         ? 'bg-amber-50 text-amber-700 border-amber-200'
                                                         : 'bg-blue-50 text-blue-700 border-blue-200'
                                                 }`}>
-                                                {papeleta.tipo === 'vara' ? 'Vara / Insignia' : papeleta.tipo}
+                                                {TIPOS_PAPELETA[papeleta.tipo as keyof typeof TIPOS_PAPELETA] || papeleta.tipo}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 font-medium">
