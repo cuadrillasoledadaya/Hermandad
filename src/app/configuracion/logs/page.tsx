@@ -104,7 +104,7 @@ export default function LogsPage() {
                             Forzar Sincronización
                         </Button>
 
-                        <Button variant="destructive" onClick={async () => {
+                        <Button variant="destructive" className="bg-red-600 text-white hover:bg-red-700 border-red-800" onClick={async () => {
                             if (confirm('¿Estás seguro? Se perderán los cambios offline no guardados (ventas, etc).')) {
                                 await clearQueue();
                                 toast.success('Cola de sincronización vaciada');
@@ -151,7 +151,7 @@ export default function LogsPage() {
 
                         <Button
                             variant="destructive"
-                            className="w-full"
+                            className="w-full bg-red-600 text-white hover:bg-red-700 border-red-800"
                             onClick={async () => {
                                 if (confirm('⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán TODOS los datos locales de IndexedDB.\n\nSi tienes cambios pendientes de sincronizar, SE PERDERÁN.\n\nDespués de confirmar, la app se recargará y descargará todo desde Supabase.')) {
                                     try {
