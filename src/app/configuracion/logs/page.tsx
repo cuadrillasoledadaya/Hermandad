@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Trash2, RefreshCw, Copy, AlertTriangle, AlertCircle, Info, Database, CloudOff, HardDriveDownload } from 'lucide-react';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { resetAndReload } from '@/lib/db-clear';
-import { getPendingMutations } from '@/lib/db';
+import { getPendingMutations, type MutationQueueItem } from '@/lib/db';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ export default function LogsPage() {
     const { role } = useAuth();
     const { pendingCount, clearQueue, processMutations, isSyncing } = useOfflineSync();
     const [logs, setLogs] = useState<LogEntry[]>([]);
-    const [mutations, setMutations] = useState<any[]>([]);
+    const [mutations, setMutations] = useState<MutationQueueItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     const loadLogs = async () => {
