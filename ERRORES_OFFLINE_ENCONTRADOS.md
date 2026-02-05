@@ -15,12 +15,14 @@
 **Problema**: El hook `use-offline-sync.ts` intenta enviar mensajes al Service Worker (`PROCESS_MUTATIONS`), pero el SW no está escuchando estos mensajes.
 
 **Código actual (que NO funciona)**:
+
 ```typescript
 // src/sw.ts - SOLO esto, no escucha mensajes
 serwist.addEventListeners();
 ```
 
 **Lo que pasa**:
+
 1. El usuario pierde conexión
 2. Se guardan mutations en cola IndexedDB
 3. Vuelve la conexión
@@ -28,6 +30,7 @@ serwist.addEventListeners();
 5. El SW no escucha mensajes → No responde → No se procesan mutations
 
 **Solución** - Añadir al final de `src/sw.ts`:
+
 ```typescript
 // Escuchar mensajes desde la aplicación
 self.addEventListener('message', (event) => {
@@ -57,6 +60,7 @@ self.addEventListener('message', (event) => {
 **Problema**: `navigator.onLine` solo verifica si hay conexión de red (WiFi/Ethernet), NO si hay acceso a Internet real.
 
 **Escenario que falla**:
+
 1. Usuario conectado a WiFi sin internet (router caído)
 2. `navigator.onLine` devuelve `true`
 3. El sistema intenta operación online
@@ -65,6 +69,7 @@ self.addEventListener('message', (event) => {
 6. PERO si el timeout es muy corto, algunas operaciones pueden cancelarse prematuramente
 
 **Solución** - Modificar `src/lib/offline-mutation.ts`:
+
 ```typescript
 // Línea 22-25: Aumentar timeout o hacerlo configurable
 const timeoutPromise = new Promise<never>((_, reject) => {
@@ -73,6 +78,7 @@ const timeoutPromise = new Promise<never>((_, reject) => {
 ```
 
 **Mejor solución** - Añadir "ping" real para verificar conectividad:
+
 ```typescript
 // Añadir función al principio de offline-mutation.ts
 async function isReallyOnline(): Promise<boolean> {
@@ -110,6 +116,7 @@ if (!online) {
 **Problema**: Cuando se sincronizan datos, el caché de React Query no se invalida automáticamente.
 
 **Escenario**:
+
 1. Usuario crea hermano offline
 2. Se guarda en cola local + optimistic update en UI
 3. Vuelve conexión, se sincroniza
@@ -117,6 +124,7 @@ if (!online) {
 5. El usuario ve datos inconsistentes hasta que hace refresh manual
 
 **Solución** - Añadir en `use-offline-sync.ts` después de sincronizar:
+
 ```typescript
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -148,6 +156,7 @@ export function useOfflineSync() {
 **Problema**: Cuando se hace optimistic update, se marca el dato con `_offline: true`, pero cuando se sincroniza exitosamente, no se quita ese flag.
 
 **Solución** - Añadir función en `db.ts`:
+
 ```typescript
 // Llamar después de sincronizar exitosamente
 export async function markAsSynced(table: string, id: string) {
@@ -161,6 +170,7 @@ export async function markAsSynced(table: string, id: string) {
 ```
 
 Y usar en `use-offline-sync.ts`:
+
 ```typescript
 // Después de éxito en mutation:
 if (mutation.data?.id) {
@@ -177,6 +187,7 @@ if (mutation.data?.id) {
 **Problema**: Algunos navegadores (Safari especialmente) tienen IndexedDB limitado o deshabilitado en modo privado.
 
 **Solución** - Añadir try-catch y fallback:
+
 ```typescript
 // En db.ts, envolver initDB
 export async function initDB(): Promise<IDBPDatabase | null> {
@@ -214,6 +225,7 @@ export async function queueMutation(mutation) {
 **Problema**: Si hay mutations que fallan repetidamente (más de 10 intentos), nunca se eliminan y ocupan espacio.
 
 **Solución** - Añadir limpieza automática:
+
 ```typescript
 // En queueMutation, antes de añadir:
 export async function queueMutation(mutation) {
@@ -245,6 +257,7 @@ export async function queueMutation(mutation) {
 **Problema**: Cuando se hace optimistic insert, se genera un ID con `crypto.randomUUID()`, pero si el servidor genera un ID diferente al sincronizar, hay duplicados.
 
 **Solución** - Marcar como provisional:
+
 ```typescript
 // En optimistic insert:
 const withId = {
@@ -422,11 +435,13 @@ export function useOfflineSync() {
 Si el modo offline no funciona, verifica estos puntos:
 
 ### 1. ¿El Service Worker está activo?
+
 - DevTools > Application > Service Workers
 - Debe mostrar "#sw.js" con Status: "activated and is running"
 - Si dice "waiting", haz clic en "skipWaiting"
 
 ### 2. ¿Hay errores en consola?
+
 - DevTools > Console
 - Busca errores rojos relacionados con:
   - `IndexedDB`
@@ -435,10 +450,12 @@ Si el modo offline no funciona, verifica estos puntos:
   - `sync`
 
 ### 3. ¿IndexedDB tiene datos?
+
 - DevTools > Application > IndexedDB > hermandad_offline_db
 - Expande `mutation_queue` - debe haber items cuando estás offline
 
 ### 4. ¿El banner se muestra?
+
 - Cuando pierdes conexión, debe aparecer banner amarillo abajo
 - Si no aparece, el problema está en `useNetworkStatus`
 
@@ -447,7 +464,7 @@ Si el modo offline no funciona, verifica estos puntos:
 ## 🎯 RESUMEN DE PRIORIDADES
 
 | Error | Prioridad | Esfuerzo | Impacto |
-|-------|-----------|----------|---------|
+| :--- | :--- | :--- | :--- |
 | **#1** SW no escucha mensajes | 🔴 CRÍTICA | 5 min | SINCRONIZACIÓN NO FUNCIONA |
 | **#2** Timeout muy corto | 🟡 Media | 1 min | Operaciones canceladas prematuramente |
 | **#3** React Query no invalida | 🟡 Media | 5 min | Datos inconsistentes en UI |

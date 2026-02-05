@@ -27,6 +27,7 @@ export function Sidebar() {
         { name: 'Cortejo', icon: Church, href: '/cortejo' },
         { name: 'Config. Cortejo', icon: Shield, href: '/cortejo/admin' },
         { name: 'Logs Sistema', icon: ScrollText, href: '/configuracion/logs' },
+        { name: 'Test Offline', icon: Shield, href: '/test-offline' },
     ];
 
     const canSeeAdmin = role === 'SUPERADMIN' || role === 'JUNTA';

@@ -43,9 +43,29 @@ export function useOfflineSync() {
         let successCount = 0;
         let errorCount = 0;
 
+        const sanitizeDataForSupabase = (data: unknown) => {
+            if (Array.isArray(data)) {
+                return data.map(item => {
+                    const clean = { ...(item as Record<string, unknown>) };
+                    delete clean.hermano;
+                    delete clean.posicion;
+                    delete clean.ingreso;
+                    delete clean._offline;
+                    return clean;
+                });
+            }
+            const clean = { ...(data as Record<string, unknown>) };
+            delete clean.hermano;
+            delete clean.posicion;
+            delete clean.ingreso;
+            delete clean._offline;
+            return clean;
+        };
+
         for (const mutation of pending) {
             try {
-                let result;
+                let result: { data: unknown; error: { code: string; message: string } | null };
+                const cleanedData = sanitizeDataForSupabase(mutation.data);
 
                 switch (mutation.type) {
                     case 'insert':
@@ -62,8 +82,9 @@ export function useOfflineSync() {
                                         .limit(1)
                                         .maybeSingle();
 
-                                    const nuevoNumero = ultima ? ultima.numero + 1 : 1;
+                                    const nuevoNumero = ultima ? (ultima as { numero: number }).numero + 1 : 1;
                                     data.numero = nuevoNumero;
+                                    (cleanedData as Record<string, unknown>).numero = nuevoNumero; // Actualizar también los datos limpios
 
                                     console.log(`🔄 Re-asignando número real ${nuevoNumero} a papeleta provisional`);
 
@@ -75,8 +96,8 @@ export function useOfflineSync() {
                                             .eq('id', data.id_ingreso)
                                             .maybeSingle();
 
-                                        if (pago && pago.concepto.includes('(Pendiente)')) {
-                                            const nuevoConcepto = pago.concepto.replace('(Pendiente)', `#${nuevoNumero}`);
+                                        if (pago && (pago as { concepto: string }).concepto.includes('(Pendiente)')) {
+                                            const nuevoConcepto = (pago as { concepto: string }).concepto.replace('(Pendiente)', `#${nuevoNumero}`);
                                             await supabase
                                                 .from('pagos')
                                                 .update({ concepto: nuevoConcepto })
@@ -85,24 +106,39 @@ export function useOfflineSync() {
                                     }
                                 } catch (err) {
                                     console.error('Error re-asignando número:', err);
-                                    // Si falla la re-asignación, dejamos que falle la inserción por la constraint Unique
                                 }
                             }
                         }
-                        result = await supabase.from(mutation.table).insert(mutation.data);
+                        result = await supabase.from(mutation.table).insert(cleanedData);
                         break;
                     case 'update':
                         if (Array.isArray(mutation.data)) throw new Error('Bulk update not supported');
-                        result = await supabase.from(mutation.table).update(mutation.data).eq('id', mutation.data.id);
+                        result = await supabase.from(mutation.table).update(cleanedData).eq('id', (mutation.data as Record<string, unknown>).id);
                         break;
                     case 'delete':
                         if (Array.isArray(mutation.data)) throw new Error('Bulk delete not supported');
-                        result = await supabase.from(mutation.table).delete().eq('id', mutation.data.id);
+                        result = await supabase.from(mutation.table).delete().eq('id', (mutation.data as Record<string, unknown>).id);
                         break;
                 }
 
                 if (result.error) {
-                    throw result.error;
+                    const error = result.error;
+                    // Si el error es una violación de unicidad en el número de papeleta
+                    const isPapeletaNumberConflict =
+                        mutation.table === 'papeletas_cortejo' &&
+                        error.code === '23505' &&
+                        error.message?.toLowerCase().includes('numero');
+
+                    if (isPapeletaNumberConflict) {
+                        console.log('⚠️ [SYNC] Conflicto de número de papeleta detectado, forzando re-asignación en el próximo intento...');
+                        // Marcamos como número provisional para que la lógica superior lo re-asigne en el siguiente ciclo
+                        if (!Array.isArray(mutation.data)) {
+                            (mutation.data as Record<string, unknown>).numero = -1;
+                        }
+                        throw error;
+                    }
+
+                    throw error;
                 }
 
                 // Éxito: eliminar de la cola
@@ -146,7 +182,7 @@ export function useOfflineSync() {
         if (errorCount > 0) {
             showError(`${errorCount} cambios fallidos`, 'No se pudieron sincronizar algunos cambios');
         }
-    }, [isOnline]);
+    }, [isOnline, queryClient]);
 
     // Escuchar mensajes del Service Worker
     useEffect(() => {
@@ -201,21 +237,51 @@ export function useOfflineSync() {
         }
     }, [isOnline]);
 
-    // Sincronizar automáticamente cuando volvemos online
+    // Sincronizar automáticamente cuando volvemos online o cambia el foco
     useEffect(() => {
-        if (isOnline) {
-            // Pequeña espera para asegurar conexión estable
-            const timer = setTimeout(() => {
-                syncMasterData(); // Primero sincronizar datos maestros
-                processMutations(); // Luego procesar cambios pendientes
-            }, 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [isOnline, syncMasterData, processMutations]);
+        if (!isOnline) return;
 
-    // Verificar pendientes al montar
+        // 1. Sincronizar al volver online (pequeña espera para estabilidad)
+        const timer = setTimeout(() => {
+            syncMasterData();
+            processMutations();
+        }, 1000);
+
+        // 2. Sincronización periódica de fondo (cada 60 segundos si hay pendientes)
+        const interval = setInterval(() => {
+            if (status.pendingCount > 0) {
+                console.log('🔄 [AUTO-SYNC] Ejecutando sincronización periódica...');
+                processMutations();
+            }
+        }, 60000);
+
+        // 3. Sincronizar al recuperar el foco de la ventana (ej. al volver del móvil)
+        const handleFocus = () => {
+            console.log('🔄 [AUTO-SYNC] Ventana enfocada, sincronizando...');
+            processMutations();
+        };
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            clearTimeout(timer);
+            clearInterval(interval);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [isOnline, syncMasterData, processMutations, status.pendingCount]);
+
+    // Verificar pendientes al montar y cuando cambian las mutaciones
     useEffect(() => {
         checkPending();
+
+        const handleMutationChange = () => {
+            console.log('🔄 [SYNC] Detectado cambio en cola de mutaciones, actualizando...');
+            checkPending();
+        };
+
+        window.addEventListener('offline-mutation-changed', handleMutationChange);
+        return () => {
+            window.removeEventListener('offline-mutation-changed', handleMutationChange);
+        };
     }, [checkPending]);
 
     // Sincronizar datos maestros al montar si ya estamos online

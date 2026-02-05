@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Settings, Users, Calendar, ShieldCheck, ArrowRight, Euro, ShieldAlert } from 'lucide-react';
+import { Settings, Users, Calendar, ShieldCheck, ArrowRight, Euro, ShieldAlert, Wifi } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -56,6 +56,15 @@ export default function ConfiguracionPage() {
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
             roles: ['SUPERADMIN', 'JUNTA']
+        },
+        {
+            title: 'Test Offline (Dexie)',
+            description: 'Panel de pruebas del nuevo sistema offline.',
+            icon: Wifi,
+            href: '/test-offline',
+            color: 'text-indigo-600',
+            bg: 'bg-indigo-50',
+            roles: ['SUPERADMIN']
         }
     ];
 

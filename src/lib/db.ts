@@ -87,7 +87,14 @@ export async function savePagosLocal(pagos: Record<string, unknown>[]) {
     const tx = db.transaction('pagos', 'readwrite');
     const store = tx.objectStore('pagos');
 
+    // Preservar los que están pendientes de sincronizar (_offline: true)
+    const all = await store.getAll();
+    const offlineRecords = all.filter(r => r._offline);
+
     await store.clear();
+    for (const record of offlineRecords) {
+        await store.put(record);
+    }
     for (const pago of pagos) {
         await store.put(pago);
     }
@@ -107,7 +114,14 @@ export async function savePapeletasLocal(papeletas: Record<string, unknown>[]) {
     const tx = db.transaction('papeletas_cortejo', 'readwrite');
     const store = tx.objectStore('papeletas_cortejo');
 
+    // Preservar los que están pendientes de sincronizar (_offline: true)
+    const all = await store.getAll();
+    const offlineRecords = all.filter(r => r._offline);
+
     await store.clear();
+    for (const record of offlineRecords) {
+        await store.put(record);
+    }
     for (const papeleta of papeletas) {
         await store.put(papeleta);
     }
@@ -142,6 +156,11 @@ export async function queueMutation(mutation: Omit<MutationQueueItem, 'id' | 'ti
         retryCount: 0
     };
     await db.add('mutation_queue', item);
+
+    // Notificar a los hooks
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('offline-mutation-changed'));
+    }
 
     // OPTIMISTIC UPDATE: Si es un INSERT, guardamos los datos inmediatamente en la tabla local
     // para que las queries puedan mostrarlo mientras se sincroniza
@@ -185,6 +204,9 @@ export async function getPendingMutations(): Promise<MutationQueueItem[]> {
 export async function removeMutation(id: number) {
     const db = await initDB();
     await db.delete('mutation_queue', id);
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('offline-mutation-changed'));
+    }
 }
 
 // ACTUALIZAR CONTADOR DE REINTENTOS
@@ -217,4 +239,7 @@ export async function getSyncMetadata(key: string): Promise<unknown | undefined>
 export async function clearMutationQueue() {
     const db = await initDB();
     await db.clear('mutation_queue');
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('offline-mutation-changed'));
+    }
 }

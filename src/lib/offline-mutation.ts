@@ -19,25 +19,42 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
     try {
         let result: { data: unknown; error: { code?: string; message: string } | null } = { data: null, error: null };
 
-        // TIMEOUT PROTECTION: No esperar más de 8 segundos por Supabase (aumentado de 2s)
+        // TIMEOUT PROTECTION: No esperar más de 15 segundos por Supabase (aumentado de 8s)
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Network timeout')), 8000);
+            setTimeout(() => reject(new Error('Network timeout')), 15000);
         });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sanitizeData = (data: any) => {
+            if (Array.isArray(data)) {
+                return data.map(item => {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { hermano, posicion, ingreso, _offline, _syncStatus, _lastModified, _version, ...rest } = item;
+                    return rest;
+                });
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { hermano, posicion, ingreso, _offline, _syncStatus, _lastModified, _version, ...rest } = data;
+            return rest;
+        };
+
+        const cleanedData = sanitizeData(options.data);
 
         const supabaseOperation = (async () => {
             switch (options.type) {
                 case 'insert':
-                    if (Array.isArray(options.data)) {
-                        return await supabase.from(options.table).insert(options.data).select();
+                    if (Array.isArray(cleanedData)) {
+                        return await supabase.from(options.table).insert(cleanedData).select();
                     } else {
-                        return await supabase.from(options.table).insert(options.data).select().single();
+                        return await supabase.from(options.table).insert(cleanedData).select().single();
                     }
                 case 'update':
-                    if (Array.isArray(options.data)) throw new Error('Bulk update not supported yet');
-                    return await supabase.from(options.table).update(options.data).eq('id', options.data.id).select().single();
+                    if (Array.isArray(cleanedData)) throw new Error('Bulk update not supported yet');
+                    return await supabase.from(options.table).update(cleanedData).eq('id', cleanedData.id).select().single();
                 case 'delete':
                     if (Array.isArray(options.data)) throw new Error('Bulk delete not supported yet');
-                    return await supabase.from(options.table).delete().eq('id', options.data.id);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    return await supabase.from(options.table).delete().eq('id', (options.data as any).id);
             }
         })();
 

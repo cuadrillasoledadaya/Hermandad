@@ -68,6 +68,10 @@ export interface PapeletaConDetalles extends PapeletaCortejo {
 
 export interface VenderPapeletaInput {
     id_hermano: string;
+    hermano?: {
+        nombre: string;
+        apellidos: string;
+    };
     tipo: TipoPapeleta;
     tramo?: number; // Nuevo campo opcional
     importe?: number;
@@ -100,7 +104,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     // 0. Validación: Verificar si el hermano ya tiene papeleta este año
     try {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000));
 
             const validationQuery = supabase
                 .from('papeletas_cortejo')
@@ -134,7 +138,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     let siguienteNumero = -1;
     try {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000));
 
             const numberQuery = supabase
                 .from('papeletas_cortejo')
@@ -156,7 +160,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
         } else {
             throw new Error('offline');
         }
-    } catch (e) {
+    } catch {
         // Lógica offline o error de red: Buscar el número negativo más bajo para este año en IndexedDB
         try {
             const { initDB } = await import('@/lib/db');
@@ -199,6 +203,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     const papeletaData = {
         id: papeletaId,
         id_hermano: input.id_hermano,
+        hermano: input.hermano, // OPTIMISTIC: Para visualización offline
         numero: siguienteNumero,
         anio: year,
         tipo: input.tipo,
@@ -295,7 +300,9 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
     const year = anio || new Date().getFullYear();
 
     try {
-        console.log(`🔍 [PAPELETAS] Solicitando papeletas del año ${year}...`);
+        console.log(`🔍 [PAPELETAS] Solicitando papeletas del año ${year} (Online)...`);
+
+        // Añadimos una cabecera para intentar saltar caches de navegador si las hubiera
         const { data, error } = await supabase
             .from('papeletas_cortejo')
             .select(`
@@ -305,24 +312,47 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
                 ingreso:pagos(id, tipo_pago)
             `)
             .eq('anio', year)
-            .order('numero', { ascending: true });
+            .order('numero', { ascending: true })
+            .abortSignal(AbortSignal.timeout(10000));
 
         if (error) {
             console.error('❌ [PAPELETAS] Error en query Supabase:', error);
             throw error;
         }
 
-        console.log(`✅ [PAPELETAS] Recibidas ${data?.length || 0} papeletas online`);
+        const count = data?.length || 0;
+        console.log(`✅ [PAPELETAS] Recibidas ${count} papeletas del servidor`);
 
         if (data) {
+            // Guardar en local para futuras consultas offline
             await savePapeletasLocal(data);
+
+            // COMBINAR CON OPTIMISTIC: Añadir los que tenemos en local como _offline
+            // que aún no están en el servidor (esto es vital para el dispositivo que lo crea)
+            const localPapeletas = await getPapeletasLocal();
+            const offlineOnly = localPapeletas.filter((p: Record<string, unknown>) => p._offline && p.anio === year);
+
+            if (offlineOnly.length > 0) {
+                console.log(`📦 [PAPELETAS] Combinando con ${offlineOnly.length} cambios locales no sincronizados`);
+                const serverIds = new Set(data.map(p => p.id));
+                const merged = [...data];
+
+                for (const offline of offlineOnly) {
+                    if (!serverIds.has(offline.id)) {
+                        merged.push(offline);
+                    }
+                }
+                return merged as unknown as PapeletaConDetalles[];
+            }
+
+            return data as unknown as PapeletaConDetalles[];
         }
-        return data as unknown as PapeletaConDetalles[];
+        return [] as PapeletaConDetalles[];
     } catch (e) {
         console.error('⚠️ [PAPELETAS] Fallo fetch online, intentando local:', e);
         const localData = await getPapeletasLocal();
         const filtered = localData.filter((p: Record<string, unknown>) => p.anio === year);
-        console.log(`📦 [PAPELETAS] Cargadas ${filtered.length} papeletas de cache local`);
+        console.log(`📦 [PAPELETAS] Cargadas ${filtered.length} papeletas de cache local (Offline Mode)`);
         return filtered as unknown as PapeletaConDetalles[];
     }
 }

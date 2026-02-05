@@ -23,10 +23,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from 'lucide-react';
 import { eliminarPapeleta } from '@/lib/papeletas-cortejo';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button'; // Ensure Button is imported if not already, or keep existing
+import { Button } from '@/components/ui/button';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { RefreshCw, Trash2 } from 'lucide-react';
 
 export default function PapeletasPage() {
     const { role } = useAuth();
@@ -43,11 +44,15 @@ export default function PapeletasPage() {
     const { data: papeletas, isLoading } = useQuery({
         queryKey: ['papeletas_cortejo'],
         queryFn: () => getPapeletasDelAnio(),
+        refetchInterval: 30000, // Autorefresco cada 30 segundos
+        refetchOnWindowFocus: true, // Refrescar al volver a la pestaña
     });
 
     const { data: stats } = useQuery({
         queryKey: ['papeletas_stats'],
         queryFn: () => getEstadisticasPapeletas(),
+        refetchInterval: 30000,
+        refetchOnWindowFocus: true,
     });
 
     // Suscripción Realtime
@@ -130,12 +135,40 @@ export default function PapeletasPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">🎫 Papeletas de Sitio</h2>
-                    <p className="text-muted-foreground">
-                        Gestión de venta y control de papeletas para el cortejo.
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-muted-foreground">
+                            Gestión de venta y control de papeletas para el cortejo.
+                        </p>
+                        <span className="text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
+                            Auto-refresco activo
+                        </span>
+                    </div>
                 </div>
-                {canManage && <VenderPapeletaDialog />}
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                            const t = toast.loading('Refrescando datos del servidor...');
+                            try {
+                                await queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
+                                await queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
+                                toast.success('Datos actualizados', { id: t });
+                            } catch {
+                                toast.error('Error al refrescar', { id: t });
+                            }
+                        }}
+                    >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Refrescar
+                    </Button>
+                    {canManage && <VenderPapeletaDialog />}
+                </div>
             </div>
+
+            {/* Indicador de Sincronización */}
+            <SyncStatusIndicator />
 
             {/* Estadísticas */}
             {stats && (
@@ -314,5 +347,35 @@ export default function PapeletasPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+    );
+}
+
+function SyncStatusIndicator() {
+    const { pendingCount, isSyncing, syncNow, isOnline } = useOfflineSync();
+
+    if (pendingCount === 0) return null;
+
+    return (
+        <Card className={`p-3 border-l-4 ${isOnline ? 'border-l-blue-500 bg-blue-50' : 'border-l-amber-500 bg-amber-50'} flex items-center justify-between`}>
+            <div className="flex items-center gap-2">
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''} ${isOnline ? 'text-blue-500' : 'text-amber-500'}`} />
+                <span className="text-sm font-medium">
+                    {isOnline
+                        ? `${pendingCount} cambio${pendingCount > 1 ? 's' : ''} pendiente${pendingCount > 1 ? 's' : ''} de sincronizar.`
+                        : 'Sin conexión. Los cambios se sincronizarán automáticamente al volver online.'}
+                </span>
+            </div>
+            {isOnline && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={syncNow}
+                    disabled={isSyncing}
+                    className="h-8 border-blue-200 hover:bg-blue-100 text-blue-700"
+                >
+                    Sincronizar ahora
+                </Button>
+            )}
+        </Card>
     );
 }

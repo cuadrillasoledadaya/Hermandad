@@ -1,128 +1,163 @@
 'use client';
 
-import { useOfflineSync } from '@/hooks/use-offline-sync';
-import { WifiOff, RefreshCw, X } from 'lucide-react';
-import { Button } from './button';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useOfflineStore } from '@/stores/offline-store';
+import { networkMonitor } from '@/lib/sync/network-monitor';
+import { syncManager } from '@/lib/sync/sync-manager';
+import { Button } from '@/components/ui/button';
+import { Wifi, WifiOff, RefreshCw, AlertCircle, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function OfflineBanner() {
-    const { isOnline, isSyncing, pendingCount, syncNow } = useOfflineSync();
-    const [isVisible, setIsVisible] = useState(false);
-    const [isDismissed, setIsDismissed] = useState(false);
-    const [prevOnline, setPrevOnline] = useState(isOnline);
-    const [prevSyncing, setPrevSyncing] = useState(isSyncing);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+  
+  // Usar Zustand store
+  const isOnline = useOfflineStore((state) => state.isOnline);
+  const pendingCount = useOfflineStore((state) => state.pendingCount);
+  const isSyncing = useOfflineStore((state) => state.isSyncing);
+  const syncError = useOfflineStore((state) => state.syncError);
+  
+  const setNetworkStatus = useOfflineStore((state) => state.setNetworkStatus);
+  const setSyncing = useOfflineStore((state) => state.setSyncing);
+  const setPendingCount = useOfflineStore((state) => state.setPendingCount);
+  const setSyncError = useOfflineStore((state) => state.setSyncError);
 
-    // Ajustar estado durante el render cuando cambian las props/hooks
-    // (Patrón recomendado en React para evitar useEffect innecesarios)
-    if (isOnline !== prevOnline) {
-        setPrevOnline(isOnline);
-        if (!isOnline) {
-            setIsVisible(true);
-            setIsDismissed(false);
-        }
-    }
+  // Suscribirse a cambios de red
+  useEffect(() => {
+    const unsubscribe = networkMonitor.subscribe((status) => {
+      setNetworkStatus({ 
+        isOnline: status.isOnline, 
+        connectionType: status.connectionType 
+      });
+    });
 
-    if (isSyncing !== prevSyncing) {
-        setPrevSyncing(isSyncing);
-        if (isSyncing) {
-            setIsVisible(true);
-            setIsDismissed(false);
-        }
-    }
+    return () => unsubscribe();
+  }, [setNetworkStatus]);
 
-    // Efecto para auto-ocultar después de un tiempo
-    useEffect(() => {
-        if (!isVisible || isDismissed) return;
-
-        let delay = 0;
-        if (!isOnline) {
-            delay = 8000;
-        } else if (isSyncing) {
-            return; // No ocultar mientras sincroniza
-        } else if (pendingCount > 0) {
-            delay = 5000;
-        } else {
-            // Todo ok
-            delay = 3000;
-        }
-
-        if (delay > 0) {
-            const timer = setTimeout(() => setIsVisible(false), delay);
-            return () => clearTimeout(timer);
-        }
-    }, [isOnline, isSyncing, pendingCount, isVisible, isDismissed]);
-
-    // No mostrar si fue cerrado manualmente o si está oculto
-    if (!isVisible || isDismissed) {
-        return null;
-    }
-
-    const handleDismiss = () => {
-        setIsDismissed(true);
-        setIsVisible(false);
+  // Actualizar contador de pendientes periódicamente
+  useEffect(() => {
+    const updatePending = async () => {
+      try {
+        const { db } = await import('@/lib/db/database');
+        const count = await db.mutations.where('status').equals('pending').count();
+        setPendingCount(count);
+      } catch (err) {
+        console.error('Error contando pendientes:', err);
+      }
     };
 
-    return (
-        <div
-            className={`fixed bottom-0 left-0 right-0 z-50 p-3 transition-all duration-300 ${isOnline ? 'bg-blue-500 text-white' : 'bg-yellow-500 text-black'
-                }`}
-            style={{
-                animation: 'slideUp 0.3s ease-out'
-            }}
-        >
-            <div className="flex items-center justify-between max-w-7xl mx-auto">
-                <div className="flex items-center gap-2 flex-1">
-                    {!isOnline && <WifiOff className="w-5 h-5" />}
-                    <span className="font-medium">
-                        {!isOnline
-                            ? '⚠️ Sin conexión a Internet. Los cambios se guardarán localmente.'
-                            : isSyncing
-                                ? '🔄 Sincronizando cambios...'
-                                : pendingCount > 0
-                                    ? `✓ ${pendingCount} cambio${pendingCount > 1 ? 's' : ''} pendiente${pendingCount > 1 ? 's' : ''} de sincronizar`
-                                    : '✓ Todos los cambios sincronizados'
-                        }
-                    </span>
-                </div>
+    updatePending();
+    const interval = setInterval(updatePending, 5000);
+    return () => clearInterval(interval);
+  }, [setPendingCount]);
 
-                <div className="flex items-center gap-2">
-                    {isOnline && pendingCount > 0 && (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={syncNow}
-                            disabled={isSyncing}
-                            className="flex items-center gap-2"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                            Sincronizar
-                        </Button>
-                    )}
+  // Auto-sincronizar cuando volvemos online
+  useEffect(() => {
+    if (isOnline && pendingCount > 0 && !isSyncing) {
+      const timer = setTimeout(() => {
+        handleSync();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, pendingCount, isSyncing]);
 
-                    {/* Botón para cerrar manualmente */}
-                    <button
-                        onClick={handleDismiss}
-                        className={`p-1 rounded-full hover:bg-black/10 transition-colors ${isOnline ? 'hover:bg-white/20' : 'hover:bg-black/10'
-                            }`}
-                        aria-label="Cerrar"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
+  // Mostrar/ocultar banner
+  useEffect(() => {
+    if (!isOnline || pendingCount > 0 || isSyncing || syncError) {
+      setIsVisible(true);
+      setIsDismissed(false);
+    } else if (pendingCount === 0 && !isSyncing && isOnline && !syncError) {
+      const timer = setTimeout(() => setIsVisible(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, pendingCount, isSyncing, syncError]);
 
-            <style jsx>{`
-                @keyframes slideUp {
-                    from {
-                        transform: translateY(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateY(0);
-                        opacity: 1;
-                    }
-                }
-            `}</style>
+  const handleSync = async () => {
+    if (!isOnline || pendingCount === 0) return;
+
+    setSyncing(true);
+    setSyncError(null);
+
+    try {
+      const result = await syncManager.sync({
+        strategy: 'server-wins',
+        batchSize: 10
+      });
+
+      if (result.success) {
+        toast.success(`✅ Sincronizado: ${result.processed - result.failed}/${result.processed}`);
+      } else {
+        setSyncError(`${result.failed} errores`);
+        toast.error(`❌ ${result.errors.length} errores`);
+      }
+
+      // Actualizar contador
+      const { db } = await import('@/lib/db/database');
+      const count = await db.mutations.where('status').equals('pending').count();
+      setPendingCount(count);
+    } catch (err: any) {
+      setSyncError(err.message);
+      toast.error('Error de sincronización');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (!isVisible || isDismissed) return null;
+
+  // Determinar apariencia
+  let bgColor = 'bg-green-500';
+  let textColor = 'text-white';
+  let Icon = Wifi;
+  let message = '✓ Todo sincronizado';
+
+  if (!isOnline) {
+    bgColor = 'bg-yellow-500';
+    textColor = 'text-black';
+    Icon = WifiOff;
+    message = `⚠️ Sin conexión. ${pendingCount} cambios pendientes.`;
+  } else if (isSyncing) {
+    bgColor = 'bg-blue-500';
+    Icon = RefreshCw;
+    message = '🔄 Sincronizando...';
+  } else if (syncError) {
+    bgColor = 'bg-red-500';
+    Icon = AlertCircle;
+    message = `❌ Error: ${syncError}`;
+  } else if (pendingCount > 0) {
+    bgColor = 'bg-orange-500';
+    message = `📦 ${pendingCount} cambios pendientes`;
+  }
+
+  return (
+    <div className={`fixed bottom-0 left-0 right-0 z-50 p-3 ${bgColor} ${textColor} transition-all duration-300`}>
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span className="font-medium">{message}</span>
         </div>
-    );
+
+        <div className="flex items-center gap-2">
+          {isOnline && pendingCount > 0 && !isSyncing && (
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={handleSync}
+              className="h-8"
+            >
+              Sincronizar
+            </Button>
+          )}
+          
+          <button 
+            onClick={() => setIsDismissed(true)}
+            className="p-1 rounded-full hover:bg-black/10 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

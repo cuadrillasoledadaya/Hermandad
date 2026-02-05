@@ -108,6 +108,10 @@ export function VenderPapeletaDialog() {
 
         venderMutation.mutate({
             id_hermano: selectedHermano.id,
+            hermano: {
+                nombre: selectedHermano.nombre,
+                apellidos: selectedHermano.apellidos
+            },
             tipo,
             tramo: (tipo === 'nazareno' || tipo === 'vara' || tipo === 'insignia' || tipo === 'bocina') ? Number(tramo) : undefined,
             importe: Number(importe)
