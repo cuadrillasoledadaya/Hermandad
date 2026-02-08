@@ -205,25 +205,36 @@ export function useOfflineSync() {
     const syncMasterData = useCallback(async () => {
         if (!isOnline) return;
 
+        // Evitar sincronizaciones maestras demasiado frecuentes (mínimo 5 minutos)
+        const LAST_SYNC_KEY = 'hermandad_last_master_sync';
+        const now = Date.now();
+        const lastSync = parseInt(localStorage.getItem(LAST_SYNC_KEY) || '0');
+        if (now - lastSync < 5 * 60 * 1000) {
+            console.log('⏳ [SYNC] Sincronización maestra omitida (hace menos de 5 min)');
+            return;
+        }
+
         const supabase = createClient();
 
         try {
-            // Sincronizar hermanos (5s timeout)
+            console.log('🔄 [SYNC] Iniciando sincronización de datos maestros...');
+            localStorage.setItem(LAST_SYNC_KEY, now.toString());
+
+            // Sincronizar hermanos (15s timeout para 1000 registros)
             const { data: hermanos, error: hermanosError } = await Promise.race([
                 supabase.from('hermanos').select('*').order('numero_hermano', { ascending: true }),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
             ]).catch(() => ({ data: null, error: null }));
 
             if (!hermanosError && hermanos) {
                 const { saveHermanosLocal } = await import('@/lib/db');
                 await saveHermanosLocal(hermanos);
             }
-
-            // Sincronizar Papeletas del año actual (5s timeout)
+            // ... resto de sincronizaciones con mayor margen
             const anioActual = new Date().getFullYear();
             const { data: papeletas, error: papError } = await Promise.race([
                 supabase.from('papeletas_cortejo').select('*').eq('anio', anioActual),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
             ]).catch(() => ({ data: null, error: null }));
 
             if (!papError && papeletas) {
@@ -231,10 +242,9 @@ export function useOfflineSync() {
                 await savePapeletasLocal(papeletas);
             }
 
-            // Sincronizar Pagos del año actual (5s timeout)
             const { data: pagos, error: pagosError } = await Promise.race([
                 supabase.from('pagos').select('*').eq('anio', anioActual),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
             ]).catch(() => ({ data: null, error: null }));
 
             if (!pagosError && pagos) {
@@ -242,10 +252,9 @@ export function useOfflineSync() {
                 await savePagosLocal(pagos);
             }
 
-            // Sincronizar configuración de precios (3s timeout)
             const { data: config, error: configError } = await Promise.race([
                 supabase.from('configuracion_precios').select('*').eq('id', 1).single(),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
             ]).catch(() => ({ data: null, error: null }));
 
             if (!configError && config) {
@@ -253,8 +262,9 @@ export function useOfflineSync() {
                 const dbInstance = await initDB();
                 await dbInstance.put('configuracion', config);
             }
+            console.log('✅ [SYNC] Sincronización maestra completada');
         } catch (err) {
-            // Silencioso en fondo
+            console.warn('⚠️ [SYNC] Error en sincronización maestra:', err);
         }
     }, [isOnline]);
 

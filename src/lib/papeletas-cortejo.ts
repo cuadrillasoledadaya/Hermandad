@@ -104,7 +104,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     // 0. Validación: Verificar si el hermano ya tiene papeleta este año
     try {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000));
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
 
             const validationQuery = supabase
                 .from('papeletas_cortejo')
@@ -138,7 +138,7 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     let siguienteNumero = -1;
     try {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000));
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
 
             const numberQuery = supabase
                 .from('papeletas_cortejo')
