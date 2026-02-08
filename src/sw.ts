@@ -5,50 +5,47 @@ import { Serwist, NetworkFirst, CacheFirst } from "serwist";
 declare global {
   interface ServiceWorkerGlobalScope extends SerwistGlobalConfig {
     __SW_MANIFEST: (string | PrecacheEntry)[] | undefined;
+    addEventListener(type: string, listener: (event: any) => void): void;
+    skipWaiting(): void;
+    clients: {
+      matchAll(): Promise<any[]>;
+    };
   }
 }
 
 declare const self: ServiceWorkerGlobalScope;
 
+// Versión del Service Worker: 1.1.5 (Estabilizada para Next.js 15)
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
-    // Cache por defecto de Serwist
     ...defaultCache,
-
+    // Estrategia para Navegación: Intenta red primero, cae a cache
+    {
+      matcher: ({ request }: { request: Request }) => request.mode === 'navigate',
+      handler: new NetworkFirst({
+        cacheName: 'pages-cache',
+        networkTimeoutSeconds: 3,
+      }),
+    },
     // Estrategia para API de Supabase: Intenta red primero, si falla usa cache
     {
-      matcher: ({ url }) => url.pathname.includes('/rest/v1/'),
+      matcher: ({ url }: { url: URL }) => url.pathname.includes('/rest/v1/') && !url.pathname.includes('/auth/'),
       handler: new NetworkFirst({
         cacheName: 'api-cache',
-        plugins: [
-          {
-            cachedResponseWillBeUsed: async ({ cachedResponse }) => {
-              // Si estamos offline, devolver cache incluso si está viejo
-              if (!navigator.onLine && cachedResponse) {
-                return cachedResponse;
-              }
-              return cachedResponse;
-            }
-          }
-        ]
       })
     },
-
-    // Estrategia para imágenes: Usa cache primero
     {
-      matcher: ({ request }) => request.destination === 'image',
+      matcher: ({ request }: { request: Request }) => request.destination === 'image',
       handler: new CacheFirst({
         cacheName: 'images-cache',
       })
     },
-
-    // Estrategia para fuentes de Google: Cache primero
     {
-      matcher: ({ url }) => url.origin === 'https://fonts.googleapis.com' ||
+      matcher: ({ url }: { url: URL }) => url.origin === 'https://fonts.googleapis.com' ||
         url.origin === 'https://fonts.gstatic.com',
       handler: new CacheFirst({
         cacheName: 'fonts-cache',
@@ -59,21 +56,16 @@ const serwist = new Serwist({
 
 serwist.addEventListeners();
 
-// 🆕 ESCUCHAR MENSAJES DESDE LA APP - REQUERIDO PARA SINCRONIZACIÓN OFFLINE
-// @ts-expect-error - ServiceWorkerGlobalScope types
 self.addEventListener('message', (event: MessageEvent) => {
   if (event.data?.type === 'PROCESS_MUTATIONS') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (self as any).clients.matchAll().then((clients: readonly any[]) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      clients.forEach((client: any) => {
+    self.clients.matchAll().then((clients) => {
+      clients.forEach((client) => {
         client.postMessage({ type: 'PROCESS_MUTATIONS' });
       });
     });
   }
 
   if (event.data?.type === 'SKIP_WAITING') {
-    // @ts-expect-error - ServiceWorkerGlobalScope types
     self.skipWaiting();
   }
 });

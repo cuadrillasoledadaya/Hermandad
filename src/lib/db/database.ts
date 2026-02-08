@@ -69,6 +69,20 @@ export interface Configuracion {
   _lastModified: number;
 }
 
+export interface Gasto {
+  id: string;
+  fecha: string;
+  concepto: string;
+  cantidad: number;
+  categoria: string;
+  id_hermano?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  _syncStatus: 'synced' | 'pending' | 'conflict';
+  _lastModified: number;
+}
+
 export interface MutationQueueItem {
   id?: number;
   type: 'insert' | 'update' | 'delete';
@@ -102,17 +116,19 @@ export class HermandadDatabase extends Dexie {
   pagos!: Table<Pago>;
   papeletas!: Table<Papeleta>;
   configuracion!: Table<Configuracion>;
+  gastos!: Table<Gasto>;
   mutations!: Table<MutationQueueItem>;
   syncLog!: Table<SyncLog>;
 
   constructor() {
-    super('HermandadOfflineDB');
+    super('HermandadOfflineDB-v3');
 
     this.version(1).stores({
       hermanos: 'id, numero_hermano, email, activo, _syncStatus, _lastModified',
       pagos: 'id, id_hermano, fecha_pago, anio, _syncStatus, _lastModified',
       papeletas: 'id, id_hermano, anio, numero, tipo, _syncStatus, _lastModified',
       configuracion: 'id, _syncStatus',
+      gastos: 'id, fecha, categoria, _syncStatus, _lastModified',
       mutations: '++id, timestamp, status, priority, table',
       syncLog: '++id, timestamp, operation, status'
     });
@@ -165,6 +181,19 @@ export class HermandadDatabase extends Dexie {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     this.configuracion.hook('updating', (modifications, _primKey, _obj) => {
+      return {
+        ...modifications,
+        _lastModified: Date.now()
+      };
+    });
+
+    // Hook para gastos
+    this.gastos.hook('creating', (_primKey, obj) => {
+      obj._lastModified = Date.now();
+      obj._syncStatus = obj._syncStatus || 'pending';
+    });
+
+    this.gastos.hook('updating', (modifications, _primKey, _obj) => {
       return {
         ...modifications,
         _lastModified: Date.now()

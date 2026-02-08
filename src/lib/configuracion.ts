@@ -41,8 +41,8 @@ export async function getPreciosConfig(): Promise<PreciosConfig> {
             throw error;
         }
 
-        // Si se obtuvo correctamente, guardar en IndexedDB para uso offline
-        if (data) {
+        // Si se obtuvo correctamente, guardar en IndexedDB para uso offline (SOLO CLIENTE)
+        if (data && typeof window !== 'undefined') {
             try {
                 const { initDB } = await import('./db');
                 const db = await initDB();
@@ -56,7 +56,12 @@ export async function getPreciosConfig(): Promise<PreciosConfig> {
     } catch (err) {
         console.warn('Fetching from Supabase failed, trying IndexedDB:', err);
 
-        // Intentar leer de IndexedDB
+        // Intentar leer de IndexedDB (SOLO CLIENTE)
+        if (typeof window === 'undefined') {
+            console.log('Using default prices (SSR)');
+            return PRECIOS_DEFAULTS;
+        }
+
         try {
             const { initDB } = await import('./db');
             const db = await initDB();

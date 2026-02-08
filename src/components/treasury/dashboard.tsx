@@ -11,12 +11,12 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table';
-import { getHermanos, type Pago } from '@/lib/brothers';
+import { getHermanos, type Pago, getPagosDelAnio } from '@/lib/brothers';
 import { getMonthStatusForYear, MONTHS, getActiveSeason } from '@/lib/treasury';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
 import Link from 'next/link';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function TreasuryDashboard() {
@@ -38,14 +38,7 @@ export function TreasuryDashboard() {
 
     const { data: pagos = [], isLoading: loadingPagos } = useQuery<Pago[]>({
         queryKey: ['pagos', effectiveYear],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('pagos')
-                .select('*')
-                .eq('anio', effectiveYear);
-            if (error) throw error;
-            return (data || []) as Pago[];
-        },
+        queryFn: () => getPagosDelAnio(effectiveYear),
     });
 
     const queryClient = useQueryClient();
@@ -148,22 +141,25 @@ export function TreasuryDashboard() {
                                     <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-none snap-x">
                                         {MONTHS.map((month, index) => {
                                             const status = getMonthStatusForYear(hermano, brotherPagos, effectiveYear, index);
+                                            // @ts-ignore - _offline exists on Pago locally
+                                            const isOffline = brotherPagos.some(p => p.anio === effectiveYear && p._offline && getMonthStatusForYear(hermano, [p], effectiveYear, index) === 'PAID');
+
                                             return (
                                                 <div
                                                     key={index}
                                                     className={cn(
                                                         "min-w-[50px] flex flex-col items-center gap-1 p-2 rounded-lg border shadow-sm snap-start",
-                                                        status === 'PAID' ? "bg-green-100 border-green-200" :
+                                                        status === 'PAID' ? (isOffline ? "bg-amber-50 border-amber-200 border-dashed animate-pulse" : "bg-green-100 border-green-200") :
                                                             status === 'OVERDUE' ? "bg-red-100 border-red-200" : "bg-white border-slate-200"
                                                     )}
                                                 >
                                                     <span className="text-[9px] font-bold uppercase text-slate-500">{month}</span>
                                                     <span className={cn(
                                                         "text-xs font-black",
-                                                        status === 'PAID' ? "text-green-700" :
+                                                        status === 'PAID' ? (isOffline ? "text-amber-600" : "text-green-700") :
                                                             status === 'OVERDUE' ? "text-red-700" : "text-slate-300"
                                                     )}>
-                                                        {status === 'PAID' ? "✓" : status === 'OVERDUE' ? "!" : "•"}
+                                                        {status === 'PAID' ? (isOffline ? "⌛" : "✓") : status === 'OVERDUE' ? "!" : "•"}
                                                     </span>
                                                 </div>
                                             );
@@ -211,22 +207,25 @@ export function TreasuryDashboard() {
                                     </TableCell>
                                     {MONTHS.map((_, index) => {
                                         const status = getMonthStatusForYear(hermano, brotherPagos, effectiveYear, index);
+                                        // @ts-ignore
+                                        const isOffline = brotherPagos.some(p => p.anio === effectiveYear && p._offline && getMonthStatusForYear(hermano, [p], effectiveYear, index) === 'PAID');
+
                                         return (
                                             <TableCell
                                                 key={index}
                                                 className={cn(
                                                     "w-[60px] h-12 transition-colors border-r border-slate-100 last:border-r-0 text-center p-0",
-                                                    status === 'PAID' && "bg-green-50/50",
+                                                    status === 'PAID' && (isOffline ? "bg-amber-50/50" : "bg-green-50/50"),
                                                     status === 'PENDING' && "bg-white",
                                                     status === 'OVERDUE' && "bg-red-50/50"
                                                 )}
                                             >
                                                 <div className={cn(
                                                     "w-full h-full flex items-center justify-center",
-                                                    status === 'PAID' && "text-green-700 font-bold",
+                                                    status === 'PAID' && (isOffline ? "text-amber-600 font-bold" : "text-green-700 font-bold"),
                                                     status === 'OVERDUE' && "text-red-700 font-bold"
                                                 )}>
-                                                    {status === 'PAID' && "✓"}
+                                                    {status === 'PAID' && (isOffline ? <Clock className="w-3.5 h-3.5 animate-pulse" /> : "✓")}
                                                     {status === 'OVERDUE' && "!"}
                                                 </div>
                                             </TableCell>

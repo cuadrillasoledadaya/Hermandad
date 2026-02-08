@@ -67,15 +67,51 @@ export async function getExpensesByDateRange(
     startDate: string,
     endDate: string
 ): Promise<Expense[]> {
-    const { data, error } = await supabase
-        .from('gastos')
-        .select('*')
-        .gte('fecha', startDate)
-        .lte('fecha', endDate)
-        .order('fecha', { ascending: false });
+    try {
+        const { data, error } = await supabase
+            .from('gastos')
+            .select('*')
+            .gte('fecha', startDate)
+            .lte('fecha', endDate)
+            .order('fecha', { ascending: false });
 
-    if (error) throw error;
-    return data as Expense[];
+        if (error) {
+            if (error.message?.toLowerCase().includes('fetch') || !error.code) throw new Error('offline');
+            throw error;
+        }
+
+        // Cachear en IndexedDB
+        if (data && typeof window !== 'undefined') {
+            const { db } = await import('./db/database');
+            await db.transaction('rw', db.gastos, async () => {
+                for (const g of data) {
+                    await db.gastos.put({
+                        ...g,
+                        _syncStatus: 'synced',
+                        _lastModified: Date.now()
+                    } as any);
+                }
+            });
+            console.log('💾 [GASTOS] Datos cacheados en IndexedDB:', data.length, 'gastos');
+        }
+
+        return data as Expense[];
+    } catch (e) {
+        if ((e as Error).message === 'offline' || (e as Error).message?.includes('fetch')) {
+            console.log('📦 [GASTOS] Offline detected, fetching from IndexedDB');
+            const { db } = await import('./db/database');
+            const localData = await db.gastos
+                .filter(g => g.fecha >= startDate && g.fecha <= endDate)
+                .toArray();
+            return localData.map(g => {
+                const { _syncStatus, _lastModified, ...clean } = g as any;
+                return clean;
+            }).sort((a, b) => 
+                new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+            ) as Expense[];
+        }
+        throw e;
+    }
 }
 
 /**

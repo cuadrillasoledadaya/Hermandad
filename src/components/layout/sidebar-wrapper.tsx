@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
@@ -12,14 +13,24 @@ export function SidebarWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { loading } = useAuth();
     const { isSidebarOpen } = useAppStore();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const isLoginPage = pathname === '/login';
+
+    // Solo evaluar isOnline tras el montaje para evitar Hydration Error
+    const isOnline = mounted && typeof navigator !== 'undefined' ? navigator.onLine : true;
 
     if (isLoginPage) {
         return <>{children}</>;
     }
 
-    if (loading) {
+    // No mostrar el spinner en el servidor para evitar discrepancias
+    // y solo bloquear si estamos montados, online y cargando.
+    if (mounted && loading && isOnline) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-muted/10">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />

@@ -312,8 +312,7 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
                 ingreso:pagos(id, tipo_pago)
             `)
             .eq('anio', year)
-            .order('numero', { ascending: true })
-            .abortSignal(AbortSignal.timeout(10000));
+            .order('numero', { ascending: true });
 
         if (error) {
             console.error('❌ [PAPELETAS] Error en query Supabase:', error);
@@ -324,25 +323,27 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
         console.log(`✅ [PAPELETAS] Recibidas ${count} papeletas del servidor`);
 
         if (data) {
-            // Guardar en local para futuras consultas offline
-            await savePapeletasLocal(data);
+            // Guardar en local para futuras consultas offline (SOLO CLIENTE)
+            if (typeof window !== 'undefined') {
+                await savePapeletasLocal(data);
 
-            // COMBINAR CON OPTIMISTIC: Añadir los que tenemos en local como _offline
-            // que aún no están en el servidor (esto es vital para el dispositivo que lo crea)
-            const localPapeletas = await getPapeletasLocal();
-            const offlineOnly = localPapeletas.filter((p: Record<string, unknown>) => p._offline && p.anio === year);
+                // COMBINAR CON OPTIMISTIC: Añadir los que tenemos en local como _offline
+                // que aún no están en el servidor (esto es vital para el dispositivo que lo crea)
+                const localPapeletas = await getPapeletasLocal();
+                const offlineOnly = localPapeletas.filter((p: Record<string, unknown>) => p._offline && p.anio === year);
 
-            if (offlineOnly.length > 0) {
-                console.log(`📦 [PAPELETAS] Combinando con ${offlineOnly.length} cambios locales no sincronizados`);
-                const serverIds = new Set(data.map(p => p.id));
-                const merged = [...data];
+                if (offlineOnly.length > 0) {
+                    console.log(`📦 [PAPELETAS] Combinando con ${offlineOnly.length} cambios locales no sincronizados`);
+                    const serverIds = new Set(data.map(p => p.id));
+                    const merged = [...data];
 
-                for (const offline of offlineOnly) {
-                    if (!serverIds.has(offline.id)) {
-                        merged.push(offline);
+                    for (const offline of offlineOnly) {
+                        if (!serverIds.has(offline.id)) {
+                            merged.push(offline);
+                        }
                     }
+                    return merged as unknown as PapeletaConDetalles[];
                 }
-                return merged as unknown as PapeletaConDetalles[];
             }
 
             return data as unknown as PapeletaConDetalles[];
@@ -350,6 +351,7 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
         return [] as PapeletaConDetalles[];
     } catch (e) {
         console.error('⚠️ [PAPELETAS] Fallo fetch online, intentando local:', e);
+        if (typeof window === 'undefined') return [] as PapeletaConDetalles[];
         const localData = await getPapeletasLocal();
         const filtered = localData.filter((p: Record<string, unknown>) => p.anio === year);
         console.log(`📦 [PAPELETAS] Cargadas ${filtered.length} papeletas de cache local (Offline Mode)`);

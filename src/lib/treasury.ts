@@ -12,14 +12,47 @@ export function getConceptString(seasonYear: number, seasonMonthIdx: number) {
 }
 
 export async function getActiveSeason() {
-    const { data, error } = await supabase
-        .from('temporadas')
-        .select('*')
-        .eq('is_active', true)
-        .maybeSingle();
+    try {
+        // Timeout de 3 segundos
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('timeout')), 3000);
+        });
 
-    if (error) throw error;
-    return data;
+        const supabaseQuery = supabase
+            .from('temporadas')
+            .select('*')
+            .eq('is_active', true)
+            .maybeSingle();
+
+        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
+
+        if (error) {
+            if (error.message?.toLowerCase().includes('fetch') || !error.code) throw new Error('offline');
+            throw error;
+        }
+
+        // Cachear en meta para offline
+        if (data && typeof window !== 'undefined') {
+            const { setSyncMetadata } = await import('./db');
+            await setSyncMetadata('active_season', data);
+        }
+
+        return data;
+    } catch (e) {
+        const errorMsg = (e as Error).message;
+        if (errorMsg === 'offline' || errorMsg?.includes('fetch') || errorMsg === 'timeout') {
+            console.log('📦 [TREASURY] Offline/timeout detected (Season), fetching from metadata');
+            const { getSyncMetadata } = await import('./db');
+            const cached = await getSyncMetadata('active_season');
+            if (cached) return cached;
+            
+            // Retornar temporada por defecto si no hay cache
+            const currentYear = new Date().getFullYear();
+            console.log('📦 [TREASURY] Usando temporada por defecto:', currentYear);
+            return { id: 1, anio: currentYear, is_active: true, fecha_inicio: `${currentYear}-03-01`, fecha_fin: `${currentYear + 1}-02-28` };
+        }
+        throw e;
+    }
 }
 
 export const MONTHS = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb'];

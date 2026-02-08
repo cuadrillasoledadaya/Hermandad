@@ -25,10 +25,14 @@ export default function LoginPage() {
         setLoading(true);
         console.log('Attempting login for:', email);
 
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+        const loginPromise = supabase.auth.signInWithPassword({
             email,
             password,
         });
+
+        // @ts-expect-error - race typing
+        const { data, error } = await Promise.race([loginPromise, timeoutPromise]).catch(() => ({ data: { user: null }, error: { message: 'La conexión ha tardado demasiado. Revisa tu internet o ngrok.' } }));
 
         if (error) {
             console.error('Login error:', error.message);
@@ -36,9 +40,13 @@ export default function LoginPage() {
             setLoading(false);
         } else {
             console.log('Login successful:', data.user?.email);
+            console.log('Session:', data.session ? 'Valid' : 'Invalid');
             toast.success('Sesión iniciada correctamente. Redirigiendo...');
-            // Use hard reload to ensure middleware and all providers sync perfectly
-            window.location.href = '/';
+            // Esperar un momento para que las cookies se establezcan
+            setTimeout(() => {
+                console.log('Redirecting to /');
+                window.location.href = '/';
+            }, 500);
         }
     };
 

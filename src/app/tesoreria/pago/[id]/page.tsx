@@ -2,7 +2,8 @@
 
 import { useState, use } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getHermanoById, getPagosByHermano, deletePago } from '@/lib/brothers';
+import { deletePago } from '@/lib/brothers';
+import { getHermanoByIdOffline, getPagosOffline } from '@/lib/offline-api';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,45 +11,57 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { showError, showSuccess } from '@/lib/error-handler';
 import { offlineInsert } from '@/lib/offline-mutation';
-import { Wallet, Trash2, Calendar, Euro, Check } from 'lucide-react';
+import { Wallet, Trash2, Calendar, Euro, Check, WifiOff } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MONTHS_FULL, getActiveSeason, getConceptString, getPendingMonthsForSeason, getCalendarMonthAndYear } from '@/lib/treasury';
 import { cn } from '@/lib/utils';
 import { getPreciosConfig } from '@/lib/configuracion';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 
 export default function NuevoPagoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { isOnline } = useNetworkStatus();
 
     const [overrideAmount, setOverrideAmount] = useState<string | null>(null);
     const [overrideYear, setOverrideYear] = useState<number | null>(null);
-
     const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
 
+    // Query principal - el hermano (offline-first)
+    const { data: hermano, isLoading: loadingHermano } = useQuery({
+        queryKey: ['hermano', id],
+        queryFn: () => getHermanoByIdOffline(id),
+        staleTime: 1000 * 60 * 5,
+        retry: false, // No reintentar - si no está en cache, no está
+    });
+
+    // Queries secundarias (pueden usar defaults si fallan)
     const { data: config } = useQuery({
         queryKey: ['configuracion-precios'],
         queryFn: getPreciosConfig,
+        staleTime: 1000 * 60 * 60,
+        retry: 0,
     });
 
     const { data: activeSeason } = useQuery({
         queryKey: ['active-season'],
         queryFn: getActiveSeason,
-    });
-
-    const fee = config?.cuota_mensual_hermano ?? 1.8;
-    const selectedYear = overrideYear ?? activeSeason?.anio ?? new Date().getFullYear();
-
-    const { data: hermano, isLoading: loadingHermano } = useQuery({
-        queryKey: ['hermano', id],
-        queryFn: () => getHermanoById(id),
+        staleTime: 1000 * 60 * 60,
+        retry: 0,
     });
 
     const { data: pagosBrother = [] } = useQuery({
-        queryKey: ['pagos-brother', id],
-        queryFn: () => getPagosByHermano(id),
+        queryKey: ['pagos', 'brother', id],
+        queryFn: () => getPagosOffline(id),
+        staleTime: 1000 * 60 * 5,
+        retry: false,
     });
+
+    // Usar valores por defecto inmediatamente si no hay datos (modo offline)
+    const fee = config?.cuota_mensual_hermano ?? 1.8;
+    const selectedYear = overrideYear ?? activeSeason?.anio ?? new Date().getFullYear();
 
     // Auto-calculate amount based on selected months
     const autoAmount = (selectedMonths.length * fee).toFixed(2);
@@ -81,14 +94,25 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                 fecha_pago: new Date().toISOString().split('T')[0]
             }));
 
-            const { offline, error, data } = await offlineInsert('pagos', records);
+            // Timeout de seguridad para offline (5 segundos máximo)
+            const mutationPromise = offlineInsert('pagos', records);
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('timeout')), 5000);
+            });
 
-            if (!offline && error) throw new Error(error);
+            const result = await Promise.race([mutationPromise, timeoutPromise]).catch(async () => {
+                // Si hay timeout, forzar modo offline
+                const { queueMutation } = await import('@/lib/db');
+                await queueMutation({ type: 'insert', table: 'pagos', data: records });
+                return { offline: true, success: true, data: records };
+            });
 
-            return { offline, data };
+            if (!result.offline && 'error' in result && result.error) throw new Error(result.error);
+
+            return { offline: result.offline, data: result.data };
         },
         onSuccess: (result) => {
-            queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
+            queryClient.invalidateQueries({ queryKey: ['pagos'] });
             queryClient.invalidateQueries({ queryKey: ['hermano-status'] });
             setSelectedMonths([]);
             setOverrideAmount(null);
@@ -101,6 +125,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
             }
         },
         onError: (error: Error) => {
+            console.error('Error en paymentMutation:', error);
             showError('Error al registrar el pago', error);
         }
     });
@@ -108,7 +133,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
     const deletePaymentMutation = useMutation({
         mutationFn: (pagoId: string) => deletePago(pagoId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['pagos-brother', id] });
+            queryClient.invalidateQueries({ queryKey: ['pagos'] });
             showSuccess('Pago eliminado');
         },
         onError: () => {
@@ -124,7 +149,41 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
         );
     }
 
-    if (!hermano) return <div>Hermano no encontrado</div>;
+    if (!hermano) {
+        return (
+            <div className="max-w-md mx-auto py-6">
+                <Card className="border-orange-200 bg-orange-50/30">
+                    <CardHeader className="text-center">
+                        <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                            <WifiOff className="text-orange-600 w-6 h-6" />
+                        </div>
+                        <CardTitle className="text-xl text-orange-700">Datos no disponibles</CardTitle>
+                        <CardDescription className="text-orange-600/80">
+                            No se encontró información de este hermano en el dispositivo
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <p className="text-sm text-center text-muted-foreground">
+                                Para usar la app en modo offline, primero debes:
+                            </p>
+                            <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-2 bg-white/50 p-4 rounded-lg">
+                                <li>Conectarte a internet</li>
+                                <li>Abrir la app y esperar a que carguen todos los datos</li>
+                                <li>Luego podrás usarla sin conexión</li>
+                            </ol>
+                            <Button 
+                                onClick={() => router.push('/tesoreria')}
+                                className="w-full mt-4"
+                            >
+                                Volver a Tesorería
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -146,6 +205,12 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                     <CardDescription>
                         Hermano: <span className="font-semibold text-foreground">{hermano.nombre} {hermano.apellidos}</span>
                     </CardDescription>
+                    {!isOnline && (
+                        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-orange-600 bg-orange-50 px-3 py-1.5 rounded-full">
+                            <WifiOff className="w-3 h-3" />
+                            <span>Modo Offline - Los cambios se sincronizarán cuando vuelvas a tener conexión</span>
+                        </div>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">

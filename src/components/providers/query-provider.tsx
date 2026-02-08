@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { get, set, del } from 'idb-keyval';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect } from 'react';
 
 // Crear el QueryClient fuera del componente para que se reutilice
 const createQueryClient = () =>
@@ -66,7 +66,6 @@ const idbPersister = createAsyncStoragePersister({
 
 export function QueryProvider({ children }: { children: ReactNode }) {
     const queryClient = getQueryClient();
-    const [isRestoring, setIsRestoring] = useState(true);
 
     useEffect(() => {
         // Persistir el caché de React Query en IndexedDB
@@ -87,16 +86,7 @@ export function QueryProvider({ children }: { children: ReactNode }) {
                 },
             },
         });
-
-        // Simular restauración completada después de un momento
-        setTimeout(() => setIsRestoring(false), 100);
     }, [queryClient]);
-
-    // Mostrar nada o un spinner mientras restaura (opcional)
-    if (isRestoring && typeof window !== 'undefined') {
-        // Puedes descomentar esto si quieres mostrar algo mientras carga
-        // return <div className="p-4 text-center">Restaurando datos...</div>;
-    }
 
     return (
         <QueryClientProvider client={queryClient}>

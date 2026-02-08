@@ -1,8 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { getHermanos, type Pago } from '@/lib/brothers';
+import { getHermanos, type Pago, getPagosDelAnio } from '@/lib/brothers';
 import { getActiveSeason, getMonthStatusForYear, MONTHS } from '@/lib/treasury';
 import { getCurrentMonthExpenseStats } from '@/lib/expenses';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,14 +22,7 @@ export function TreasuryStats() {
 
     const { data: pagos = [], isLoading: loadingPagos } = useQuery<Pago[]>({
         queryKey: ['pagos', effectiveYear],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from('pagos')
-                .select('*')
-                .eq('anio', effectiveYear);
-            if (error) throw error;
-            return data as Pago[];
-        },
+        queryFn: () => getPagosDelAnio(effectiveYear),
     });
 
     const { data: expenseStats, isLoading: loadingExpenses } = useQuery({

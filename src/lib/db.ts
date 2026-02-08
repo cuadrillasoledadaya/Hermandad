@@ -78,7 +78,12 @@ export async function saveHermanosLocal(hermanos: Record<string, unknown>[]) {
 // Función para obtener hermanos de local
 export async function getHermanosLocal(): Promise<Record<string, unknown>[]> {
     const db = await initDB();
-    return db.getAll('hermanos');
+    const data = await db.getAll('hermanos');
+    return data.sort((a, b) => {
+        const numA = (a.numero_hermano as number) || 999999;
+        const numB = (b.numero_hermano as number) || 999999;
+        return numA - numB;
+    });
 }
 
 // Función para guardar pagos en local

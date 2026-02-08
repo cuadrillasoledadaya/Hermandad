@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { SyncProvider } from "@/components/providers/sync-provider";
 import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { OfflineBanner } from "@/components/ui/offline-banner";
@@ -24,22 +25,20 @@ export const viewport: Viewport = {
   themeColor: "#2E7D32",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5, // Permitimos zoom para accesibilidad
-  userScalable: true, // Permitimos zoom para accesibilidad
+  maximumScale: 5,
+  userScalable: true,
 };
-
-// ELIMINADO: export const dynamic = "force-dynamic";
-// Ahora las páginas pueden usar SSG por defecto
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.log('>>> [DEBUG] ROOT LAYOUT RENDERING ON SERVER');
+
   return (
     <html lang="es">
       <head>
-        {/* Iconos para iOS */}
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -47,11 +46,13 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <QueryProvider>
           <AuthProvider>
-            <SidebarWrapper>
-              {children}
-            </SidebarWrapper>
-            <OfflineBanner />
-            <Toaster />
+            <SyncProvider>
+              <SidebarWrapper>
+                {children}
+              </SidebarWrapper>
+              <OfflineBanner />
+              <Toaster />
+            </SyncProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

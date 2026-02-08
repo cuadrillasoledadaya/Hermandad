@@ -208,32 +208,53 @@ export function useOfflineSync() {
         const supabase = createClient();
 
         try {
-            // Sincronizar hermanos
+            // Sincronizar hermanos (5s timeout)
             const { data: hermanos, error: hermanosError } = await Promise.race([
-                supabase.from('hermanos').select('*'),
+                supabase.from('hermanos').select('*').order('numero_hermano', { ascending: true }),
                 new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-            ]);
+            ]).catch(() => ({ data: null, error: null }));
 
             if (!hermanosError && hermanos) {
                 const { saveHermanosLocal } = await import('@/lib/db');
                 await saveHermanosLocal(hermanos);
-                console.log(`✅ Sincronizados ${hermanos.length} hermanos a IndexedDB`);
             }
 
-            // Sincronizar configuración de precios
+            // Sincronizar Papeletas del año actual (5s timeout)
+            const anioActual = new Date().getFullYear();
+            const { data: papeletas, error: papError } = await Promise.race([
+                supabase.from('papeletas_cortejo').select('*').eq('anio', anioActual),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+            ]).catch(() => ({ data: null, error: null }));
+
+            if (!papError && papeletas) {
+                const { savePapeletasLocal } = await import('@/lib/db');
+                await savePapeletasLocal(papeletas);
+            }
+
+            // Sincronizar Pagos del año actual (5s timeout)
+            const { data: pagos, error: pagosError } = await Promise.race([
+                supabase.from('pagos').select('*').eq('anio', anioActual),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+            ]).catch(() => ({ data: null, error: null }));
+
+            if (!pagosError && pagos) {
+                const { savePagosLocal } = await import('@/lib/db');
+                await savePagosLocal(pagos);
+            }
+
+            // Sincronizar configuración de precios (3s timeout)
             const { data: config, error: configError } = await Promise.race([
                 supabase.from('configuracion_precios').select('*').eq('id', 1).single(),
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-            ]);
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+            ]).catch(() => ({ data: null, error: null }));
 
             if (!configError && config) {
                 const { initDB } = await import('@/lib/db');
-                const db = await initDB();
-                await db.put('configuracion', config);
-                console.log('✅ Configuración de precios sincronizada a IndexedDB');
+                const dbInstance = await initDB();
+                await dbInstance.put('configuracion', config);
             }
         } catch (err) {
-            console.warn('No se pudieron sincronizar datos maestros:', err);
+            // Silencioso en fondo
         }
     }, [isOnline]);
 
