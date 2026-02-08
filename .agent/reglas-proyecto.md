@@ -17,3 +17,9 @@ Este documento contiene reglas críticas que el agente (Antigravity) DEBE seguir
 - Se prefiere el uso de `unknown` sobre `any` en bloques catch.
 - Los imports no utilizados deben eliminarse proactivamente.
 - Las notificaciones de error deben usar `showError` de `error-handler.ts`.
+
+## 3. Idioma y Comunicación
+
+- **REGLA**: Todo el contenido de los artefactos (especialmente `walkthrough.md` e `implementation_plan.md`) DEBE estar en **Español**.
+- **REGLA**: La comunicación con el usuario DEBE ser siempre en **Español**.
+- **Contexto**: El usuario prefiere gestionar el proyecto y entender los cambios técnicos en su idioma nativo.
