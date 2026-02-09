@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
-        cookies: {
+            cookies: {
                 get(name: string) {
                     const cookie = request.cookies.get(name)
                     console.log(`>>> [COOKIE] Getting ${name}: ${cookie ? 'found' : 'not found'}`)
@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
                         name,
                         value,
                         ...options,
-                        secure: false, // Desactivar secure para desarrollo local
+                        secure: process.env.NODE_ENV === 'production',
                         httpOnly: true,
                         sameSite: 'lax',
                         path: '/',
@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
                         name,
                         value: '',
                         ...options,
-                        secure: false,
+                        secure: process.env.NODE_ENV === 'production',
                         httpOnly: true,
                         sameSite: 'lax',
                         path: '/',
@@ -107,7 +107,7 @@ export async function middleware(request: NextRequest) {
     )
 
     console.log(`>>> [PROXY] Session check: ${session ? 'Authenticated' : 'No session'} for ${request.nextUrl.pathname}`);
-    
+
     if (!session && isProtectedPath && request.nextUrl.pathname !== '/login') {
         console.log(`>>> [PROXY] Redirecting to login - No session on protected path`);
         return NextResponse.redirect(new URL('/login', request.url))

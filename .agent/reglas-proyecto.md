@@ -23,3 +23,8 @@ Este documento contiene reglas críticas que el agente (Antigravity) DEBE seguir
 - **REGLA**: Todo el contenido de los artefactos (especialmente `walkthrough.md` e `implementation_plan.md`) DEBE estar en **Español**.
 - **REGLA**: La comunicación con el usuario DEBE ser siempre en **Español**.
 - **Contexto**: El usuario prefiere gestionar el proyecto y entender los cambios técnicos en su idioma nativo.
+
+## 4. Seguridad de Producción (Vercel/HTTPS)
+
+- **REGLA**: Todo lo relacionado con cookies de autenticación (middleware, supabase lib) DEBE usar `secure: process.env.NODE_ENV === 'production'`.
+- **RAZÓN**: Las cookies con `secure: false` son bloqueadas en entornos HTTPS (Vercel), impidiendo ver roles o cerrar sesión.
