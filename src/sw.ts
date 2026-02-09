@@ -15,7 +15,7 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Versión del Service Worker: 1.1.5 (Estabilizada para Next.js 15)
+// Versión del Service Worker: 1.1.6 (Estabilizada para Next.js 15)
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,

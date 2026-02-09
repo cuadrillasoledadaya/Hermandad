@@ -60,13 +60,12 @@ export function showError(title: string, error?: unknown) {
 
     toast.error(title, {
         description: translatedMessage,
-        duration: 20000, // 20 segundos
+        duration: 8000, // Reducido de 20s a 8s
         style: {
             background: '#fee2e2',
             color: '#991b1b',
-            border: '4px solid #ef4444',
-            fontSize: '18px',
-            boxShadow: '0 0 0 100vmax rgba(0,0,0,0.2)', // Oscurecer el resto de la pantalla un poco
+            border: '2px solid #ef4444',
+            fontSize: '16px',
         },
     });
 }
