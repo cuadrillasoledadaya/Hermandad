@@ -98,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (isOnline) {
                 const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
                 const onlinePromise = supabase
-                    .from('hermanos')
-                    .select('rol, nombre, email')
+                    .from('profiles')
+                    .select('role, nombre, apellidos')
                     .eq('id', userId)
                     .maybeSingle();
 
@@ -107,8 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 if (response && !response.error && response.data) {
                     const data = response.data;
-                    console.log('>>> [AUTH] Role found online:', data.rol);
-                    const userRole = data.rol as UserRole;
+                    console.log('>>> [AUTH] Role found online:', data.role);
+                    const userRole = data.role as UserRole;
                     setRole(userRole);
 
                     // Guardar para la próxima vez

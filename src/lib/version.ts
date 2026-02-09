@@ -4,4 +4,4 @@
  */
 // Versión de la aplicación hardcodeada para asegurar sincronización en Vercel
 
-export const APP_VERSION = "1.1.86"; // Test deployment target verification
+export const APP_VERSION = "1.1.87"; // Fixed critical auth role query bug
