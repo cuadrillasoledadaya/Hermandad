@@ -180,10 +180,7 @@ export function useOfflineSync() {
             showSuccess(`¡Sincronizado!`, `${successCount} cambios enviados a la nube`);
         }
         if (errorCount > 0) {
-            toast.error(`${errorCount} cambios fallidos`, {
-                description: 'No se pudieron sincronizar algunos cambios. Se reintentará automáticamente.',
-                duration: 5000,
-            });
+            showError(`${errorCount} cambios fallidos`, 'No se pudieron sincronizar algunos cambios');
         }
     }, [isOnline, queryClient]);
 
