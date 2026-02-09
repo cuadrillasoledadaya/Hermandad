@@ -1,0 +1,59 @@
+﻿{
+  "projects": [
+    {
+      "name": "hermandad",
+      "id": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj",
+      "latestProductionUrl": "https://hermandad-alarmdryros-7957s-projects.vercel.app",
+      "updatedAt": 1770676244011,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "web",
+      "id": "prj_dPZ1ssOev1Sx5IeaygGeUUiny1zS",
+      "latestProductionUrl": "https://web-alarmdryros-7957s-projects.vercel.app",
+      "updatedAt": 1770676243906,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "icuadrilla-go",
+      "id": "prj_j0x2lW87J2jvqeVjInvmQoazM6lo",
+      "latestProductionUrl": "https://icuadrilla-go.vercel.app",
+      "updatedAt": 1769249193513,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "cuadrilla_app",
+      "id": "prj_G14tTL60Klf5uuWZd7viUACEShUk",
+      "latestProductionUrl": "https://cuadrillaapp.vercel.app",
+      "updatedAt": 1767776166765,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "dist",
+      "id": "prj_m8qT5fRX7rOYgwaHWrHDRAr7tNq0",
+      "latestProductionUrl": "https://dist-blue-nu.vercel.app",
+      "updatedAt": 1767199216627,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    },
+    {
+      "name": "bar-pos-pwa-v2",
+      "id": "prj_g442XZunviUqxXvesgezaKwSn8Bm",
+      "latestProductionUrl": "https://bar-pos-pwa-v2.vercel.app",
+      "updatedAt": 1766706946797,
+      "nodeVersion": "24.x",
+      "deprecated": false
+    }
+  ],
+  "pagination": {
+    "count": 6,
+    "next": null,
+    "prev": 1770676244011
+  },
+  "contextName": "alarmdryros-7957s-projects",
+  "elapsed": "2s"
+}

@@ -1,0 +1,849 @@
+﻿{
+  "id": "dpl_3fLkMrSYJXWqwB1uZEDNG9FYYk8Q",
+  "name": "hermandad",
+  "url": "hermandad-ge04dtb7i-alarmdryros-7957s-projects.vercel.app",
+  "target": "production",
+  "readyState": "READY",
+  "createdAt": 1770554870349,
+  "aliases": [
+    "hermandad.vercel.app",
+    "hermandad-alarmdryros-7957s-projects.vercel.app",
+    "hermandad-alarmdryros-7957-alarmdryros-7957s-projects.vercel.app"
+  ],
+  "builds": [
+    {
+      "id": "bld_26gzrrfz2",
+      "deploymentId": "dpl_3fLkMrSYJXWqwB1uZEDNG9FYYk8Q",
+      "entrypoint": ".",
+      "readyState": "READY",
+      "readyStateAt": 1770554871489,
+      "createdAt": 1770554871489,
+      "createdIn": "sfo1",
+      "use": "@vercel/vc-build",
+      "config": {
+        "framework": "nextjs",
+        "nodeVersion": "24.x",
+        "projectCreatedAt": 1769450986718,
+        "vercelConfig": {
+          "name": "hermandad",
+          "version": 2
+        }
+      },
+      "middleware": [],
+      "output": [
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/logs",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/logs.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/precios",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/precios.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/temporadas",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/temporadas.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/usuarios",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "configuracion/usuarios.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "cortejo/admin",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "cortejo/admin.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "cortejo",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "cortejo.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "cortejo/sorteo",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "cortejo/sorteo.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "hermanos/nuevo",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "hermanos/nuevo.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "hermanos",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "hermanos.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "login",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "login.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "index",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "index.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "redes-sociales",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "redes-sociales.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "register",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "register.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "tesoreria/gastos",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "tesoreria/gastos.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "tesoreria",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "tesoreria.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "tesoreria/papeletas-cortejo",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "tesoreria/papeletas-cortejo.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "test-offline",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "test-offline.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "index",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/bc5636dba9002de7121bc0c361bfe32d18bd100dd8b7f0f8ec8f623bce9b4230",
+          "mode": 49590,
+          "size": 2742683,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-1905e2933fd629be322986ba8fd0486ec5",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "_not-found",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/c8f6700c1b37dc8adf3df47ec21a5f24fcabd2dec6c7db82efe4970c24ac2d4d",
+          "mode": 49590,
+          "size": 2580977,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-74d341a767463d5d0c3d821a3adfda2a56",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "_not-found.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/c8f6700c1b37dc8adf3df47ec21a5f24fcabd2dec6c7db82efe4970c24ac2d4d",
+          "mode": 49590,
+          "size": 2580977,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-74d341a767463d5d0c3d821a3adfda2a56",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "hermanos/[id]",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/c8f6700c1b37dc8adf3df47ec21a5f24fcabd2dec6c7db82efe4970c24ac2d4d",
+          "mode": 49590,
+          "size": 2580977,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-74d341a767463d5d0c3d821a3adfda2a56",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "hermanos/[id].rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/c8f6700c1b37dc8adf3df47ec21a5f24fcabd2dec6c7db82efe4970c24ac2d4d",
+          "mode": 49590,
+          "size": 2580977,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-74d341a767463d5d0c3d821a3adfda2a56",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "tesoreria/pago/[id]",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/c8f6700c1b37dc8adf3df47ec21a5f24fcabd2dec6c7db82efe4970c24ac2d4d",
+          "mode": 49590,
+          "size": 2580977,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-74d341a767463d5d0c3d821a3adfda2a56",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "tesoreria/pago/[id].rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/c8f6700c1b37dc8adf3df47ec21a5f24fcabd2dec6c7db82efe4970c24ac2d4d",
+          "mode": 49590,
+          "size": 2580977,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-74d341a767463d5d0c3d821a3adfda2a56",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "favicon.ico.rsc",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/77741de70fd2f26c199e6a674330734b2b1310838da885176baf67aac73da5dc",
+          "mode": 49590,
+          "size": 2568950,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-cff214cc7900cd00f1701fa7b11893a782",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "favicon.ico",
+          "digest": "prj_z55SKA1NJEIsuPFpSAtBskAHafuj/77741de70fd2f26c199e6a674330734b2b1310838da885176baf67aac73da5dc",
+          "mode": 49590,
+          "size": 2568950,
+          "lambda": {
+            "functionName": "team_cdXx8T8vP6RoHGFTBA0DYpiT-cff214cc7900cd00f1701fa7b11893a782",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300
+          },
+          "edge": null
+        }
+      ],
+      "fingerprint": null
+    }
+  ],
+  "contextName": "alarmdryros-7957s-projects"
+}
