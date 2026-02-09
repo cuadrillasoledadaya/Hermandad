@@ -4,4 +4,4 @@
  */
 // Versión de la aplicación hardcodeada para asegurar sincronización en Vercel
 
-export const APP_VERSION = "1.1.84"; // Forzado para verificar despliegue
+export const APP_VERSION = "1.1.85"; // Forzado para verificar despliegue
