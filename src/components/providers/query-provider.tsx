@@ -11,7 +11,7 @@ const createQueryClient = () =>
     new QueryClient({
         defaultOptions: {
             queries: {
-                staleTime: 1000 * 60 * 5, // 5 minutos - datos se consideran frescos
+                staleTime: 1000 * 60 * 15, // 15 minutos - datos se consideran frescos más tiempo
                 gcTime: 1000 * 60 * 60 * 24, // 24 horas - datos persisten en memoria
                 refetchOnWindowFocus: false, // No recargar al volver a la pestaña
                 refetchOnReconnect: true, // Sí recargar al recuperar conexión

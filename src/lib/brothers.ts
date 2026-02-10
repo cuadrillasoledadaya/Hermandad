@@ -31,9 +31,9 @@ export interface Pago {
 
 export async function getHermanos() {
     try {
-        // Timeout de 5 segundos para evitar que se cuelgue
+        // Timeout de 1 segundo para caer rápido a offline
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('timeout')), 5000);
+            setTimeout(() => reject(new Error('timeout')), 1000);
         });
 
         const supabasePromise = supabase
@@ -72,7 +72,7 @@ export async function getHermanos() {
         const errorMsg = (e as Error).message;
         if (errorMsg === 'offline' || errorMsg?.includes('fetch') || errorMsg === 'timeout') {
             console.log('📦 [CENSO] Offline/timeout - Leyendo desde IndexedDB');
-            
+
             // Intentar con nueva base de datos primero
             try {
                 const { db } = await import('./db/database');
@@ -130,9 +130,9 @@ export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_herman
 
 export async function getHermanoById(id: string): Promise<Hermano | null> {
     try {
-        // Timeout de 3 segundos para evitar que se cuelgue
+        // Timeout de 1 segundo para caer rápido a offline
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('timeout')), 3000);
+            setTimeout(() => reject(new Error('timeout')), 1000);
         });
 
         const supabasePromise = supabase
@@ -184,7 +184,7 @@ export async function getHermanoById(id: string): Promise<Hermano | null> {
             } catch (oldDbError) {
                 console.error('Error leyendo de DB antigua:', oldDbError);
             }
-            
+
             // Si no está en caché, retornar null en lugar de lanzar error
             console.warn('⚠️ [HERMANO] No encontrado en caché:', id);
             return null;
@@ -221,7 +221,7 @@ export async function getPagosByHermano(id_hermano: string, anio?: number): Prom
     try {
         console.log(`🔍 [PAGOS] Solicitando pagos del hermano ${id_hermano} (Online)...`);
 
-        // 1. Intentar obtener de Supabase con timeout de 3 segundos
+        // 1. Intentar obtener de Supabase con timeout de 1 segundo
         let query = supabase
             .from('pagos')
             .select('*')
@@ -233,7 +233,7 @@ export async function getPagosByHermano(id_hermano: string, anio?: number): Prom
         }
 
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('timeout')), 3000);
+            setTimeout(() => reject(new Error('timeout')), 1000);
         });
 
         const { data, error } = await Promise.race([query, timeoutPromise]);
@@ -330,9 +330,9 @@ export async function getPagosDelAnio(anio: number): Promise<Pago[]> {
     try {
         console.log(`🔍 [PAGOS] Solicitando pagos del año ${anio} (Online)...`);
 
-        // Timeout de 5 segundos
+        // Timeout de 1 segundo para caer rápido a offline
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('timeout')), 5000);
+            setTimeout(() => reject(new Error('timeout')), 1000);
         });
 
         const supabasePromise = supabase

@@ -7,10 +7,10 @@ import { db } from '@/lib/db/database';
 import { networkMonitor } from '@/lib/sync/network-monitor';
 
 interface PreloadStatus {
-  hermanos: boolean;
-  pagos: boolean;
-  papeletas: boolean;
-  configuracion: boolean;
+    hermanos: boolean;
+    pagos: boolean;
+    papeletas: boolean;
+    configuracion: boolean;
 }
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
 
         console.log('[SyncProvider] Iniciando precarga...');
-        
+
         try {
             const network = networkMonitor.getState();
             if (!network.isOnline) {
@@ -41,30 +41,30 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
             // Precargar en paralelo sin bloquear
             await Promise.allSettled([
                 // Hermanos
-                import('@/lib/brothers').then(({ getHermanos }) => 
+                import('@/lib/brothers').then(({ getHermanos }) =>
                     getHermanos().then(data => {
                         console.log('[SyncProvider] Hermanos:', data.length);
                         setPreloadStatus(prev => ({ ...prev, hermanos: true }));
                     })
                 ),
-                
+
                 // Pagos
-                import('@/lib/brothers').then(({ getPagosDelAnio }) => 
+                import('@/lib/brothers').then(({ getPagosDelAnio }) =>
                     getPagosDelAnio(new Date().getFullYear()).then(data => {
                         console.log('[SyncProvider] Pagos:', data.length);
                         setPreloadStatus(prev => ({ ...prev, pagos: true }));
                     })
                 ),
-                
+
                 // Configuración
-                import('@/lib/configuracion').then(({ getPreciosConfig }) => 
+                import('@/lib/configuracion').then(({ getPreciosConfig }) =>
                     getPreciosConfig().then(() => {
                         setPreloadStatus(prev => ({ ...prev, configuracion: true }));
                     })
                 ),
-                
+
                 // Temporada
-                import('@/lib/treasury').then(({ getActiveSeason }) => 
+                import('@/lib/treasury').then(({ getActiveSeason }) =>
                     getActiveSeason().then(() => {
                         console.log('[SyncProvider] Temporada cargada');
                     })
@@ -107,17 +107,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         return () => clearInterval(interval);
     }, [isAuthPage, authLoading, user, preloadData]);
 
-    // Loader solo durante autenticación inicial
-    if (isLoading && !isAuthPage) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-gray-600">Cargando...</p>
-                </div>
-            </div>
-        );
-    }
-
+    // No mostrar loader bloqueante - la app debe ser visible inmediatamente
+    // El QueryProvider y componentes individuales manejarán sus propios estados de carga
     return <>{children}</>;
 }

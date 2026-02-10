@@ -81,22 +81,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isOnline = typeof navigator !== 'undefined' && navigator.onLine;
 
         try {
-            // 1. INTENTO LOCAL INMEDIATO (Para rapidez y offline)
+            // 1. INTENTO LOCAL INMEDIATO - Sin await de online
             const { getSyncMetadata, setSyncMetadata } = await import('@/lib/db');
             const cachedRole = await getSyncMetadata('user_role') as UserRole;
 
             if (cachedRole) {
-                console.log('>>> [AUTH] Cached role found:', cachedRole);
+                console.log('>>> [AUTH] ✅ Cached role found, setting IMMEDIATELY:', cachedRole);
                 setRole(cachedRole);
-                // Si estamos offline, ya podemos dejar de cargar
-                if (!isOnline) {
-                    setLoading(false);
-                }
+                setLoading(false); // ✅ Liberar INMEDIATAMENTE si hay caché
             }
 
-            // 2. INTENTO ONLINE (Para actualizar o si no hay cache)
+            // 2. INTENTO ONLINE EN PARALELO (no bloquea si hay caché)
             if (isOnline) {
-                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+                // Timeout reducido de 5s a 2s
+                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
                 const onlinePromise = supabase
                     .from('profiles')
                     .select('role, nombre, apellidos')
@@ -107,28 +105,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 if (response && !response.error && response.data) {
                     const data = response.data;
-                    console.log('>>> [AUTH] Role found online:', data.role);
+                    console.log('>>> [AUTH] ✅ Role updated from online:', data.role);
                     const userRole = data.role as UserRole;
-                    setRole(userRole);
+
+                    // Solo actualizar si cambió
+                    if (userRole !== cachedRole) {
+                        console.log('>>> [AUTH] Role changed online, updating...');
+                        setRole(userRole);
+                    }
 
                     // Guardar para la próxima vez
                     await setSyncMetadata('user_role', userRole);
                     await setSyncMetadata('user_profile', data);
                 } else if (!cachedRole) {
-                    // Si no había cache y falló online, default a HERMANO
+                    // Si no había cache y falló online, default a HERMANO INMEDIATAMENTE
                     console.warn('>>> [AUTH] No online role and no cache, defaulting to HERMANO');
                     setRole('HERMANO');
+                    setLoading(false);
                 }
             } else if (!cachedRole) {
-                // Offline y sin cache
-                console.warn('>>> [AUTH] Offline and no cache, defaulting to HERMANO');
+                // Offline y sin cache: establecer HERMANO INMEDIATAMENTE (sin esperar 15s)
+                console.warn('>>> [AUTH] Offline and no cache, defaulting to HERMANO IMMEDIATELY');
                 setRole('HERMANO');
+                setLoading(false);
             }
 
         } catch (err: any) {
             console.error('>>> [AUTH] Role fetch exception:', err?.message || err);
-            if (!role) setRole('HERMANO');
+            // Si hubo error y no tenemos rol aún, establecer default INMEDIATAMENTE
+            if (!role) {
+                console.warn('>>> [AUTH] Exception occurred, setting HERMANO immediately');
+                setRole('HERMANO');
+            }
         } finally {
+            // Asegurar que siempre terminamos de cargar
             setLoading(false);
         }
     }
