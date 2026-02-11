@@ -15,7 +15,7 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Versión del Service Worker: 1.1.7 (Estabilizada para Next.js 15)
+// Versión del Service Worker: 1.2.01 (Fix de Chunk Loading Offline)
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
@@ -23,15 +23,46 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: [
     ...defaultCache,
-    // Estrategia para Navegación: Intenta red primero, cae a cache
+    // CRÍTICO: Cachear chunks de JavaScript para navegación offline sin errores
+    {
+      matcher: ({ url }: { url: URL }) => url.pathname.startsWith('/_next/static/chunks/'),
+      handler: new CacheFirst({
+        cacheName: 'static-chunks-cache',
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 200, // Permitir muchos chunks
+            maxAgeSeconds: 60 * 60 * 24 * 365, // 1 año
+          }),
+        ],
+      }),
+    },
+    // Cachear CSS de forma agresiva
+    {
+      matcher: ({ url }: { url: URL }) => url.pathname.startsWith('/_next/static/css/'),
+      handler: new CacheFirst({
+        cacheName: 'static-css-cache',
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 50,
+            maxAgeSeconds: 60 * 60 * 24 * 365,
+          }),
+        ],
+      }),
+    },
+    // Estrategia para Navegación: Intenta red primero con timeout corto, cae a cache
     {
       matcher: ({ request }: { request: Request }) => request.mode === 'navigate',
       handler: new NetworkFirst({
         cacheName: 'pages-cache',
         networkTimeoutSeconds: 3,
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 50,
+            maxAgeSeconds: 60 * 60 * 24 * 7, // 7 días
+          }),
+        ],
       }),
     },
-    // Estrategia para API de Supabase: Intenta red primero, si falla usa cache
     // Estrategia para API de Supabase: StaleWhileRevalidate para lectura rápida
     {
       matcher: ({ url }: { url: URL }) => url.pathname.includes('/rest/v1/') && !url.pathname.includes('/auth/'),
@@ -49,6 +80,12 @@ const serwist = new Serwist({
       matcher: ({ request }: { request: Request }) => request.destination === 'image',
       handler: new CacheFirst({
         cacheName: 'images-cache',
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 60,
+            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
+          }),
+        ],
       })
     },
     {
@@ -56,6 +93,12 @@ const serwist = new Serwist({
         url.origin === 'https://fonts.gstatic.com',
       handler: new CacheFirst({
         cacheName: 'fonts-cache',
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 20,
+            maxAgeSeconds: 60 * 60 * 24 * 365,
+          }),
+        ],
       })
     }
   ],

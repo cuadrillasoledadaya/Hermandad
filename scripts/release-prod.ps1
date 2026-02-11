@@ -29,7 +29,7 @@ if ($LASTEXITCODE -ne 0) { throw "Error en despliegue a Vercel" }
 # 4. Git Sync (Add, Commit, Tag, Push)
 Write-Host "🔄 Sincronizando con GitHub (Commit + Tag)..." -ForegroundColor Yellow
 git add .
-git commit -m "v$version: $Message"
+git commit -m "v${version}: $Message"
 git tag "v$version"
 git push origin main --tags
 if ($LASTEXITCODE -ne 0) { throw "Error en sincronización con GitHub" }
