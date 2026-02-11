@@ -347,15 +347,6 @@ export async function getPagosDelAnio(anio: number): Promise<Pago[]> {
             console.warn('⚠️ Error con IndexedDB nueva:', dexieError);
         }
 
-        // Fallback a base de datos antigua
-        try {
-            const { getPagosLocal } = await import('./db');
-            const allPagos = await getPagosLocal();
-            return (allPagos as unknown as Pago[]).filter(p => p.anio === anio);
-        } catch (oldDbError) {
-            console.warn('⚠️ Error con DB antigua:', oldDbError);
-        }
-
         return [];
     }
 }

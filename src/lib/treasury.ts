@@ -33,8 +33,8 @@ export async function getActiveSeason() {
 
         // Cachear en meta para offline
         if (data && typeof window !== 'undefined') {
-            const { setSyncMetadata } = await import('./db');
-            await setSyncMetadata('active_season', data);
+            const { db } = await import('./db');
+            await db.setSyncMetadata('active_season', data);
         }
 
         return data;
@@ -42,8 +42,8 @@ export async function getActiveSeason() {
         const errorMsg = (e as Error).message;
         if (errorMsg === 'offline' || errorMsg?.includes('fetch') || errorMsg === 'timeout') {
             console.log('📦 [TREASURY] Offline/timeout detected (Season), fetching from metadata');
-            const { getSyncMetadata } = await import('./db');
-            const cached = await getSyncMetadata('active_season');
+            const { db } = await import('./db');
+            const cached = await db.getSyncMetadata('active_season');
             if (cached) return cached;
 
             // Retornar temporada por defecto si no hay cache

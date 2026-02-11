@@ -1,4 +1,5 @@
-import { db, LogEntry } from './db/database';
+import { db, type LogEntry } from './db/database';
+export type { LogEntry };
 
 export type LogLevel = 'info' | 'warn' | 'error';
 

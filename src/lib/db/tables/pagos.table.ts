@@ -108,6 +108,11 @@ export const pagosRepo = {
     );
   },
 
+  /** Alias para compatibilidad con lógica antigua */
+  async getPagosLocal(idHermano: string): Promise<Pago[]> {
+    return this.getByHermano(idHermano);
+  },
+
   async getByAnio(anio: number): Promise<Pago[]> {
     return db.pagos
       .where('anio')

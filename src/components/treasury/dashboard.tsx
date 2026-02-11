@@ -141,7 +141,7 @@ export function TreasuryDashboard() {
                                     <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-none snap-x">
                                         {MONTHS.map((month, index) => {
                                             const status = getMonthStatusForYear(hermano, brotherPagos, effectiveYear, index);
-                                            // @ts-ignore - _offline exists on Pago locally
+                                            // @ts-expect-error - _offline exists on Pago locally
                                             const isOffline = brotherPagos.some(p => p.anio === effectiveYear && p._offline && getMonthStatusForYear(hermano, [p], effectiveYear, index) === 'PAID');
 
                                             return (
@@ -207,7 +207,7 @@ export function TreasuryDashboard() {
                                     </TableCell>
                                     {MONTHS.map((_, index) => {
                                         const status = getMonthStatusForYear(hermano, brotherPagos, effectiveYear, index);
-                                        // @ts-ignore
+                                        // @ts-expect-error - _offline exists on Pago locally in Dexie
                                         const isOffline = brotherPagos.some(p => p.anio === effectiveYear && p._offline && getMonthStatusForYear(hermano, [p], effectiveYear, index) === 'PAID');
 
                                         return (

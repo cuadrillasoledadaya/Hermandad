@@ -1,6 +1,5 @@
 import Dexie, { Table } from 'dexie';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any;
 
 // ============================================
@@ -87,7 +86,6 @@ export interface MutationQueueItem {
   id?: number;
   type: 'insert' | 'update' | 'delete';
   table: 'hermanos' | 'pagos' | 'papeletas_cortejo' | 'configuracion' | 'cortejo_asignaciones';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
   timestamp: number;
   retryCount: number;
@@ -199,7 +197,6 @@ export class HermandadDatabase extends Dexie {
       obj._syncStatus = obj._syncStatus || 'pending';
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     this.configuracion.hook('updating', (modifications, _primKey, _obj) => {
       return {
         ...modifications,
@@ -257,6 +254,23 @@ export class HermandadDatabase extends Dexie {
     }
 
     return idsToDelete.length;
+  }
+
+  // ============================================
+  // METADATOS DE SINCRONIZACIÓN (Compatibilidad)
+  // ============================================
+
+  async getSyncMetadata(key: string): Promise<any> {
+    const record = await this.metadata.get(key);
+    return record ? record.value : null;
+  }
+
+  async setSyncMetadata(key: string, value: any): Promise<void> {
+    await this.metadata.put({
+      key,
+      value,
+      updated_at: Date.now()
+    });
   }
 }
 
