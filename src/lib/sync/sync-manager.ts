@@ -119,7 +119,12 @@ export class SyncManager {
     const data = mutation.data as any;
 
     // Limpiar campos internos antes de enviar a Supabase
-    const cleanData = this.sanitizeData(data);
+    let cleanData = this.sanitizeData(data);
+
+    // PRE-SYNC: Lógica específica para papeletas vendidas offline
+    if (mutation.table === 'papeletas_cortejo' && mutation.type === 'insert') {
+      cleanData = await this.preProcessPapeletaInsert(cleanData, data);
+    }
 
     // Timeout para la operación específica
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -161,66 +166,80 @@ export class SyncManager {
 
     await Promise.race([operation, timeoutPromise]);
 
-    // POST-SYNC: Si es una papeleta con número negativo (offline), obtener el número real
+    // POST-SYNC: Actualizar IndexedDB con los cambios finales
     if (mutation.table === 'papeletas_cortejo' && mutation.type === 'insert') {
-      await this.handleOfflinePapeletaSync(cleanData, data);
+      await this.postProcessPapeletaSync(cleanData, data);
+    } else if (mutation.table === 'pagos' && mutation.type === 'insert') {
+      const { pagosRepo } = await import('../db/tables/pagos.table');
+      await pagosRepo.markAsSynced(cleanData.id);
     }
   }
 
   /**
-   * Maneja la sincronización de papeletas offline:
-   * 1. Detecta si tiene número negativo (provisorio)
-   * 2. Obtiene el número real desde Supabase
-   * 3. Actualiza la papeleta en IndexedDB
-   * 4. Actualiza el concepto del pago relacionado
+   * Antes del insert, si la papeleta tiene número provisional (< 0),
+   * buscamos el número real en Supabase para evitar colisiones y placeholders.
    */
-  private async handleOfflinePapeletaSync(cleanData: any, originalData: any) {
+  private async preProcessPapeletaInsert(cleanData: any, originalData: any) {
     try {
-      const papeletaNumero = cleanData.numero || originalData.numero;
+      const currentNumero = cleanData.numero || originalData.numero;
+      if (currentNumero >= 0) return cleanData;
 
-      // Solo procesar si es un número provisional (negativo)
-      if (papeletaNumero >= 0) return;
+      console.log(`🔍 [SYNC] Re-asignando número real ANTES del insert para papeleta ${currentNumero}`);
 
-      console.log(`🔄 [SYNC] Papeleta offline detectada (${papeletaNumero}), obteniendo número real...`);
-
-      // Obtener la papeleta desde Supabase para ver el número real asignado
-      const { data: papeletaSynced, error: fetchError } = await supabase
+      // 1. Obtener el último número en Supabase para ese año
+      const { data: ultima } = await supabase
         .from('papeletas_cortejo')
-        .select('numero, tipo')
-        .eq('id', cleanData.id)
-        .single();
+        .select('numero')
+        .eq('anio', cleanData.anio)
+        .order('numero', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (fetchError) {
-        console.error('❌ [SYNC] Error fetching synced papeleta:', fetchError);
-        return;
-      }
+      const nuevoNumero = ultima ? (ultima as any).numero + 1 : 1;
 
-      if (!papeletaSynced || papeletaSynced.numero <= 0) {
-        console.warn('⚠️ [SYNC] Papeleta synced but still has invalid number');
-        return;
-      }
+      console.log(`✅ [SYNC] Nuevo número calculado: #${nuevoNumero}`);
 
-      // Actualizar la papeleta en IndexedDB con el número real
+      // 2. Actualizar el objeto que se enviará a Supabase
+      return {
+        ...cleanData,
+        numero: nuevoNumero
+      };
+    } catch (err) {
+      console.error('❌ [SYNC] Error en preProcessPapeletaInsert:', err);
+      return cleanData;
+    }
+  }
+
+  /**
+   * Después del éxito en el servidor, actualizamos IndexedDB con el número real.
+   */
+  private async postProcessPapeletaSync(finalCleanData: any, originalData: any) {
+    try {
+      const realNumero = finalCleanData.numero;
+      const papeletaId = finalCleanData.id;
+
+      if (!realNumero || realNumero <= 0) return;
+
+      console.log(`💾 [SYNC] Consolidando datos locales para papeleta #${realNumero}`);
+
+      // 1. Marcar papeleta como sincronizada con su número real
       const { papeletasRepo } = await import('../db/tables/papeletas.table');
-      await papeletasRepo.markAsSynced(cleanData.id, papeletaSynced.numero);
+      await papeletasRepo.markAsSynced(papeletaId, realNumero);
 
-      console.log(`✅ [SYNC] Papeleta actualizada: ${papeletaNumero} -> #${papeletaSynced.numero}`);
-
-      // Actualizar el concepto del pago relacionado si existe
-      if (cleanData.id_ingreso || originalData.id_ingreso) {
-        const pagoId = cleanData.id_ingreso || originalData.id_ingreso;
+      // 2. Si hay un pago vinculado (id_ingreso), actualizar su concepto también
+      const pagoId = finalCleanData.id_ingreso || originalData.id_ingreso;
+      if (pagoId) {
         const { TIPOS_PAPELETA } = await import('../papeletas-cortejo');
-        const nuevoConcepto = `Papeleta #${papeletaSynced.numero} - ${TIPOS_PAPELETA[papeletaSynced.tipo as keyof typeof TIPOS_PAPELETA]}`;
+        const tipo = finalCleanData.tipo || originalData.tipo;
+        const labelTipo = TIPOS_PAPELETA[tipo as keyof typeof TIPOS_PAPELETA] || 'Papeleta';
+        const nuevoConcepto = `Papeleta #${realNumero} - ${labelTipo}`;
 
         const { pagosRepo } = await import('../db/tables/pagos.table');
         await pagosRepo.markAsSynced(pagoId, { concepto: nuevoConcepto });
-
-        console.log(`✅ [SYNC] Pago actualizado: "${nuevoConcepto}"`);
+        console.log(`✅ [SYNC] Pago #${pagoId} actualizado con concepto: ${nuevoConcepto}`);
       }
-
-    } catch (error) {
-      console.error('❌ [SYNC] Error in handleOfflinePapeletaSync:', error);
-      // No lanzar el error para no bloquear la sincronización general
+    } catch (err) {
+      console.error('❌ [SYNC] Error en postProcessPapeletaSync:', err);
     }
   }
 
@@ -244,9 +263,8 @@ export class SyncManager {
     // Relaciones expandidas (objetos anidados) que Supabase no acepta en insert/update directo
     Object.keys(copy).forEach(key => {
       if (typeof copy[key] === 'object' && copy[key] !== null && !Array.isArray(copy[key])) {
-        // Si es un objeto (relación), lo quitamos. 
-        // Excepción: jsonb columns. Pero en esta app no parece haber jsonb complejos en mutations.
-        // Asumimos que las relaciones (ej: 'hermano: { ... }') no se deben enviar.
+        // Excepción: Solo si es Date o similar (no aplica aquí)
+        // Eliminamos "hermano", "posicion", etc.
         delete copy[key];
       }
     });

@@ -10,6 +10,7 @@ import { createClient, supabase } from '@/lib/supabase';
 import { showError, showSuccess } from '@/lib/error-handler';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { syncManager } from '@/lib/sync/sync-manager';
 
 interface SyncStatus {
     isSyncing: boolean;
@@ -36,184 +37,14 @@ export function useOfflineSync() {
 
     // Procesar mutaciones pendientes
     const processMutations = useCallback(async () => {
-        if (!isOnline) return;
+        if (!isOnline || status.isSyncing) return;
 
-        const pending = await mutationsRepo.getPending();
-        if (pending.length === 0) return;
+        // Ahora delegamos TODO el peso al SyncManager unificado
+        const { syncManager } = await import('@/lib/sync/sync-manager');
+        await syncManager.processQueue();
 
-        setStatus(prev => ({ ...prev, isSyncing: true, error: null }));
-        const supabase = createClient();
-        let successCount = 0;
-        let errorCount = 0;
-
-        const sanitizeDataForSupabase = (data: unknown) => {
-            if (Array.isArray(data)) {
-                return data.map(item => {
-                    const clean = { ...(item as Record<string, unknown>) };
-                    delete clean.hermano;
-                    delete clean.posicion;
-                    delete clean.ingreso;
-                    delete clean._offline;
-                    return clean;
-                });
-            }
-            const clean = { ...(data as Record<string, unknown>) };
-            delete clean.hermano;
-            delete clean.posicion;
-            delete clean.ingreso;
-            delete clean._offline;
-            return clean;
-        };
-
-        for (const mutation of pending) {
-            try {
-                let result: { data: unknown; error: { code: string; message: string } | null };
-                const cleanedData = sanitizeDataForSupabase(mutation.data);
-
-                switch (mutation.type) {
-                    case 'insert':
-                        // Re-asignar número si es provisional (<= 0) para papeletas_cortejo
-                        if (mutation.table === 'papeletas_cortejo') {
-                            const data = mutation.data as { numero: number; anio: number; id_ingreso?: string };
-                            if ((typeof data.numero === 'number' && data.numero <= 0) || (typeof data.numero === 'string' && parseInt(data.numero) <= 0)) {
-                                try {
-                                    const { data: ultima } = await supabase
-                                        .from('papeletas_cortejo')
-                                        .select('numero')
-                                        .eq('anio', data.anio)
-                                        .order('numero', { ascending: false })
-                                        .limit(1)
-                                        .maybeSingle();
-
-                                    const nuevoNumero = ultima ? (ultima as { numero: number }).numero + 1 : 1;
-                                    data.numero = nuevoNumero;
-                                    (cleanedData as Record<string, unknown>).numero = nuevoNumero; // Actualizar también los datos limpios
-
-                                    console.log(`🔄 Re-asignando número real ${nuevoNumero} a papeleta provisional`);
-
-                                    // Intentar actualizar el concepto en la tabla de pagos vinculada
-                                    if (data.id_ingreso) {
-                                        const { data: pago } = await supabase
-                                            .from('pagos')
-                                            .select('concepto')
-                                            .eq('id', data.id_ingreso)
-                                            .maybeSingle();
-
-                                        if (pago && (pago as { concepto: string }).concepto.includes('(Pendiente)')) {
-                                            const nuevoConcepto = (pago as { concepto: string }).concepto.replace('(Pendiente)', `#${nuevoNumero}`);
-                                            await supabase
-                                                .from('pagos')
-                                                .update({ concepto: nuevoConcepto })
-                                                .eq('id', data.id_ingreso);
-                                        }
-                                    }
-                                } catch (err) {
-                                    console.error('Error re-asignando número:', err);
-                                }
-                            }
-                        }
-                        result = await supabase.from(mutation.table).insert(cleanedData);
-                        break;
-                    case 'update':
-                        if (Array.isArray(mutation.data)) throw new Error('Bulk update not supported');
-                        result = await supabase.from(mutation.table).update(cleanedData).eq('id', (mutation.data as Record<string, unknown>).id);
-                        break;
-                    case 'delete':
-                        if (Array.isArray(mutation.data)) throw new Error('Bulk delete not supported');
-                        result = await supabase.from(mutation.table).delete().eq('id', (mutation.data as Record<string, unknown>).id);
-                        break;
-                }
-
-                if (result.error) {
-                    const error = result.error;
-                    // Si el error es una violación de unicidad en el número de papeleta
-                    const isPapeletaNumberConflict =
-                        mutation.table === 'papeletas_cortejo' &&
-                        error.code === '23505' &&
-                        error.message?.toLowerCase().includes('numero');
-
-                    if (isPapeletaNumberConflict) {
-                        console.log('⚠️ [SYNC] Conflicto de número de papeleta detectado, forzando re-asignación en el próximo intento...');
-                        // Marcamos como número provisional para que la lógica superior lo re-asigne en el siguiente ciclo
-                        if (!Array.isArray(mutation.data)) {
-                            (mutation.data as Record<string, unknown>).numero = -1;
-                        }
-                        throw error;
-                    }
-
-                    throw error;
-                }
-
-                // Éxito: actualizar localmente si hubo reasignación de número y eliminar de la cola
-                if (mutation.id) {
-                    if (mutation.table === 'papeletas_cortejo' && !Array.isArray(mutation.data)) {
-                        const data = mutation.data as any;
-                        // Si el número cambió de provisional (negativo/0) a real (positivo)
-                        if (data.numero > 0) {
-                            await papeletasRepo.markAsSynced(data.id, data.numero);
-
-                            // Si también tenemos un pago vinculado, actualizar su concepto
-                            if (data.id_ingreso) {
-                                const { data: pago } = await supabase
-                                    .from('pagos')
-                                    .select('concepto')
-                                    .eq('id', data.id_ingreso)
-                                    .maybeSingle();
-
-                                if (pago) {
-                                    await pagosRepo.markAsSynced(data.id_ingreso, { concepto: pago.concepto });
-                                }
-                            }
-                        } else {
-                            await papeletasRepo.markAsSynced(data.id);
-                        }
-                    } else if (mutation.table === 'pagos') {
-                        await pagosRepo.markAsSynced((mutation.data as any).id);
-                    }
-
-                    await mutationsRepo.remove(mutation.id);
-                }
-                successCount++;
-
-            } catch (error) {
-                console.error('Error procesando mutation:', mutation, error);
-                errorCount++;
-
-                // Incrementar contador de reintentos
-                if (mutation.id) {
-                    await mutationsRepo.markAsFailed(mutation.id, error instanceof Error ? error.message : 'Unknown');
-                }
-
-                // Si ha fallado muchas veces, mostrar error
-                if (mutation.retryCount >= 3) {
-                    setStatus(prev => ({ ...prev, error: `Fallo al sincronizar ${mutation.table}` }));
-                    toast.error(`Error sincronizando ${mutation.table}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-                }
-            }
-        }
-
-        setStatus(prev => ({
-            ...prev,
-            isSyncing: false,
-            pendingCount: pending.length - successCount,
-            lastSync: new Date(),
-        }));
-
-        if (successCount > 0) {
-            // Invalidar queries para forzar refetch tras sincronización exitosa
-            queryClient.invalidateQueries({ queryKey: ['hermanos'] });
-            queryClient.invalidateQueries({ queryKey: ['pagos'] });
-            queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
-
-            showSuccess(`¡Sincronizado!`, `${successCount} cambios enviados a la nube`);
-        }
-        if (errorCount > 0) {
-            toast.error(`${errorCount} cambios fallidos`, {
-                description: 'No se pudieron sincronizar algunos cambios. Se reintentará automáticamente.',
-                duration: 5000,
-            });
-        }
-    }, [isOnline, queryClient]);
+        // El estado local se actualiza a través de los efectos que escuchan al SyncManager
+    }, [isOnline, status.isSyncing]);
 
     // Escuchar mensajes del Service Worker
     useEffect(() => {
@@ -336,30 +167,16 @@ export function useOfflineSync() {
         };
     }, [isOnline, syncMasterData, processMutations, status.pendingCount]);
 
-    // Verificar pendientes al montar y cuando cambian las mutaciones
+    // Monitor del SyncManager para actualizar estado de UI
     useEffect(() => {
-        checkPending();
-
-        const handleMutationChange = () => {
-            console.log('🔄 [SYNC] Detectado cambio en cola de mutaciones, intentando sincronización inmediata...');
-            checkPending();
-            if (isOnline) {
-                processMutations();
+        const unsubscribe = syncManager.subscribe((isSyncing: boolean) => {
+            setStatus(prev => ({ ...prev, isSyncing }));
+            if (!isSyncing) {
+                checkPending();
             }
-        };
-
-        window.addEventListener('dexie-mutation-changed', handleMutationChange);
-        return () => {
-            window.removeEventListener('dexie-mutation-changed', handleMutationChange);
-        };
+        });
+        return () => unsubscribe();
     }, [checkPending]);
-
-    // Sincronizar datos maestros al montar si ya estamos online
-    useEffect(() => {
-        if (isOnline) {
-            syncMasterData();
-        }
-    }, []);
 
     // Limpiar cola manualmente
     const clearQueue = async () => {
