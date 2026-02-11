@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Trash2, RefreshCw, Copy, AlertTriangle, AlertCircle, Info, Database, CloudOff, HardDriveDownload } from 'lucide-react';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
-import { resetAndReload } from '@/lib/db-clear';
-import { getPendingMutations, type MutationQueueItem } from '@/lib/db';
+import { db, type MutationQueueItem } from '@/lib/db/database';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -23,7 +22,7 @@ export default function LogsPage() {
     const loadLogs = async () => {
         setLoading(true);
         const data = await getSystemLogs(200); // Últimos 200 logs
-        const mutationList = await getPendingMutations();
+        const mutationList = await db.mutations.where('status').equals('pending').toArray();
         setLogs(data);
         setMutations(mutationList);
         setLoading(false);
@@ -37,7 +36,7 @@ export default function LogsPage() {
                 const data = await getSystemLogs(200);
                 if (mounted) {
                     setLogs(data);
-                    const mutationList = await getPendingMutations();
+                    const mutationList = await db.mutations.where('status').equals('pending').toArray();
                     setMutations(mutationList);
                     setLoading(false);
                 }
@@ -180,7 +179,8 @@ export default function LogsPage() {
                                 if (confirm('⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán TODOS los datos locales de IndexedDB.\n\nSi tienes cambios pendientes de sincronizar, SE PERDERÁN.\n\nDespués de confirmar, la app se recargará y descargará todo desde Supabase.')) {
                                     try {
                                         toast.loading('Limpiando base de datos local...');
-                                        await resetAndReload();
+                                        await db.delete();
+                                        window.location.reload();
                                         // La página se recargará automáticamente
                                     } catch (error) {
                                         toast.error('Error al limpiar la base de datos');
