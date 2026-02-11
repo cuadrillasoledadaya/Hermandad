@@ -302,8 +302,13 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
     try {
         console.log(`🔍 [PAPELETAS] Solicitando papeletas del año ${year} (Online)...`);
 
+        // Timeout de 1 segundo para caer rápido a offline
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('timeout')), 1000);
+        });
+
         // Añadimos una cabecera para intentar saltar caches de navegador si las hubiera
-        const { data, error } = await supabase
+        const supabaseQuery = supabase
             .from('papeletas_cortejo')
             .select(`
                 *,
@@ -313,6 +318,9 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
             `)
             .eq('anio', year)
             .order('numero', { ascending: true });
+
+        // @ts-expect-error - Promise race typing
+        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
 
         if (error) {
             console.error('❌ [PAPELETAS] Error en query Supabase:', error);
@@ -392,19 +400,41 @@ export async function getPapeletasPendientes(
  * Obtiene una papeleta por ID
  */
 export async function getPapeleta(id: string): Promise<PapeletaConDetalles> {
-    const { data, error } = await supabase
-        .from('papeletas_cortejo')
-        .select(`
-            *,
-            hermano:hermanos(id, nombre, apellidos),
-            posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
-            ingreso:pagos(id, tipo_pago)
-        `)
-        .eq('id', id)
-        .single();
+    try {
+        // Timeout de 1 segundo para caer rápido a offline
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('timeout')), 1000);
+        });
 
-    if (error) throw error;
-    return data as unknown as PapeletaConDetalles;
+        const supabaseQuery = supabase
+            .from('papeletas_cortejo')
+            .select(`
+                *,
+                hermano:hermanos(id, nombre, apellidos),
+                posicion:cortejo_estructura(id, nombre, tipo, tipo_insignia),
+                ingreso:pagos(id, tipo_pago)
+            `)
+            .eq('id', id)
+            .single();
+
+        // @ts-expect-error - Promise race typing
+        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
+
+        if (error) throw error;
+        return data as unknown as PapeletaConDetalles;
+    } catch (e) {
+        console.warn('⚠️ [PAPELETAS] Fallo getPapeleta online, intentando local:', e);
+        if (typeof window === 'undefined') throw e;
+
+        // Intentar buscar en el array local de papeletas
+        const localData = await getPapeletasLocal();
+        const found = localData.find((p: Record<string, unknown>) => p.id === id);
+
+        if (found) {
+            return found as unknown as PapeletaConDetalles;
+        }
+        throw e;
+    }
 }
 
 // =====================================================

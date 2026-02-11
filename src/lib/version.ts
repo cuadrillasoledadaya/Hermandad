@@ -4,5 +4,6 @@
  */
 // Versión de la aplicación hardcodeada para asegurar sincronización en Vercel
 
-export const APP_VERSION = "1.1.89"; // Offline-first loading improvements (Retry)
+export const APP_VERSION = "1.1.90"; // Fix offline papeletas
+
 

@@ -1,106 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useOfflineStore } from '@/stores/offline-store';
-import { networkMonitor } from '@/lib/sync/network-monitor';
-import { syncManager } from '@/lib/sync/sync-manager';
+import { useState, useEffect } from 'react';
+import { useSync } from '@/components/providers/sync-provider';
 import { Button } from '@/components/ui/button';
 import { Wifi, WifiOff, RefreshCw, AlertCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function OfflineBanner() {
+  const { isOnline, isSyncing, pendingMutations, forceSync } = useSync();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
-  
-  // Usar Zustand store
-  const isOnline = useOfflineStore((state) => state.isOnline);
-  const pendingCount = useOfflineStore((state) => state.pendingCount);
-  const isSyncing = useOfflineStore((state) => state.isSyncing);
-  const syncError = useOfflineStore((state) => state.syncError);
-  
-  const setNetworkStatus = useOfflineStore((state) => state.setNetworkStatus);
-  const setSyncing = useOfflineStore((state) => state.setSyncing);
-  const setPendingCount = useOfflineStore((state) => state.setPendingCount);
-  const setSyncError = useOfflineStore((state) => state.setSyncError);
-
-  // Suscribirse a cambios de red
-  useEffect(() => {
-    const unsubscribe = networkMonitor.subscribe((status) => {
-      setNetworkStatus({ 
-        isOnline: status.isOnline, 
-        connectionType: status.connectionType 
-      });
-    });
-
-    return () => unsubscribe();
-  }, [setNetworkStatus]);
-
-  // Actualizar contador de pendientes periódicamente
-  useEffect(() => {
-    const updatePending = async () => {
-      try {
-        const { db } = await import('@/lib/db/database');
-        const count = await db.mutations.where('status').equals('pending').count();
-        setPendingCount(count);
-      } catch (err) {
-        console.error('Error contando pendientes:', err);
-      }
-    };
-
-    updatePending();
-    const interval = setInterval(updatePending, 5000);
-    return () => clearInterval(interval);
-  }, [setPendingCount]);
-
-  // Auto-sincronizar cuando volvemos online
-  useEffect(() => {
-    if (isOnline && pendingCount > 0 && !isSyncing) {
-      const timer = setTimeout(() => {
-        handleSync();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isOnline, pendingCount, isSyncing]);
 
   // Mostrar/ocultar banner
   useEffect(() => {
-    if (!isOnline || pendingCount > 0 || isSyncing || syncError) {
+    if (!isOnline || pendingMutations > 0 || isSyncing) {
       setIsVisible(true);
       setIsDismissed(false);
-    } else if (pendingCount === 0 && !isSyncing && isOnline && !syncError) {
+    } else if (pendingMutations === 0 && !isSyncing && isOnline) {
       const timer = setTimeout(() => setIsVisible(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [isOnline, pendingCount, isSyncing, syncError]);
+  }, [isOnline, pendingMutations, isSyncing]);
 
   const handleSync = async () => {
-    if (!isOnline || pendingCount === 0) return;
-
-    setSyncing(true);
-    setSyncError(null);
+    if (!isOnline || pendingMutations === 0) return;
 
     try {
-      const result = await syncManager.sync({
-        strategy: 'server-wins',
-        batchSize: 10
-      });
-
-      if (result.success) {
-        toast.success(`✅ Sincronizado: ${result.processed - result.failed}/${result.processed}`);
-      } else {
-        setSyncError(`${result.failed} errores`);
-        toast.error(`❌ ${result.errors.length} errores`);
-      }
-
-      // Actualizar contador
-      const { db } = await import('@/lib/db/database');
-      const count = await db.mutations.where('status').equals('pending').count();
-      setPendingCount(count);
+      await forceSync();
+      toast.success('Sincronización iniciada');
     } catch (err: any) {
-      setSyncError(err.message);
-      toast.error('Error de sincronización');
-    } finally {
-      setSyncing(false);
+      toast.error('Error al iniciar sincronización');
     }
   };
 
@@ -116,18 +45,15 @@ export function OfflineBanner() {
     bgColor = 'bg-yellow-500';
     textColor = 'text-black';
     Icon = WifiOff;
-    message = `⚠️ Sin conexión. ${pendingCount} cambios pendientes.`;
+    message = `⚠️ Sin conexión. ${pendingMutations} cambios pendientes.`;
   } else if (isSyncing) {
     bgColor = 'bg-blue-500';
     Icon = RefreshCw;
     message = '🔄 Sincronizando...';
-  } else if (syncError) {
-    bgColor = 'bg-red-500';
-    Icon = AlertCircle;
-    message = `❌ Error: ${syncError}`;
-  } else if (pendingCount > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } else if (pendingMutations > 0) {
     bgColor = 'bg-orange-500';
-    message = `📦 ${pendingCount} cambios pendientes`;
+    message = `📦 ${pendingMutations} cambios pendientes`;
   }
 
   return (
@@ -139,18 +65,18 @@ export function OfflineBanner() {
         </div>
 
         <div className="flex items-center gap-2">
-          {isOnline && pendingCount > 0 && !isSyncing && (
-            <Button 
-              variant="secondary" 
-              size="sm" 
+          {isOnline && pendingMutations > 0 && !isSyncing && (
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleSync}
               className="h-8"
             >
               Sincronizar
             </Button>
           )}
-          
-          <button 
+
+          <button
             onClick={() => setIsDismissed(true)}
             className="p-1 rounded-full hover:bg-black/10 transition-colors"
           >

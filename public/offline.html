@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sin Conexión - Hermandad</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f9fafb;
+            color: #111827;
+            text-align: center;
+            padding: 20px;
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        p {
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+        button {
+            background-color: #2E7D32;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1B5E20;
+        }
+    </style>
+</head>
+<body>
+    <div class="icon">📡</div>
+    <h1>Estás sin conexión</h1>
+    <p>No pudimos cargar esta página. Verifica tu conexión a internet e inténtalo de nuevo.</p>
+    <button onclick="window.location.reload()">Reintentar</button>
+</body>
+</html>

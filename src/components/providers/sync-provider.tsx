@@ -1,113 +1,109 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, createContext, useContext } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
-import { db } from '@/lib/db/database';
 import { networkMonitor } from '@/lib/sync/network-monitor';
+import { syncManager } from '@/lib/sync/sync-manager';
+import { mutationsRepo } from '@/lib/db/tables/mutations.table';
 
-interface PreloadStatus {
-    hermanos: boolean;
-    pagos: boolean;
-    papeletas: boolean;
-    configuracion: boolean;
+interface SyncContextType {
+    isOnline: boolean;
+    isSyncing: boolean;
+    pendingMutations: number;
+    forceSync: () => Promise<void>;
 }
+
+const SyncContext = createContext<SyncContextType>({
+    isOnline: true,
+    isSyncing: false,
+    pendingMutations: 0,
+    forceSync: async () => { },
+});
+
+export const useSync = () => useContext(SyncContext);
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+
     const [isLoading, setIsLoading] = useState(true);
-    const [preloadStatus, setPreloadStatus] = useState<PreloadStatus>({
-        hermanos: false,
-        pagos: false,
-        papeletas: false,
-        configuracion: false
-    });
+    const [isOnline, setIsOnline] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [pendingMutations, setPendingMutations] = useState(0);
+
+
     const { user, loading: authLoading } = useAuth();
 
-    const isAuthPage = pathname === '/login' || pathname === '/register';
-
-    const preloadData = useCallback(async () => {
-        if (!user) return;
-
-        console.log('[SyncProvider] Iniciando precarga...');
-
-        try {
-            const network = networkMonitor.getState();
-            if (!network.isOnline) {
-                console.log('[SyncProvider] Sin conexión, usando datos locales');
-                return;
-            }
-
-            // Precargar en paralelo sin bloquear
-            await Promise.allSettled([
-                // Hermanos
-                import('@/lib/brothers').then(({ getHermanos }) =>
-                    getHermanos().then(data => {
-                        console.log('[SyncProvider] Hermanos:', data.length);
-                        setPreloadStatus(prev => ({ ...prev, hermanos: true }));
-                    })
-                ),
-
-                // Pagos
-                import('@/lib/brothers').then(({ getPagosDelAnio }) =>
-                    getPagosDelAnio(new Date().getFullYear()).then(data => {
-                        console.log('[SyncProvider] Pagos:', data.length);
-                        setPreloadStatus(prev => ({ ...prev, pagos: true }));
-                    })
-                ),
-
-                // Configuración
-                import('@/lib/configuracion').then(({ getPreciosConfig }) =>
-                    getPreciosConfig().then(() => {
-                        setPreloadStatus(prev => ({ ...prev, configuracion: true }));
-                    })
-                ),
-
-                // Temporada
-                import('@/lib/treasury').then(({ getActiveSeason }) =>
-                    getActiveSeason().then(() => {
-                        console.log('[SyncProvider] Temporada cargada');
-                    })
-                )
-            ]);
-
-            console.log('[SyncProvider] Precarga completada');
-        } catch (err) {
-            console.error('[SyncProvider] Error:', err);
-        }
-    }, [user]);
-
+    // Monitor Network Status
     useEffect(() => {
-        // En páginas de auth, mostrar inmediatamente
-        if (isAuthPage) {
-            setIsLoading(false);
-            return;
-        }
+        const unsubscribe = networkMonitor.subscribe((state) => {
+            setIsOnline(state.isOnline);
+        });
+        setIsOnline(networkMonitor.getState().isOnline);
+        return () => unsubscribe();
+    }, []);
 
-        // Esperar autenticación
-        if (authLoading) return;
-
-        // Si no hay usuario, mostrar app (middleware redirigirá si es necesario)
-        if (!user) {
-            setIsLoading(false);
-            return;
-        }
-
-        // Usuario autenticado: precargar y mostrar
-        setIsLoading(false);
-        preloadData();
-
-        // Precargar periódicamente
-        const interval = setInterval(() => {
-            if (networkMonitor.getState().isOnline) {
-                preloadData();
+    // Monitor Sync Status
+    useEffect(() => {
+        const unsubscribe = syncManager.subscribe((syncing) => {
+            setIsSyncing(syncing);
+            // Actualizar cuenta de pendientes cuando termina de sincronizar
+            if (!syncing) {
+                mutationsRepo.getPendingCount().then(setPendingMutations);
             }
-        }, 5 * 60 * 1000);
+        });
+        return () => unsubscribe();
+    }, []);
 
-        return () => clearInterval(interval);
-    }, [isAuthPage, authLoading, user, preloadData]);
+    // Monitor Pending Mutations Count
+    useEffect(() => {
+        // Escuchar cambios en la DB para actualizar el contador
+        const updateCount = () => {
+            mutationsRepo.getPendingCount().then(setPendingMutations);
+        };
 
-    // No mostrar loader bloqueante - la app debe ser visible inmediatamente
-    // El QueryProvider y componentes individuales manejarán sus propios estados de carga
-    return <>{children}</>;
+        window.addEventListener('dexie-mutation-changed', updateCount);
+        // Inicial
+        updateCount();
+
+        return () => window.removeEventListener('dexie-mutation-changed', updateCount);
+    }, []);
+
+    // Initial Data Preload (Legacy logic preserved but simplified)
+    useEffect(() => {
+        if (!user || authLoading) return;
+
+        const preload = async () => {
+            if (networkMonitor.getState().isOnline) {
+                try {
+                    // Trigger a sync of the queue first
+                    await syncManager.processQueue();
+
+                    // Here we can trigger SWR prefetching if needed, 
+                    // but for now relying on Serwist's runtime caching is better strategies.
+                } catch (e) {
+                    console.error('Error in initial sync:', e);
+                }
+            }
+        };
+
+        preload();
+    }, [user, authLoading]);
+
+    const forceSync = useCallback(async () => {
+        await syncManager.processQueue();
+    }, []);
+
+    const value = {
+        isOnline,
+        isSyncing,
+        pendingMutations,
+        forceSync
+    };
+
+    return (
+        <SyncContext.Provider value={value}>
+            {children}
+        </SyncContext.Provider>
+    );
 }

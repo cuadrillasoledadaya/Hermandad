@@ -13,9 +13,9 @@ export function getConceptString(seasonYear: number, seasonMonthIdx: number) {
 
 export async function getActiveSeason() {
     try {
-        // Timeout de 3 segundos
+        // Timeout de 1 segundo para caer rápido a offline
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('timeout')), 3000);
+            setTimeout(() => reject(new Error('timeout')), 1000);
         });
 
         const supabaseQuery = supabase
@@ -45,7 +45,7 @@ export async function getActiveSeason() {
             const { getSyncMetadata } = await import('./db');
             const cached = await getSyncMetadata('active_season');
             if (cached) return cached;
-            
+
             // Retornar temporada por defecto si no hay cache
             const currentYear = new Date().getFullYear();
             console.log('📦 [TREASURY] Usando temporada por defecto:', currentYear);

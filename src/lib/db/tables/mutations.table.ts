@@ -36,6 +36,10 @@ export const mutationsRepo = {
       .sortBy('priority');
   },
 
+  async getPendingCount(): Promise<number> {
+    return db.mutations.where('status').equals('pending').count();
+  },
+
   async getByStatus(status: MutationQueueItem['status']): Promise<MutationQueueItem[]> {
     return db.mutations
       .where('status')
@@ -60,7 +64,7 @@ export const mutationsRepo = {
   // ============================================
 
   async markAsProcessing(id: number): Promise<void> {
-    await db.mutations.update(id, { 
+    await db.mutations.update(id, {
       status: 'processing',
       retryCount: (await db.mutations.get(id))?.retryCount || 0
     });
@@ -92,7 +96,7 @@ export const mutationsRepo = {
 
   async retryFailed(): Promise<number> {
     const failed = await this.getByStatus('failed');
-    
+
     for (const mutation of failed) {
       if (mutation.id) {
         await db.mutations.update(mutation.id, {
@@ -114,7 +118,7 @@ export const mutationsRepo = {
   async clearCompleted(): Promise<number> {
     // Eliminar mutations completadas o muy antiguas
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    
+
     const oldMutations = await db.mutations
       .where('timestamp')
       .below(thirtyDaysAgo)
