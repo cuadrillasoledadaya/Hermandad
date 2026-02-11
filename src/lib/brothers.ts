@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
+import { hermanosRepo } from './db/tables/hermanos.table';
+import { pagosRepo } from './db/tables/pagos.table';
 
 export interface Hermano {
     id: string;
@@ -51,16 +53,7 @@ export async function getHermanos() {
         // Cachear en IndexedDB para offline
         if (data && typeof window !== 'undefined') {
             try {
-                const { db } = await import('./db/database');
-                await db.transaction('rw', db.hermanos, async () => {
-                    for (const h of data) {
-                        await db.hermanos.put({
-                            ...h,
-                            _syncStatus: 'synced',
-                            _lastModified: Date.now()
-                        } as any);
-                    }
-                });
+                await hermanosRepo.bulkSync(data);
                 console.log('💾 [CENSO] Datos cacheados en IndexedDB:', data.length, 'hermanos');
             } catch (cacheError) {
                 console.warn('⚠️ Error cacheando hermanos:', cacheError);
@@ -75,8 +68,7 @@ export async function getHermanos() {
 
             // Intentar con nueva base de datos primero
             try {
-                const { db } = await import('./db/database');
-                const localData = await db.hermanos.toArray();
+                const localData = await hermanosRepo.getAll({ activo: true });
                 if (localData.length > 0) {
                     console.log('📦 [CENSO] Usando', localData.length, 'hermanos de IndexedDB');
                     return localData.map(h => {
@@ -86,18 +78,6 @@ export async function getHermanos() {
                 }
             } catch (dexieError) {
                 console.warn('⚠️ Error leyendo de Dexie:', dexieError);
-            }
-
-            // Fallback a base de datos antigua
-            try {
-                const { getHermanosLocal } = await import('./db');
-                const localData = await getHermanosLocal();
-                if (localData.length > 0) {
-                    console.log('📦 [CENSO] Usando', localData.length, 'hermanos de DB antigua');
-                    return localData as unknown as Hermano[];
-                }
-            } catch (oldDbError) {
-                console.warn('⚠️ Error leyendo de DB antigua:', oldDbError);
             }
 
             // Si no hay datos locales, retornar array vacío
@@ -150,12 +130,7 @@ export async function getHermanoById(id: string): Promise<Hermano | null> {
 
         // Cachear en IndexedDB
         if (data && typeof window !== 'undefined') {
-            const { db } = await import('./db/database');
-            await db.hermanos.put({
-                ...data,
-                _syncStatus: 'synced',
-                _lastModified: Date.now()
-            } as any);
+            await hermanosRepo.bulkSync([data]);
         }
 
         return data as Hermano;
@@ -165,24 +140,13 @@ export async function getHermanoById(id: string): Promise<Hermano | null> {
             console.log('📦 [HERMANO] Usando datos locales para ID:', id);
             // Intentar con nueva base de datos Dexie
             try {
-                const { db } = await import('./db/database');
-                const localData = await db.hermanos.get(id);
+                const localData = await hermanosRepo.getById(id);
                 if (localData) {
                     const { _syncStatus, _lastModified, _version, ...clean } = localData as any;
                     return clean as Hermano;
                 }
             } catch (dbError) {
                 console.error('Error leyendo de IndexedDB:', dbError);
-            }
-
-            // Fallback a base de datos antigua
-            try {
-                const { initDB } = await import('./db');
-                const oldDb = await initDB();
-                const data = await oldDb.get('hermanos', id);
-                if (data) return data as Hermano;
-            } catch (oldDbError) {
-                console.error('Error leyendo de DB antigua:', oldDbError);
             }
 
             // Si no está en caché, retornar null en lugar de lanzar error
@@ -248,28 +212,16 @@ export async function getPagosByHermano(id_hermano: string, anio?: number): Prom
         // Cachear en IndexedDB nueva
         if (data && data.length > 0) {
             try {
-                const { db } = await import('./db/database');
-                await db.transaction('rw', db.pagos, async () => {
-                    for (const p of data) {
-                        await db.pagos.put({
-                            ...p,
-                            _syncStatus: 'synced',
-                            _lastModified: Date.now()
-                        } as any);
-                    }
-                });
+                await pagosRepo.bulkSync(data);
             } catch (cacheError) {
                 console.warn('⚠️ Error cacheando pagos:', cacheError);
             }
         }
 
         // 2. Combinar con datos locales (System A)
-        const { getPagosLocal } = await import('./db');
-        const localPagos = await getPagosLocal();
-
-        // Filtrar pagos locales que son _offline: true para este hermano
-        const offlineOnly = (localPagos as unknown as (Pago & { _offline?: boolean })[])
-            .filter(p => p.id_hermano === id_hermano && p._offline);
+        // Buscamos pagos en Dexie que están pendientes
+        const localPagos = await pagosRepo.getByHermano(id_hermano);
+        const offlineOnly = localPagos.filter(p => p._syncStatus === 'pending');
 
         if (offlineOnly.length > 0) {
             console.log(`📦 [PAGOS] Combinando con ${offlineOnly.length} pagos locales no sincronizados`);
@@ -294,32 +246,19 @@ export async function getPagosByHermano(id_hermano: string, anio?: number): Prom
 
         // Intentar con nueva base de datos primero
         try {
-            const { db } = await import('./db/database');
-            let query = db.pagos.where('id_hermano').equals(id_hermano);
-            if (anio) {
-                query = query.filter(p => p.anio === anio) as any;
-            }
-            const localData = await query.toArray();
+            const localData = await pagosRepo.getByHermano(id_hermano, { anio });
             if (localData.length > 0) {
                 console.log(`📦 [PAGOS] Usando ${localData.length} pagos de IndexedDB nueva`);
                 return localData.map(p => {
                     const { _syncStatus, _lastModified, ...clean } = p as any;
                     return clean;
-                }).sort((a, b) => b.fecha_pago.localeCompare(a.fecha_pago));
+                });
             }
         } catch (dexieError) {
             console.warn('⚠️ Error con IndexedDB nueva:', dexieError);
         }
 
-        // Fallback a base de datos antigua
-        const { getPagosLocal } = await import('./db');
-        const allPagos = await getPagosLocal();
-
-        let filtered = (allPagos as unknown as Pago[]).filter(p => p.id_hermano === id_hermano);
-        if (anio) {
-            filtered = filtered.filter(p => p.anio === anio);
-        }
-        return filtered.sort((a, b) => b.fecha_pago.localeCompare(a.fecha_pago));
+        return [];
     }
 }
 
@@ -368,12 +307,10 @@ export async function getPagosDelAnio(anio: number): Promise<Pago[]> {
 
         if (typeof window === 'undefined') return (data || []) as Pago[];
 
-        // Combinar con locales de DB antigua
+        // Combinar con locales
         try {
-            const { getPagosLocal } = await import('./db');
-            const localPagos = await getPagosLocal();
-            const offlineOnly = (localPagos as unknown as (Pago & { _offline?: boolean })[])
-                .filter(p => p.anio === anio && p._offline);
+            const localPagos = await pagosRepo.getAll();
+            const offlineOnly = localPagos.filter(p => p.anio === anio && p._syncStatus === 'pending');
 
             if (offlineOnly.length > 0) {
                 console.log(`📦 [PAGOS] Combinando con ${offlineOnly.length} pagos locales no sincronizados`);
@@ -432,12 +369,11 @@ export async function searchHermanos(term: string): Promise<BrotherSearchResult[
     if (term.length < 2) return [];
 
     // SIEMPRE usar búsqueda local para resultados consistentes y relevantes
-    const { getHermanosLocal } = await import('./db');
-    const allHermanos = await getHermanosLocal();
+    const allHermanos = await hermanosRepo.getAll();
     const normalizedTerm = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
     const results = allHermanos
-        .map((h: Record<string, unknown>) => {
+        .map((h: Hermano) => {
             const nombre = (h.nombre as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const apellidos = (h.apellidos as string || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const fullName = `${nombre} ${apellidos}`;

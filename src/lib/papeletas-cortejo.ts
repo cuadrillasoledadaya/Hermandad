@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { getPreciosConfig } from './configuracion';
 import { offlineInsert, offlineUpdate, offlineDelete } from './offline-mutation';
-import { savePapeletasLocal, getPapeletasLocal } from './db';
+import { papeletasRepo } from './db/tables/papeletas.table';
 
 // =====================================================
 // TIPOS Y CONSTANTES
@@ -163,10 +163,9 @@ export async function venderPapeleta(input: VenderPapeletaInput): Promise<Papele
     } catch {
         // Lógica offline o error de red: Buscar el número negativo más bajo para este año en IndexedDB
         try {
-            const { initDB } = await import('@/lib/db');
-            const db = await initDB();
-            const localPapeletas = await db.getAllFromIndex('papeletas_cortejo', 'anio', year);
+            const localPapeletas = await papeletasRepo.getAll();
             const numerosProvisionales = localPapeletas
+                .filter(p => p.anio === year)
                 .map(p => p.numero)
                 .filter(n => typeof n === 'number' && n < 0)
                 .sort((a, b) => a - b); // [-3, -2, -1]
@@ -319,7 +318,6 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
             .eq('anio', year)
             .order('numero', { ascending: true });
 
-        // @ts-expect-error - Promise race typing
         const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
 
         if (error) {
@@ -333,12 +331,12 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
         if (data) {
             // Guardar en local para futuras consultas offline (SOLO CLIENTE)
             if (typeof window !== 'undefined') {
-                await savePapeletasLocal(data);
+                await papeletasRepo.saveAll(data);
 
-                // COMBINAR CON OPTIMISTIC: Añadir los que tenemos en local como _offline
+                // COMBINAR CON OPTIMISTIC: Añadir los que tenemos en local como pending
                 // que aún no están en el servidor (esto es vital para el dispositivo que lo crea)
-                const localPapeletas = await getPapeletasLocal();
-                const offlineOnly = localPapeletas.filter((p: Record<string, unknown>) => p._offline && p.anio === year);
+                const localPapeletas = await papeletasRepo.getAll();
+                const offlineOnly = localPapeletas.filter((p: any) => p._syncStatus === 'pending' && p.anio === year);
 
                 if (offlineOnly.length > 0) {
                     console.log(`📦 [PAPELETAS] Combinando con ${offlineOnly.length} cambios locales no sincronizados`);
@@ -360,8 +358,8 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
     } catch (e) {
         console.error('⚠️ [PAPELETAS] Fallo fetch online, intentando local:', e);
         if (typeof window === 'undefined') return [] as PapeletaConDetalles[];
-        const localData = await getPapeletasLocal();
-        const filtered = localData.filter((p: Record<string, unknown>) => p.anio === year);
+        const localData = await papeletasRepo.getAll();
+        const filtered = localData.filter((p: any) => p.anio === year);
         console.log(`📦 [PAPELETAS] Cargadas ${filtered.length} papeletas de cache local (Offline Mode)`);
         return filtered as unknown as PapeletaConDetalles[];
     }
@@ -417,7 +415,6 @@ export async function getPapeleta(id: string): Promise<PapeletaConDetalles> {
             .eq('id', id)
             .single();
 
-        // @ts-expect-error - Promise race typing
         const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
 
         if (error) throw error;
@@ -427,8 +424,8 @@ export async function getPapeleta(id: string): Promise<PapeletaConDetalles> {
         if (typeof window === 'undefined') throw e;
 
         // Intentar buscar en el array local de papeletas
-        const localData = await getPapeletasLocal();
-        const found = localData.find((p: Record<string, unknown>) => p.id === id);
+        const localData = await papeletasRepo.getAll();
+        const found = localData.find((p: any) => p.id === id);
 
         if (found) {
             return found as unknown as PapeletaConDetalles;

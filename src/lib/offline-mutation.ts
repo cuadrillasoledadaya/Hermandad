@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { queueMutation } from './db';
+import { mutationsRepo } from './db/tables/mutations.table';
 
 // Tipo de operación de base de datos
 interface MutationOptions {
@@ -12,7 +12,16 @@ interface MutationOptions {
 export async function offlineMutation(options: MutationOptions): Promise<{ success: boolean; offline: boolean; data?: unknown; error?: string }> {
     // Si sabemos que estamos offline, ni siquiera intentamos
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        await queueMutation(options);
+        await mutationsRepo.add({
+            type: options.type,
+            table: options.table as any,
+            data: options.data,
+            timestamp: Date.now(),
+            retryCount: 0,
+            maxRetries: 3,
+            status: 'pending',
+            priority: 1
+        });
         return { success: true, offline: true };
     }
 
@@ -28,12 +37,10 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
         const sanitizeData = (data: any) => {
             if (Array.isArray(data)) {
                 return data.map(item => {
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { hermano, posicion, ingreso, _offline, _syncStatus, _lastModified, _version, ...rest } = item;
                     return rest;
                 });
             }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { hermano, posicion, ingreso, _offline, _syncStatus, _lastModified, _version, ...rest } = data;
             return rest;
         };
@@ -68,7 +75,16 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
                 result.error.message?.toLowerCase().includes('network');
 
             if (isNetworkError) {
-                await queueMutation(options);
+                await mutationsRepo.add({
+                    type: options.type,
+                    table: options.table as any,
+                    data: options.data,
+                    timestamp: Date.now(),
+                    retryCount: 0,
+                    maxRetries: 3,
+                    status: 'pending',
+                    priority: 1
+                });
                 return { success: true, offline: true };
             }
 
@@ -86,7 +102,16 @@ export async function offlineMutation(options: MutationOptions): Promise<{ succe
             errorMessage.includes('connection');
 
         if (isNetworkError) {
-            await queueMutation(options);
+            await mutationsRepo.add({
+                type: options.type,
+                table: options.table as any,
+                data: options.data,
+                timestamp: Date.now(),
+                retryCount: 0,
+                maxRetries: 3,
+                status: 'pending',
+                priority: 1
+            });
             return { success: true, offline: true };
         }
 

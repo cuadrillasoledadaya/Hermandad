@@ -38,9 +38,9 @@ export const papeletasRepo = {
     const existing = await db.papeletas.get(id);
     if (!existing) throw new Error('Papeleta no encontrada');
 
-    const updated = { 
-      ...existing, 
-      ...changes, 
+    const updated = {
+      ...existing,
+      ...changes,
       _syncStatus: 'pending' as const,
       _lastModified: Date.now()
     };
@@ -77,7 +77,7 @@ export const papeletasRepo = {
       });
 
       // Cambiar estado a cancelada (soft delete)
-      await db.papeletas.update(id, { 
+      await db.papeletas.update(id, {
         estado: 'cancelada',
         _syncStatus: 'pending',
         _lastModified: Date.now()
@@ -95,9 +95,17 @@ export const papeletasRepo = {
     return db.papeletas.get(id);
   },
 
+  async getAll(): Promise<Papeleta[]> {
+    return db.papeletas.toArray();
+  },
+
+  async saveAll(papeletas: Papeleta[]): Promise<void> {
+    await this.bulkSync(papeletas);
+  },
+
   async getByHermano(idHermano: string, options?: { anio?: number }): Promise<Papeleta[]> {
     let query = db.papeletas.where('id_hermano').equals(idHermano);
-    
+
     if (options?.anio) {
       query = query.filter(p => p.anio === options.anio);
     }
@@ -105,13 +113,13 @@ export const papeletasRepo = {
     return query.toArray();
   },
 
-  async getByAnio(anio: number, options?: { 
+  async getByAnio(anio: number, options?: {
     estado?: Papeleta['estado'];
     tipo?: Papeleta['tipo'];
     tramo?: number;
   }): Promise<Papeleta[]> {
     const query = db.papeletas.where('anio').equals(anio);
-    
+
     let results = await query.toArray();
 
     if (options?.estado) {
@@ -155,7 +163,7 @@ export const papeletasRepo = {
       .equals(idHermano)
       .filter(p => p.anio === anio && p.estado !== 'cancelada')
       .first();
-    
+
     return !!papeleta;
   },
 
@@ -167,7 +175,7 @@ export const papeletasRepo = {
       .filter(p => p.numero > 0) // Ignorar provisionales
       .reverse()
       .sortBy('numero');
-    
+
     if (ultima.length === 0) return 1;
     return ultima[0].numero + 1;
   },
@@ -190,14 +198,14 @@ export const papeletasRepo = {
   },
 
   async markAsConflict(id: string): Promise<void> {
-    await db.papeletas.update(id, { 
+    await db.papeletas.update(id, {
       _syncStatus: 'conflict',
       _lastModified: Date.now()
     });
   },
 
   async actualizarNumeroProvisional(id: string, nuevoNumero: number): Promise<void> {
-    await db.papeletas.update(id, { 
+    await db.papeletas.update(id, {
       numero: nuevoNumero,
       _syncStatus: 'pending'
     });
@@ -207,7 +215,7 @@ export const papeletasRepo = {
     await db.transaction('rw', db.papeletas, async () => {
       for (const papeleta of papeletas) {
         const existing = await db.papeletas.get(papeleta.id);
-        
+
         if (!existing || existing._syncStatus === 'synced') {
           await db.papeletas.put({
             ...papeleta,
@@ -225,7 +233,7 @@ export const papeletasRepo = {
 
   async getStats(anio: number) {
     const papeletas = await this.getByAnio(anio);
-    
+
     const vendidas = papeletas.filter(p => p.estado !== 'cancelada');
     const asignadas = papeletas.filter(p => p.estado === 'asignada');
     const pendientes = papeletas.filter(p => p.estado === 'pagada');
