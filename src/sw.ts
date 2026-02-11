@@ -15,12 +15,12 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Versión del Service Worker: 1.2.12 (Extreme Offline Overhaul)
+// Versión del Service Worker: 1.2.13 (Fix Precache Conflict)
 const serwist = new Serwist({
   precacheEntries: [
     ...(self.__SW_MANIFEST || []),
-    { url: "/~offline", revision: "1.2.12" },
-    { url: "/", revision: "1.2.12" },
+    { url: "/~offline", revision: "1.2.13" },
+    { url: "/", revision: "1.2.13" },
   ],
   skipWaiting: true,
   clientsClaim: true,
