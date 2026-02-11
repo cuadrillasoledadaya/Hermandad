@@ -107,6 +107,12 @@ export interface SyncLog {
   details?: string;
 }
 
+export interface Metadata {
+  key: string;
+  value: any;
+  updated_at: number;
+}
+
 // ============================================
 // DATABASE CLASS
 // ============================================
@@ -119,6 +125,7 @@ export class HermandadDatabase extends Dexie {
   gastos!: Table<Gasto>;
   mutations!: Table<MutationQueueItem>;
   syncLog!: Table<SyncLog>;
+  metadata!: Table<Metadata>;
 
   constructor() {
     super('HermandadOfflineDB-v3');
@@ -130,7 +137,8 @@ export class HermandadDatabase extends Dexie {
       configuracion: 'id, _syncStatus',
       gastos: 'id, fecha, categoria, _syncStatus, _lastModified',
       mutations: '++id, timestamp, status, priority, table',
-      syncLog: '++id, timestamp, operation, status'
+      syncLog: '++id, timestamp, operation, status',
+      metadata: 'key'
     });
 
     // Hooks para auto-actualizar timestamps y status
@@ -246,99 +254,4 @@ export class HermandadDatabase extends Dexie {
 
 export const db = new HermandadDatabase();
 
-// ============================================
-// FUNCIONES DE MIGRACIÓN DESDE DB ANTIGUA
-// ============================================
-
-export async function migrateFromOldDB(): Promise<{ success: boolean; message: string }> {
-  try {
-    // Verificar si hay datos en la base antigua
-    const oldDBExists = await checkOldDatabaseExists();
-
-    if (!oldDBExists) {
-      return { success: true, message: 'No hay datos antiguos para migrar' };
-    }
-
-    // Importar datos antiguos
-    const { initDB: initOldDB } = await import('../db');
-    const oldDB = await initOldDB();
-
-    // Migrar hermanos
-    const oldHermanos = await oldDB.getAll('hermanos');
-    if (oldHermanos.length > 0) {
-      const hermanosWithSync = oldHermanos.map((h: AnyData) => ({
-        ...h,
-        _syncStatus: 'synced',
-        _lastModified: Date.now(),
-        _version: 1
-      }));
-      await db.hermanos.bulkAdd(hermanosWithSync);
-    }
-
-    // Migrar pagos
-    const oldPagos = await oldDB.getAll('pagos');
-    if (oldPagos.length > 0) {
-      const pagosWithSync = oldPagos.map((p: AnyData) => ({
-        ...p,
-        _syncStatus: 'synced',
-        _lastModified: Date.now()
-      }));
-      await db.pagos.bulkAdd(pagosWithSync);
-    }
-
-    // Migrar papeletas
-    const oldPapeletas = await oldDB.getAll('papeletas_cortejo');
-    if (oldPapeletas.length > 0) {
-      const papeletasWithSync = oldPapeletas.map((p: AnyData) => ({
-        ...p,
-        _syncStatus: 'synced',
-        _lastModified: Date.now()
-      }));
-      await db.papeletas.bulkAdd(papeletasWithSync);
-    }
-
-    // Migrar mutations pendientes
-    const oldMutations = await oldDB.getAll('mutation_queue');
-    if (oldMutations.length > 0) {
-      const mutationsWithStatus = oldMutations.map((m: AnyData) => ({
-        ...m,
-        status: 'pending',
-        maxRetries: 3,
-        priority: 1
-      }));
-      await db.mutations.bulkAdd(mutationsWithStatus);
-    }
-
-    return {
-      success: true,
-      message: `Migrados: ${oldHermanos.length} hermanos, ${oldPagos.length} pagos, ${oldPapeletas.length} papeletas, ${oldMutations.length} mutations`
-    };
-
-  } catch (error) {
-    console.error('Error migrando datos:', error);
-    return {
-      success: false,
-      message: `Error: ${error instanceof Error ? error.message : 'Unknown'}`
-    };
-  }
-}
-
-async function checkOldDatabaseExists(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const request = indexedDB.open('hermandad_offline_db');
-
-    request.onsuccess = () => {
-      request.result.close();
-      resolve(true);
-    };
-
-    request.onerror = () => {
-      resolve(false);
-    };
-
-    request.onupgradeneeded = () => {
-      request.transaction?.abort();
-      resolve(false);
-    };
-  });
-}
+// Migración desde DB antigua eliminada (YA MIGRADO v1.1.9x)

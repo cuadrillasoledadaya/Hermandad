@@ -81,9 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isOnline = typeof navigator !== 'undefined' && navigator.onLine;
 
         try {
-            // 1. INTENTO LOCAL INMEDIATO - Sin await de online
-            const { getSyncMetadata, setSyncMetadata } = await import('@/lib/db');
-            const cachedRole = await getSyncMetadata('user_role') as UserRole;
+            // 1. INTENTO LOCAL INMEDIATO
+            const { metadataRepo } = await import('@/lib/db/tables/metadata.table');
+            const cachedRole = await metadataRepo.get('user_role') as UserRole;
 
             if (cachedRole) {
                 console.log('>>> [AUTH] ✅ Cached role found, setting IMMEDIATELY:', cachedRole);
@@ -115,8 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     // Guardar para la próxima vez
-                    await setSyncMetadata('user_role', userRole);
-                    await setSyncMetadata('user_profile', data);
+                    await metadataRepo.set('user_role', userRole);
+                    await metadataRepo.set('user_profile', data);
                 } else if (!cachedRole) {
                     // Si no había cache y falló online, default a HERMANO INMEDIATAMENTE
                     console.warn('>>> [AUTH] No online role and no cache, defaulting to HERMANO');

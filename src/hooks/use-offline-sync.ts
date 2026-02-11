@@ -2,7 +2,8 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { useNetworkStatus } from './use-network-status';
-import { getPendingMutations, removeMutation, incrementRetryCount } from '@/lib/db';
+import { db } from '@/lib/db/database';
+import { mutationsRepo } from '@/lib/db/tables/mutations.table';
 import { createClient } from '@/lib/supabase';
 import { showError, showSuccess } from '@/lib/error-handler';
 import { toast } from 'sonner';
@@ -27,15 +28,15 @@ export function useOfflineSync() {
 
     // Verificar cuántas mutaciones pendientes hay
     const checkPending = useCallback(async () => {
-        const pending = await getPendingMutations();
-        setStatus(prev => ({ ...prev, pendingCount: pending.length }));
+        const count = await mutationsRepo.getPendingCount();
+        setStatus(prev => ({ ...prev, pendingCount: count }));
     }, []);
 
     // Procesar mutaciones pendientes
     const processMutations = useCallback(async () => {
         if (!isOnline) return;
 
-        const pending = await getPendingMutations();
+        const pending = await mutationsRepo.getPending();
         if (pending.length === 0) return;
 
         setStatus(prev => ({ ...prev, isSyncing: true, error: null }));
@@ -143,7 +144,7 @@ export function useOfflineSync() {
 
                 // Éxito: eliminar de la cola
                 if (mutation.id) {
-                    await removeMutation(mutation.id);
+                    await mutationsRepo.remove(mutation.id);
                 }
                 successCount++;
 
@@ -153,7 +154,7 @@ export function useOfflineSync() {
 
                 // Incrementar contador de reintentos
                 if (mutation.id) {
-                    await incrementRetryCount(mutation.id);
+                    await mutationsRepo.markAsFailed(mutation.id, error instanceof Error ? error.message : 'Unknown');
                 }
 
                 // Si ha fallado muchas veces, mostrar error
@@ -230,8 +231,8 @@ export function useOfflineSync() {
             ]).catch(() => ({ data: null, error: null }));
 
             if (!hermanosError && hermanos) {
-                const { saveHermanosLocal } = await import('@/lib/db');
-                await saveHermanosLocal(hermanos);
+                const { hermanosRepo } = await import('@/lib/db/tables/hermanos.table');
+                await hermanosRepo.bulkSync(hermanos);
             }
             // ... resto de sincronizaciones con mayor margen
             const anioActual = new Date().getFullYear();
@@ -241,8 +242,8 @@ export function useOfflineSync() {
             ]).catch(() => ({ data: null, error: null }));
 
             if (!papError && papeletas) {
-                const { savePapeletasLocal } = await import('@/lib/db');
-                await savePapeletasLocal(papeletas);
+                const { papeletasRepo } = await import('@/lib/db/tables/papeletas.table');
+                await papeletasRepo.saveAll(papeletas);
             }
 
             const { data: pagos, error: pagosError } = await Promise.race([
@@ -251,8 +252,8 @@ export function useOfflineSync() {
             ]).catch(() => ({ data: null, error: null }));
 
             if (!pagosError && pagos) {
-                const { savePagosLocal } = await import('@/lib/db');
-                await savePagosLocal(pagos);
+                const { pagosRepo } = await import('@/lib/db/tables/pagos.table');
+                await pagosRepo.bulkSync(pagos);
             }
 
             const { data: config, error: configError } = await Promise.race([
@@ -261,9 +262,7 @@ export function useOfflineSync() {
             ]).catch(() => ({ data: null, error: null }));
 
             if (!configError && config) {
-                const { initDB } = await import('@/lib/db');
-                const dbInstance = await initDB();
-                await dbInstance.put('configuracion', config);
+                await db.configuracion.put({ ...config, id: '1', _syncStatus: 'synced', _lastModified: Date.now() });
             }
             console.log('✅ [SYNC] Sincronización maestra completada');
         } catch (err) {
@@ -329,8 +328,7 @@ export function useOfflineSync() {
 
     // Limpiar cola manualmente
     const clearQueue = async () => {
-        const { clearMutationQueue } = await import('@/lib/db');
-        await clearMutationQueue();
+        await mutationsRepo.clearAll();
         setStatus(prev => ({ ...prev, pendingCount: 0, error: null }));
     };
 

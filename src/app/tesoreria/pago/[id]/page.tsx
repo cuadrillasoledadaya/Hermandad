@@ -91,25 +91,18 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                 cantidad: fee,
                 concepto: getConceptString(selectedYear, mIdx),
                 anio: selectedYear,
+                tipo_pago: 'Cuota',
                 fecha_pago: new Date().toISOString().split('T')[0]
             }));
 
             // Timeout de seguridad para offline (5 segundos máximo)
-            const mutationPromise = offlineInsert('pagos', records);
-            const timeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('timeout')), 5000);
-            });
+            const { pagosRepo } = await import('@/lib/db/tables/pagos.table');
 
-            const result = await Promise.race([mutationPromise, timeoutPromise]).catch(async () => {
-                // Si hay timeout, forzar modo offline
-                const { queueMutation } = await import('@/lib/db');
-                await queueMutation({ type: 'insert', table: 'pagos', data: records });
-                return { offline: true, success: true, data: records };
-            });
+            // Refactorizado para usar pagosRepo que ya maneja offline y online indistintamente
+            // (a través de insertion local + mutation queue)
+            const results = await Promise.all(records.map(r => pagosRepo.create(r)));
 
-            if (!result.offline && 'error' in result && result.error) throw new Error(result.error);
-
-            return { offline: result.offline, data: result.data };
+            return { offline: !navigator.onLine, data: results };
         },
         onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ['pagos'] });
@@ -172,7 +165,7 @@ export default function NuevoPagoPage({ params }: { params: Promise<{ id: string
                                 <li>Abrir la app y esperar a que carguen todos los datos</li>
                                 <li>Luego podrás usarla sin conexión</li>
                             </ol>
-                            <Button 
+                            <Button
                                 onClick={() => router.push('/tesoreria')}
                                 className="w-full mt-4"
                             >
