@@ -141,48 +141,69 @@ export class SyncManager {
             });
             if (error) throw error;
           } catch (error: any) {
-            // Manejo especial de error 23505 (unique_violation) para HERMANOS
-            // Esto ocurre si el email ya existe y estamos intentando insertar un registro
-            // que quizás sea un "éxito fantasma" previo o un duplicado real.
-            if (error.code === '23505' && mutation.table === 'hermanos' && cleanData.email) {
-              console.log(`⚠️ [SYNC] Conflicto de email detectado para ${cleanData.email}. Intentando recuperar ID...`);
+            console.log(`🔍 [SYNC] Insert failed for ${mutation.table}. Code: ${error?.code}, Message: ${error?.message}`);
 
-              const { data: existing } = await supabase
+            // Manejo especial de error 23505 (unique_violation) para HERMANOS
+            if (error.code === '23505' && mutation.table === 'hermanos' && cleanData.email) {
+              console.log(`⚠️ [SYNC] Conflicto de email detectado para ${cleanData.email}. Intentando recuperación forzosa...`);
+
+              const { data: existing, error: searchError } = await supabase
                 .from('hermanos')
-                .select('id')
+                .select('id, numero_hermano')
                 .eq('email', cleanData.email)
                 .maybeSingle();
 
-              if (existing) {
-                console.log(`✅ [SYNC] Registro encontrado con ID ${existing.id}. Vinculando localmente...`);
-                // 1. Actualizar el ID en la mutación actual para que las siguientes no fallen
-                // (Aunque esta mutación se eliminará, sirve para la coherencia del proceso)
-                cleanData.id = existing.id;
+              if (searchError) {
+                console.error('❌ [SYNC] Error buscando hermano existente:', searchError);
+                throw error;
+              }
 
-                // 2. Actualizar el ID en el repositorio local (Dexie)
-                const { hermanosRepo } = await import('../db/tables/hermanos.table');
-                // IMPORTANTE: hermanosRepo.update asume que el objeto existe con el ID antiguo.
-                // Pero si el ID cambió, tenemos que hacer un put o similar.
-                // Como SyncManager es genérico, usaremos la DB directa si es necesario.
+              if (existing) {
+                console.log(`✅ [SYNC] Registro encontrado en servidor. ID Real: ${existing.id}, Actual: ${data.id}`);
+
+                // 1. Vincular localmente
                 const { db } = await import('../db/database');
 
-                const localRecord = data.id ? await db.hermanos.get(data.id) : null;
-                if (localRecord && localRecord.id !== existing.id) {
-                  await db.transaction('rw', [db.hermanos, db.mutations], async () => {
-                    // Eliminar el registro antiguo con ID temporal
-                    await db.hermanos.delete(data.id);
-                    // Crear el nuevo con el ID real
-                    await db.hermanos.put({ ...localRecord, id: existing.id, _syncStatus: 'synced' });
-                    // Actualizar cualquier otra mutación pendiente que use el ID viejo
-                    await db.mutations.where('data').notEqual(null).modify(m => {
-                      if (m.data.id === data.id) m.data.id = existing.id;
-                      if (m.data.id_hermano === data.id) m.data.id_hermano = existing.id;
-                    });
-                  });
-                }
+                try {
+                  const localRecord = data.id ? await db.hermanos.get(data.id as string) : null;
 
-                // Consideramos la mutación como exitosa ya que el dato ya está en el servidor
-                return;
+                  if (localRecord && localRecord.id !== existing.id) {
+                    console.log('🔄 [SYNC] Re-mapeando ID local al ID del servidor...');
+                    await db.transaction('rw', [db.hermanos, db.mutations], async () => {
+                      // Eliminar registro con ID temporal
+                      await db.hermanos.delete(data.id as string);
+
+                      // Guardar registro con ID real
+                      const updatedRecord: any = {
+                        ...localRecord,
+                        id: existing.id,
+                        numero_hermano: existing.numero_hermano || localRecord.numero_hermano,
+                        _syncStatus: 'synced' as const
+                      };
+                      await db.hermanos.put(updatedRecord);
+
+                      // Corregir mutaciones dependientes
+                      const pendingCount = await db.mutations.where('data').notEqual(null).modify(m => {
+                        let changed = false;
+                        if (m.data && m.data.id === data.id) { m.data.id = existing.id; changed = true; }
+                        if (m.data && m.data.id_hermano === data.id) { m.data.id_hermano = existing.id; changed = true; }
+                        return changed;
+                      });
+                      console.log(`📦 [SYNC] Actualizadas ${pendingCount} mutaciones dependientes`);
+                    });
+                  } else if (localRecord) {
+                    // Ya está vinculado, simplemente marcar como sincronizado
+                    await db.hermanos.update(localRecord.id, { _syncStatus: 'synced' });
+                  }
+
+                  console.log('✨ [SYNC] Recuperación completada con éxito. Desbloqueando cola.');
+                  return; // Éxito preventivo (el dato ya está fuera)
+                } catch (dexieError) {
+                  console.error('❌ [SYNC] Error en recuperación Dexie:', dexieError);
+                  throw error;
+                }
+              } else {
+                console.log('❓ [SYNC] Error 23505 pero no se encuentra el registro por email. Posible RLS o cambio de email.');
               }
             }
             throw error;
