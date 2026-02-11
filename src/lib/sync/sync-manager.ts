@@ -332,8 +332,13 @@ export class SyncManager {
     // Campos de estado de UI que a veces se cuelan
     delete copy.selected;
 
-    // Relaciones expandidas (objetos anidados) que Supabase no acepta en insert/update directo
+    // Relaciones expandidas y limpieza de strings vacíos
     Object.keys(copy).forEach(key => {
+      // Convertir "" a null para evitar violaciones de UNIQUE
+      if (copy[key] === '') {
+        copy[key] = null;
+      }
+
       if (typeof copy[key] === 'object' && copy[key] !== null && !Array.isArray(copy[key])) {
         // Excepción: Solo si es Date o similar (no aplica aquí)
         // Eliminamos "hermano", "posicion", etc.

@@ -42,7 +42,16 @@ export default function NuevoHermanoPage() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        mutation.mutate(formData);
+
+        // Normalizar strings vacíos a null para evitar problemas en Supabase (ej: email único)
+        const cleanData = {
+            ...formData,
+            email: formData.email.trim() || null,
+            telefono: formData.telefono.trim() || null,
+            direccion: formData.direccion.trim() || null
+        };
+
+        mutation.mutate(cleanData);
     };
 
     return (
