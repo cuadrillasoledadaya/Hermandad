@@ -30,7 +30,7 @@ const serwist = new Serwist({
         cacheName: 'static-chunks-cache',
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 200, // Permitir muchos chunks
+            maxEntries: 500, // Incrementado para cubrir más secciones de la app
             maxAgeSeconds: 60 * 60 * 24 * 365, // 1 año
           }),
         ],
@@ -43,7 +43,7 @@ const serwist = new Serwist({
         cacheName: 'static-css-cache',
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 50,
+            maxEntries: 100,
             maxAgeSeconds: 60 * 60 * 24 * 365,
           }),
         ],
@@ -57,7 +57,7 @@ const serwist = new Serwist({
         networkTimeoutSeconds: 3,
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 50,
+            maxEntries: 100,
             maxAgeSeconds: 60 * 60 * 24 * 7, // 7 días
           }),
         ],
@@ -70,7 +70,7 @@ const serwist = new Serwist({
         cacheName: 'api-cache',
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 100,
+            maxEntries: 200,
             maxAgeSeconds: 60 * 60 * 24 * 7, // 7 días
           }),
         ],
@@ -82,7 +82,7 @@ const serwist = new Serwist({
         cacheName: 'images-cache',
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 60,
+            maxEntries: 100,
             maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
           }),
         ],
@@ -95,13 +95,23 @@ const serwist = new Serwist({
         cacheName: 'fonts-cache',
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 20,
+            maxEntries: 30,
             maxAgeSeconds: 60 * 60 * 24 * 365,
           }),
         ],
       })
     }
   ],
+  fallbacks: {
+    entries: [
+      {
+        url: "/~offline",
+        matcher({ request }) {
+          return request.mode === "navigate";
+        },
+      },
+    ],
+  },
 });
 
 serwist.addEventListeners();

@@ -1,6 +1,6 @@
 {
   "name": "hermandad",
-  "version": "1.2.03",
+  "version": "1.2.04",
   "private": true,
   "scripts": {
     "dev": "next dev",
