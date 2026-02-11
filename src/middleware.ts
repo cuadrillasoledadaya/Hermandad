@@ -120,7 +120,7 @@ export async function middleware(request: NextRequest) {
 
     const isDev = process.env.NODE_ENV === 'development';
     const securityHeaders = {
-        'Content-Security-Policy': isDev ? "" : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://*.google-analytics.com; img-src 'self' data: https: blob:;",
+        'Content-Security-Policy': isDev ? "" : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com; img-src 'self' data: https: blob:;",
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',

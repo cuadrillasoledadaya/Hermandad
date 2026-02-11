@@ -57,7 +57,7 @@ export interface Papeleta {
 }
 
 export interface Configuracion {
-  id: string;
+  id: number;
   papeleta_nazareno: number;
   papeleta_costalero: number;
   papeleta_insignia: number;

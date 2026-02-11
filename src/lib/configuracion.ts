@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { db } from './db';
 
 export interface PreciosConfig {
     id: number;
@@ -44,9 +45,11 @@ export async function getPreciosConfig(): Promise<PreciosConfig> {
         // Si se obtuvo correctamente, guardar en IndexedDB para uso offline (SOLO CLIENTE)
         if (data && typeof window !== 'undefined') {
             try {
-                const { initDB } = await import('./db');
-                const db = await initDB();
-                await db.put('configuracion', data);
+                await db.configuracion.put({
+                    ...data,
+                    _syncStatus: 'synced',
+                    _lastModified: Date.now()
+                });
             } catch (dbError) {
                 console.warn('Could not cache config to IndexedDB:', dbError);
             }
@@ -63,12 +66,10 @@ export async function getPreciosConfig(): Promise<PreciosConfig> {
         }
 
         try {
-            const { initDB } = await import('./db');
-            const db = await initDB();
-            const cachedConfig = await db.get('configuracion', 1);
+            const cachedConfig = await db.configuracion.get(1);
             if (cachedConfig) {
                 console.log('Using cached configuration from IndexedDB');
-                return cachedConfig as PreciosConfig;
+                return cachedConfig as unknown as PreciosConfig;
             }
         } catch (dbError) {
             console.error('IndexedDB also failed:', dbError);
