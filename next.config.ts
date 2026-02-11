@@ -11,6 +11,7 @@ const withSerwist = withSerwistInit({
   swSrc: "src/sw.ts",
   swDest: "public/sw.js",
   disable: false, // Habilitado para navegación offline
+  additionalPrecacheEntries: ["/~offline"],
 });
 
 const nextConfig: NextConfig = {

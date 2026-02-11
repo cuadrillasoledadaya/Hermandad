@@ -15,92 +15,76 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Versión del Service Worker: 1.2.01 (Fix de Chunk Loading Offline)
+// Versión del Service Worker: 1.2.12 (Extreme Offline Overhaul)
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST,
+  precacheEntries: [
+    ...(self.__SW_MANIFEST || []),
+    { url: "/~offline", revision: "1.2.12" },
+    { url: "/", revision: "1.2.12" },
+  ],
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
-    ...defaultCache,
-    // CRÍTICO: Cachear chunks de JavaScript para navegación offline sin errores
+    // 1. Chunks de Next.js (Alta Prioridad)
     {
-      matcher: ({ url }: { url: URL }) => url.pathname.startsWith('/_next/static/chunks/'),
+      matcher: ({ url }) => url.pathname.startsWith('/_next/static/chunks/'),
       handler: new CacheFirst({
         cacheName: 'static-chunks-cache',
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 500, // Incrementado para cubrir más secciones de la app
-            maxAgeSeconds: 60 * 60 * 24 * 365, // 1 año
-          }),
-        ],
+        plugins: [new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 31536000 })],
       }),
     },
-    // Cachear CSS de forma agresiva
+    // 2. CSS de Next.js
     {
-      matcher: ({ url }: { url: URL }) => url.pathname.startsWith('/_next/static/css/'),
+      matcher: ({ url }) => url.pathname.startsWith('/_next/static/css/'),
       handler: new CacheFirst({
         cacheName: 'static-css-cache',
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 100,
-            maxAgeSeconds: 60 * 60 * 24 * 365,
-          }),
-        ],
+        plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 31536000 })],
       }),
     },
-    // Estrategia para Navegación: Intenta red primero con timeout corto, cae a cache
+    // 3. RSC Payloads (CRÍTICO para navegación Next.js)
     {
-      matcher: ({ request }: { request: Request }) => request.mode === 'navigate',
+      matcher: ({ url }) => url.searchParams.has('_rsc') || url.pathname.includes('/_next/data/'),
+      handler: new StaleWhileRevalidate({
+        cacheName: 'rsc-payloads-cache',
+        plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 604800 })],
+      }),
+    },
+    // 4. Navegación de Páginas (Estrategia agresiva con fallback)
+    {
+      matcher: ({ request }) => request.mode === 'navigate',
       handler: new NetworkFirst({
         cacheName: 'pages-cache',
         networkTimeoutSeconds: 3,
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 100,
-            maxAgeSeconds: 60 * 60 * 24 * 7, // 7 días
-          }),
-        ],
+        plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 604800 })],
       }),
     },
-    // Estrategia para API de Supabase: StaleWhileRevalidate para lectura rápida
+    // 5. API de Supabase
     {
-      matcher: ({ url }: { url: URL }) => url.pathname.includes('/rest/v1/') && !url.pathname.includes('/auth/'),
+      matcher: ({ url }) => url.pathname.includes('/rest/v1/') && !url.pathname.includes('/auth/'),
       handler: new StaleWhileRevalidate({
         cacheName: 'api-cache',
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 200,
-            maxAgeSeconds: 60 * 60 * 24 * 7, // 7 días
-          }),
-        ],
-      })
+        plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 604800 })],
+      }),
     },
+    // 6. Imágenes
     {
-      matcher: ({ request }: { request: Request }) => request.destination === 'image',
+      matcher: ({ request }) => request.destination === 'image',
       handler: new CacheFirst({
         cacheName: 'images-cache',
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 100,
-            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
-          }),
-        ],
-      })
+        plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 2592000 })],
+      }),
     },
+    // 7. Fuentes
     {
-      matcher: ({ url }: { url: URL }) => url.origin === 'https://fonts.googleapis.com' ||
-        url.origin === 'https://fonts.gstatic.com',
+      matcher: ({ url }) => url.origin.includes('fonts.googleapis.com') || url.origin.includes('fonts.gstatic.com'),
       handler: new CacheFirst({
         cacheName: 'fonts-cache',
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 30,
-            maxAgeSeconds: 60 * 60 * 24 * 365,
-          }),
-        ],
-      })
-    }
+        plugins: [new ExpirationPlugin({ maxEntries: 30, maxAgeSeconds: 31536000 })],
+      }),
+    },
+    // 8. Caché por defecto de Serwist (Baja Prioridad)
+    ...defaultCache,
   ],
   fallbacks: {
     entries: [

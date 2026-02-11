@@ -44,7 +44,11 @@ class NetworkMonitor {
     const startTime = performance.now();
 
     try {
-      // Ping a Supabase (HEAD request ligero)
+      if (!navigator.onLine) {
+        this.updateState({ isOnline: false, lastChecked: Date.now() });
+        return;
+      }
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
 
