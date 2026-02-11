@@ -134,13 +134,59 @@ export class SyncManager {
     const operation = (async () => {
       switch (mutation.type) {
         case 'insert': {
-          // Usamos upsert para evitar errores 409 si la mutación se reintenta
-          // pero el servidor ya la procesó en un intento anterior que falló en el reporte.
-          const { error } = await supabase.from(mutation.table).upsert(cleanData, {
-            onConflict: 'id',
-            ignoreDuplicates: false // Queremos que si ya existe con ese ID, simplemente se "confirme" el dato
-          });
-          if (error) throw error;
+          try {
+            const { error } = await supabase.from(mutation.table).upsert(cleanData, {
+              onConflict: 'id',
+              ignoreDuplicates: false
+            });
+            if (error) throw error;
+          } catch (error: any) {
+            // Manejo especial de error 23505 (unique_violation) para HERMANOS
+            // Esto ocurre si el email ya existe y estamos intentando insertar un registro
+            // que quizás sea un "éxito fantasma" previo o un duplicado real.
+            if (error.code === '23505' && mutation.table === 'hermanos' && cleanData.email) {
+              console.log(`⚠️ [SYNC] Conflicto de email detectado para ${cleanData.email}. Intentando recuperar ID...`);
+
+              const { data: existing } = await supabase
+                .from('hermanos')
+                .select('id')
+                .eq('email', cleanData.email)
+                .maybeSingle();
+
+              if (existing) {
+                console.log(`✅ [SYNC] Registro encontrado con ID ${existing.id}. Vinculando localmente...`);
+                // 1. Actualizar el ID en la mutación actual para que las siguientes no fallen
+                // (Aunque esta mutación se eliminará, sirve para la coherencia del proceso)
+                cleanData.id = existing.id;
+
+                // 2. Actualizar el ID en el repositorio local (Dexie)
+                const { hermanosRepo } = await import('../db/tables/hermanos.table');
+                // IMPORTANTE: hermanosRepo.update asume que el objeto existe con el ID antiguo.
+                // Pero si el ID cambió, tenemos que hacer un put o similar.
+                // Como SyncManager es genérico, usaremos la DB directa si es necesario.
+                const { db } = await import('../db/database');
+
+                const localRecord = data.id ? await db.hermanos.get(data.id) : null;
+                if (localRecord && localRecord.id !== existing.id) {
+                  await db.transaction('rw', [db.hermanos, db.mutations], async () => {
+                    // Eliminar el registro antiguo con ID temporal
+                    await db.hermanos.delete(data.id);
+                    // Crear el nuevo con el ID real
+                    await db.hermanos.put({ ...localRecord, id: existing.id, _syncStatus: 'synced' });
+                    // Actualizar cualquier otra mutación pendiente que use el ID viejo
+                    await db.mutations.where('data').notEqual(null).modify(m => {
+                      if (m.data.id === data.id) m.data.id = existing.id;
+                      if (m.data.id_hermano === data.id) m.data.id_hermano = existing.id;
+                    });
+                  });
+                }
+
+                // Consideramos la mutación como exitosa ya que el dato ya está en el servidor
+                return;
+              }
+            }
+            throw error;
+          }
           break;
         }
         case 'update': {
