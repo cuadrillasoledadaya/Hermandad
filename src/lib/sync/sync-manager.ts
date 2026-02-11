@@ -58,6 +58,10 @@ export class SyncManager {
 
       console.log(`🔄 [SYNC] Processing ${pending.length} mutations...`);
 
+      // Variable para agrupar notificaciones
+      let syncedCount = 0;
+      const totalMutations = pending.length;
+
       // 2. Procesar uno a uno (secuencial para respetar orden)
       for (const mutation of pending) {
         if (!mutation.id) continue;
@@ -71,8 +75,12 @@ export class SyncManager {
           await mutationsRepo.remove(mutation.id);
           console.log(`✅ [SYNC] Mutation ${mutation.id} synced`);
 
-          // Feedback visual discreto
-          toast.success(`Sincronización completada (${mutation.table})`);
+          syncedCount++;
+
+          // Feedback visual discreto: solo cada 5 mutaciones o al final
+          if (syncedCount % 5 === 0 || syncedCount === totalMutations) {
+            toast.success(`Sincronizadas ${syncedCount}/${totalMutations} operaciones`);
+          }
 
         } catch (error) {
           console.error(`❌ [SYNC] Mutation ${mutation.id} failed:`, error);
@@ -108,7 +116,6 @@ export class SyncManager {
   }
 
   private async executeMutation(mutation: MutationQueueItem) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = mutation.data as any;
 
     // Limpiar campos internos antes de enviar a Supabase
@@ -153,9 +160,70 @@ export class SyncManager {
     })();
 
     await Promise.race([operation, timeoutPromise]);
+
+    // POST-SYNC: Si es una papeleta con número negativo (offline), obtener el número real
+    if (mutation.table === 'papeletas_cortejo' && mutation.type === 'insert') {
+      await this.handleOfflinePapeletaSync(cleanData, data);
+    }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /**
+   * Maneja la sincronización de papeletas offline:
+   * 1. Detecta si tiene número negativo (provisorio)
+   * 2. Obtiene el número real desde Supabase
+   * 3. Actualiza la papeleta en IndexedDB
+   * 4. Actualiza el concepto del pago relacionado
+   */
+  private async handleOfflinePapeletaSync(cleanData: any, originalData: any) {
+    try {
+      const papeletaNumero = cleanData.numero || originalData.numero;
+
+      // Solo procesar si es un número provisional (negativo)
+      if (papeletaNumero >= 0) return;
+
+      console.log(`🔄 [SYNC] Papeleta offline detectada (${papeletaNumero}), obteniendo número real...`);
+
+      // Obtener la papeleta desde Supabase para ver el número real asignado
+      const { data: papeletaSynced, error: fetchError } = await supabase
+        .from('papeletas_cortejo')
+        .select('numero, tipo')
+        .eq('id', cleanData.id)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ [SYNC] Error fetching synced papeleta:', fetchError);
+        return;
+      }
+
+      if (!papeletaSynced || papeletaSynced.numero <= 0) {
+        console.warn('⚠️ [SYNC] Papeleta synced but still has invalid number');
+        return;
+      }
+
+      // Actualizar la papeleta en IndexedDB con el número real
+      const { papeletasRepo } = await import('../db/tables/papeletas.table');
+      await papeletasRepo.markAsSynced(cleanData.id, papeletaSynced.numero);
+
+      console.log(`✅ [SYNC] Papeleta actualizada: ${papeletaNumero} -> #${papeletaSynced.numero}`);
+
+      // Actualizar el concepto del pago relacionado si existe
+      if (cleanData.id_ingreso || originalData.id_ingreso) {
+        const pagoId = cleanData.id_ingreso || originalData.id_ingreso;
+        const { TIPOS_PAPELETA } = await import('../papeletas-cortejo');
+        const nuevoConcepto = `Papeleta #${papeletaSynced.numero} - ${TIPOS_PAPELETA[papeletaSynced.tipo as keyof typeof TIPOS_PAPELETA]}`;
+
+        const { pagosRepo } = await import('../db/tables/pagos.table');
+        await pagosRepo.markAsSynced(pagoId, { concepto: nuevoConcepto });
+
+        console.log(`✅ [SYNC] Pago actualizado: "${nuevoConcepto}"`);
+      }
+
+    } catch (error) {
+      console.error('❌ [SYNC] Error in handleOfflinePapeletaSync:', error);
+      // No lanzar el error para no bloquear la sincronización general
+    }
+  }
+
   private sanitizeData(data: any): any {
     if (Array.isArray(data)) {
       return data.map(item => this.sanitizeData(item));

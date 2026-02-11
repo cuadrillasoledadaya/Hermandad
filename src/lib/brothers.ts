@@ -100,12 +100,40 @@ export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_herman
 
     if (!success) throw new Error(error || 'Error creando hermano');
 
-    // 2. Trigger a recalibration only if online
+    // 2. Trigger a recalibration only if online, with race condition protection
     if (!offline) {
-        await recalibrarNumeros();
+        await recalibrarNumerosWithLock();
     }
 
     return data;
+}
+
+/**
+ * Recalibra números con protección contra race conditions
+ */
+async function recalibrarNumerosWithLock() {
+    const { db } = await import('./db/database');
+    const lockKey = 'recalibracion_lock';
+
+    // Verificar si hay una recalibración en proceso
+    const lock = await db.getSyncMetadata(lockKey);
+    const now = Date.now();
+
+    // Si el lock tiene menos de 10 segundos, hay una recalibración en proceso
+    if (lock && (now - lock) < 10000) {
+        console.log('⏳ Recalibración ya en proceso, omitiendo...');
+        return;
+    }
+
+    // Establecer lock
+    await db.setSyncMetadata(lockKey, now);
+
+    try {
+        await recalibrarNumeros();
+    } finally {
+        // Liberar lock
+        await db.setSyncMetadata(lockKey, null);
+    }
 }
 
 export async function getHermanoById(id: string): Promise<Hermano | null> {
@@ -162,9 +190,9 @@ export async function updateHermano(id: string, updates: Partial<Hermano>) {
 
     if (!success) throw new Error(error || 'Error actualizando hermano');
 
-    // If seniority relevant fields change and online, recalibrate
+    // If seniority relevant fields change and online, recalibrate with lock
     if (!offline && updates.fecha_alta) {
-        await recalibrarNumeros();
+        await recalibrarNumerosWithLock();
     }
 
     return data as Hermano;
@@ -175,9 +203,9 @@ export async function deleteHermano(id: string) {
 
     if (!success) throw new Error(error || 'Error eliminando hermano');
 
-    // Recalibrate after deletion if online
+    // Recalibrate after deletion if online, with lock protection
     if (!offline) {
-        await recalibrarNumeros();
+        await recalibrarNumerosWithLock();
     }
 }
 

@@ -6,9 +6,7 @@ export interface Conflict {
   id: string;
   table: string;
   recordId: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   localData: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serverData: any;
   localTimestamp: number;
   serverTimestamp: number;
@@ -20,7 +18,6 @@ class ConflictResolver {
   async detectConflict(
     table: string,
     recordId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     localData: any
   ): Promise<boolean> {
     const { createClient } = await import('@/lib/supabase');
@@ -100,7 +97,6 @@ class ConflictResolver {
     if (error) throw error;
 
     // Marcar como sincronizado
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const table = conflict.table as any;
     // Typescript issue: conflict.table is string but db needs specific table name
     if (db[table as 'hermanos' | 'pagos' | 'papeletas']) {
@@ -112,7 +108,6 @@ class ConflictResolver {
 
   private async queueForManualResolution(conflict: Conflict): Promise<void> {
     // Guardar en tabla de conflictos para resolución manual
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (db as any).conflicts?.add({ // assuming conflicts table might exist or using any to bypass
       ...conflict,
       created_at: Date.now(),
@@ -130,15 +125,49 @@ class ConflictResolver {
         .equals('conflict')
         .toArray();
 
-      return conflicts.map(log => ({
-        id: log.id?.toString() || '',
-        table: log.table,
-        recordId: log.recordId,
-        localData: {},
-        serverData: {},
-        localTimestamp: log.timestamp,
-        serverTimestamp: Date.now(),
-        resolved: false
+      // Obtener datos reales para cada conflicto
+      return await Promise.all(conflicts.map(async (log) => {
+        const table = log.table as 'hermanos' | 'pagos' | 'papeletas';
+
+        // Obtener datos locales de IndexedDB
+        let localRecord: any = null;
+        try {
+          localRecord = await db[table].get(log.recordId);
+        } catch (err) {
+          console.warn(`⚠️ No se pudo obtener registro local de ${table}:`, err);
+        }
+
+        // Obtener datos del servidor
+        let serverRecord: any = null;
+        try {
+          const { createClient } = await import('@/lib/supabase');
+          const supabase = createClient();
+
+          const { data, error } = await supabase
+            .from(log.table)
+            .select('*')
+            .eq('id', log.recordId)
+            .single();
+
+          if (!error && data) {
+            serverRecord = data;
+          }
+        } catch (err) {
+          console.warn(`⚠️ No se pudo obtener registro del servidor de ${log.table}:`, err);
+        }
+
+        return {
+          id: log.id?.toString() || '',
+          table: log.table,
+          recordId: log.recordId,
+          localData: localRecord || {},
+          serverData: serverRecord || {},
+          localTimestamp: log.timestamp,
+          serverTimestamp: serverRecord?.updated_at
+            ? new Date(serverRecord.updated_at).getTime()
+            : Date.now(),
+          resolved: false
+        };
       }));
     } catch {
       return [];
@@ -156,31 +185,64 @@ class ConflictResolver {
         .equals('conflict')
         .toArray();
 
-      const conflict = conflicts.find(c => c.recordId === conflictId);
-      if (!conflict) return;
+      const conflictLog = conflicts.find(c => c.recordId === conflictId);
+      if (!conflictLog) {
+        console.warn(`⚠️ Conflicto ${conflictId} no encontrado`);
+        return;
+      }
+
+      const table = conflictLog.table as 'hermanos' | 'pagos' | 'papeletas';
+
+      // Obtener datos reales del conflicto
+      const localRecord = await db[table].get(conflictId);
+
+      if (!localRecord) {
+        console.warn(`⚠️ No hay datos locales para ${conflictId}`);
+        return;
+      }
+
+      // Crear objeto de conflicto con datos reales
+      const conflict: Conflict = {
+        id: conflictLog.id?.toString() || '',
+        table: conflictLog.table,
+        recordId: conflictId,
+        localData: localRecord,
+        serverData: {}, // Se obtendrá en applyLocalVersion si es necesario
+        localTimestamp: conflictLog.timestamp,
+        serverTimestamp: Date.now(),
+        resolved: false
+      };
 
       // Resolver según elección
       if (useLocal) {
-        // Reintentar enviar datos locales
-        await this.applyLocalVersion({
-          id: conflictId,
-          table: conflict.table,
-          recordId: conflictId,
-          localData: {},
-          serverData: {},
-          localTimestamp: Date.now(),
-          serverTimestamp: Date.now(),
-          resolved: false
-        });
+        // Forzar datos locales al servidor
+        await this.applyLocalVersion(conflict);
+      } else {
+        // Aplicar datos del servidor (obtener primero)
+        const { createClient } = await import('@/lib/supabase');
+        const supabase = createClient();
+
+        const { data: serverRecord } = await supabase
+          .from(conflictLog.table)
+          .select('*')
+          .eq('id', conflictId)
+          .single();
+
+        if (serverRecord) {
+          conflict.serverData = serverRecord;
+          await this.applyServerVersion(conflict);
+        }
       }
 
       // Marcar como resuelto en el log
-      await db.syncLog.update(conflict.id!, {
-        status: 'success',
-        details: `Resuelto manualmente: ${useLocal ? 'local' : 'server'}`
-      });
+      if (conflictLog.id) {
+        await db.syncLog.update(conflictLog.id, {
+          status: 'success',
+          details: `Resuelto manualmente: ${useLocal ? 'local' : 'server'}`
+        });
+      }
     } catch (err) {
-      console.error('Error resolviendo conflicto:', err);
+      console.error('❌ Error resolviendo conflicto:', err);
       throw err;
     }
   }
