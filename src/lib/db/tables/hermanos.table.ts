@@ -6,37 +6,55 @@ export const hermanosRepo = {
   // CRUD BÁSICO
   // ============================================
 
-  async create(data: Omit<Hermano, 'id' | '_syncStatus' | '_lastModified' | '_version'>): Promise<Hermano> {
-    const id = crypto.randomUUID();
+  async create(data: Omit<Hermano, 'id' | 'created_at' | 'updated_at' | '_syncStatus' | '_lastModified' | '_version'>): Promise<Hermano> {
+    console.log('📝 [REPO-HERMANOS] Iniciando creación de hermano:', data.nombre, data.apellidos);
+
+    // Generación de ID robusta
+    let id;
+    try {
+      id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() :
+        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    } catch (e) {
+      console.error('❌ [REPO-HERMANOS] Error generando UUID:', e);
+      throw new Error('Error de sistema: No se pudo generar un ID único');
+    }
+
+    const now = new Date().toISOString();
     const record: Hermano = {
       ...data,
       id,
+      created_at: now,
+      updated_at: now,
       _syncStatus: 'pending',
       _lastModified: Date.now(),
       _version: 1
     };
 
-    await db.transaction('rw', [db.hermanos, db.mutations], async () => {
-      // Guardar en tabla local
-      await db.hermanos.add(record);
+    try {
+      await db.transaction('rw', [db.hermanos, db.mutations], async () => {
+        console.log('💾 [REPO-HERMANOS] Dentro de transacción, guardando en Dexie...');
+        await db.hermanos.add(record);
 
-      // Añadir a cola de sincronización
-      await db.mutations.add({
-        type: 'insert',
-        table: 'hermanos',
-        data: record,
-        timestamp: Date.now(),
-        retryCount: 0,
-        maxRetries: 3,
-        status: 'pending',
-        priority: 1
+        console.log('📥 [REPO-HERMANOS] Añadiendo a cola de sincronización...');
+        await db.mutations.add({
+          type: 'insert',
+          table: 'hermanos',
+          data: record,
+          timestamp: Date.now(),
+          retryCount: 0,
+          maxRetries: 3,
+          status: 'pending',
+          priority: 1
+        });
       });
-    });
 
-    // Notificar cambio
-    this.notifyMutationChange();
-
-    return record;
+      console.log('✅ [REPO-HERMANOS] Transacción completada con éxito');
+      this.notifyMutationChange();
+      return record;
+    } catch (transactionError) {
+      console.error('❌ [REPO-HERMANOS] Error en transacción Dexie:', transactionError);
+      throw transactionError;
+    }
   },
 
   async update(id: string, changes: Partial<Hermano>): Promise<void> {

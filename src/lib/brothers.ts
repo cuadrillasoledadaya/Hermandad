@@ -95,20 +95,32 @@ export async function recalibrarNumeros() {
 }
 
 export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_hermano' | 'activo'>) {
-    // 1. Insert the new brother using the repository system (generates UUID on client)
-    const data = await hermanosRepo.create({
-        ...hermano,
-        activo: true,
-        numero_hermano: null
-    });
+    console.log('🚀 [BROTHERS-LIB] Iniciando createHermano para:', hermano.nombre, hermano.apellidos);
 
-    // 2. Trigger a recalibration only if online (or when sync completes later)
-    if (typeof navigator !== 'undefined' && navigator.onLine) {
-        // No esperamos a recalibrar para no bloquear la UI
-        recalibrarNumerosWithLock().catch(err => console.error('Error recalibrando:', err));
+    try {
+        // 1. Insert the new brother using the repository system (generates UUID on client)
+        const data = await hermanosRepo.create({
+            ...hermano,
+            activo: true,
+            numero_hermano: null
+        });
+
+        console.log('✅ [BROTHERS-LIB] Hermano guardado localmente, ID:', data.id);
+
+        // 2. Trigger a recalibration only if online (or when sync completes later)
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+            console.log('🔄 [BROTHERS-LIB] Disparando recalibración en segundo plano...');
+            // No esperamos a recalibrar para no bloquear la UI
+            recalibrarNumerosWithLock().catch(err => {
+                console.error('⚠️ [BROTHERS-LIB] Error en recalibración (no crítico para el alta):', err);
+            });
+        }
+
+        return data;
+    } catch (error) {
+        console.error('❌ [BROTHERS-LIB] Error crítico en createHermano:', error);
+        throw error;
     }
-
-    return data;
 }
 
 /**
