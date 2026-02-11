@@ -8,7 +8,7 @@ type AnyData = any;
 
 export interface Hermano {
   id: string;
-  numero_hermano: number;
+  numero_hermano: number | null;
   nombre: string;
   apellidos: string;
   email: string | null;

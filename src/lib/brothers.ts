@@ -95,14 +95,17 @@ export async function recalibrarNumeros() {
 }
 
 export async function createHermano(hermano: Omit<Hermano, 'id' | 'numero_hermano' | 'activo'>) {
-    // 1. Insert the new brother using offline system
-    const { success, data, offline, error } = await offlineInsert('hermanos', hermano);
+    // 1. Insert the new brother using the repository system (generates UUID on client)
+    const data = await hermanosRepo.create({
+        ...hermano,
+        activo: true,
+        numero_hermano: null
+    });
 
-    if (!success) throw new Error(error || 'Error creando hermano');
-
-    // 2. Trigger a recalibration only if online, with race condition protection
-    if (!offline) {
-        await recalibrarNumerosWithLock();
+    // 2. Trigger a recalibration only if online (or when sync completes later)
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+        // No esperamos a recalibrar para no bloquear la UI
+        recalibrarNumerosWithLock().catch(err => console.error('Error recalibrando:', err));
     }
 
     return data;

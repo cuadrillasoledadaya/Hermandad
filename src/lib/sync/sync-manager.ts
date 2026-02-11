@@ -134,7 +134,12 @@ export class SyncManager {
     const operation = (async () => {
       switch (mutation.type) {
         case 'insert': {
-          const { error } = await supabase.from(mutation.table).insert(cleanData);
+          // Usamos upsert para evitar errores 409 si la mutación se reintenta
+          // pero el servidor ya la procesó en un intento anterior que falló en el reporte.
+          const { error } = await supabase.from(mutation.table).upsert(cleanData, {
+            onConflict: 'id',
+            ignoreDuplicates: false // Queremos que si ya existe con ese ID, simplemente se "confirme" el dato
+          });
           if (error) throw error;
           break;
         }
