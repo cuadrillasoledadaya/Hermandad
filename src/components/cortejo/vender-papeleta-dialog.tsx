@@ -82,6 +82,8 @@ export function VenderPapeletaDialog() {
             showSuccess(`¡Vendido!`, `Papeleta ${numeroDisplay} creada correctamente`);
 
             setOpen(false);
+            // Asegurar que las estadísticas se invaliden para que el panel superior se actualice
+            queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
             resetForm();
         },
         onError: (error: Error) => {

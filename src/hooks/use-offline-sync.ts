@@ -307,13 +307,16 @@ export function useOfflineSync() {
         checkPending();
 
         const handleMutationChange = () => {
-            console.log('🔄 [SYNC] Detectado cambio en cola de mutaciones, actualizando...');
+            console.log('🔄 [SYNC] Detectado cambio en cola de mutaciones, intentando sincronización inmediata...');
             checkPending();
+            if (isOnline) {
+                processMutations();
+            }
         };
 
-        window.addEventListener('offline-mutation-changed', handleMutationChange);
+        window.addEventListener('dexie-mutation-changed', handleMutationChange);
         return () => {
-            window.removeEventListener('offline-mutation-changed', handleMutationChange);
+            window.removeEventListener('dexie-mutation-changed', handleMutationChange);
         };
     }, [checkPending]);
 

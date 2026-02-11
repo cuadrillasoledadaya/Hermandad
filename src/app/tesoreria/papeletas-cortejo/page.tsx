@@ -352,11 +352,23 @@ export default function PapeletasPage() {
 
 function SyncStatusIndicator() {
     const { pendingCount, isSyncing, syncNow, isOnline } = useOfflineSync();
+    const [shouldShow, setShouldShow] = useState(false);
 
-    if (pendingCount === 0) return null;
+    // Solo mostrar el banner si los cambios persisten más de 2 segundos
+    // Esto evita el parpadeo azul cuando la auto-sincronización es instantánea
+    useEffect(() => {
+        if (pendingCount > 0) {
+            const timer = setTimeout(() => setShouldShow(true), 2000);
+            return () => clearTimeout(timer);
+        } else {
+            setShouldShow(false);
+        }
+    }, [pendingCount]);
+
+    if (!shouldShow) return null;
 
     return (
-        <Card className={`p-3 border-l-4 ${isOnline ? 'border-l-blue-500 bg-blue-50' : 'border-l-amber-500 bg-amber-50'} flex items-center justify-between`}>
+        <Card className={`p-3 border-l-4 animate-in fade-in slide-in-from-top-2 duration-500 ${isOnline ? 'border-l-blue-500 bg-blue-50' : 'border-l-amber-500 bg-amber-50'} flex items-center justify-between`}>
             <div className="flex items-center gap-2">
                 <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''} ${isOnline ? 'text-blue-500' : 'text-amber-500'}`} />
                 <span className="text-sm font-medium">
