@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+// Leer versión de package.json de forma segura
+const packageJson = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
+const APP_VERSION = packageJson.version;
 
 const withSerwist = withSerwistInit({
   swSrc: "src/sw.ts",
@@ -8,6 +14,9 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: APP_VERSION,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

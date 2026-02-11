@@ -7,6 +7,7 @@ import { SyncProvider } from "@/components/providers/sync-provider";
 import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { OfflineBanner } from "@/components/ui/offline-banner";
+import { VersionMonitor } from "@/components/providers/version-monitor";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -52,6 +53,7 @@ export default function RootLayout({
               </SidebarWrapper>
               <OfflineBanner />
               <Toaster />
+              <VersionMonitor />
             </SyncProvider>
           </AuthProvider>
         </QueryProvider>
