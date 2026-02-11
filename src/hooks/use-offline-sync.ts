@@ -4,7 +4,9 @@ import { useEffect, useCallback, useState } from 'react';
 import { useNetworkStatus } from './use-network-status';
 import { db } from '@/lib/db/database';
 import { mutationsRepo } from '@/lib/db/tables/mutations.table';
-import { createClient } from '@/lib/supabase';
+import { papeletasRepo } from '@/lib/db/tables/papeletas.table';
+import { pagosRepo } from '@/lib/db/tables/pagos.table';
+import { createClient, supabase } from '@/lib/supabase';
 import { showError, showSuccess } from '@/lib/error-handler';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -142,8 +144,33 @@ export function useOfflineSync() {
                     throw error;
                 }
 
-                // Éxito: eliminar de la cola
+                // Éxito: actualizar localmente si hubo reasignación de número y eliminar de la cola
                 if (mutation.id) {
+                    if (mutation.table === 'papeletas_cortejo' && !Array.isArray(mutation.data)) {
+                        const data = mutation.data as any;
+                        // Si el número cambió de provisional (negativo/0) a real (positivo)
+                        if (data.numero > 0) {
+                            await papeletasRepo.markAsSynced(data.id, data.numero);
+
+                            // Si también tenemos un pago vinculado, actualizar su concepto
+                            if (data.id_ingreso) {
+                                const { data: pago } = await supabase
+                                    .from('pagos')
+                                    .select('concepto')
+                                    .eq('id', data.id_ingreso)
+                                    .maybeSingle();
+
+                                if (pago) {
+                                    await pagosRepo.markAsSynced(data.id_ingreso, { concepto: pago.concepto });
+                                }
+                            }
+                        } else {
+                            await papeletasRepo.markAsSynced(data.id);
+                        }
+                    } else if (mutation.table === 'pagos') {
+                        await pagosRepo.markAsSynced((mutation.data as any).id);
+                    }
+
                     await mutationsRepo.remove(mutation.id);
                 }
                 successCount++;

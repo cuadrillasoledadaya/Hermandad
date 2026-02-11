@@ -38,9 +38,9 @@ export const pagosRepo = {
     const existing = await db.pagos.get(id);
     if (!existing) throw new Error('Pago no encontrado');
 
-    const updated = { 
-      ...existing, 
-      ...changes, 
+    const updated = {
+      ...existing,
+      ...changes,
       _syncStatus: 'pending' as const,
       _lastModified: Date.now()
     };
@@ -77,7 +77,7 @@ export const pagosRepo = {
       });
 
       // Soft delete local
-      await db.pagos.update(id, { 
+      await db.pagos.update(id, {
         _syncStatus: 'pending',
         _lastModified: Date.now()
       });
@@ -103,7 +103,7 @@ export const pagosRepo = {
       return results.filter(p => p.anio === options.anio);
     }
 
-    return results.sort((a, b) => 
+    return results.sort((a, b) =>
       new Date(b.fecha_pago).getTime() - new Date(a.fecha_pago).getTime()
     );
   },
@@ -142,15 +142,17 @@ export const pagosRepo = {
   // SINCRONIZACIÓN
   // ============================================
 
-  async markAsSynced(id: string): Promise<void> {
-    await db.pagos.update(id, { 
+  async markAsSynced(id: string, additionalChanges?: Partial<Pago>): Promise<void> {
+    const updates: Partial<Pago> = {
       _syncStatus: 'synced',
-      _lastModified: Date.now()
-    });
+      _lastModified: Date.now(),
+      ...additionalChanges
+    };
+    await db.pagos.update(id, updates);
   },
 
   async markAsConflict(id: string): Promise<void> {
-    await db.pagos.update(id, { 
+    await db.pagos.update(id, {
       _syncStatus: 'conflict',
       _lastModified: Date.now()
     });
@@ -160,7 +162,7 @@ export const pagosRepo = {
     await db.transaction('rw', db.pagos, async () => {
       for (const pago of pagos) {
         const existing = await db.pagos.get(pago.id);
-        
+
         if (!existing || existing._syncStatus === 'synced') {
           await db.pagos.put({
             ...pago,
@@ -178,18 +180,18 @@ export const pagosRepo = {
 
   async getStats(anio?: number) {
     let query = db.pagos.toCollection();
-    
+
     if (anio) {
       query = query.filter(p => p.anio === anio);
     }
 
     const pagos = await query.toArray();
-    
+
     return {
       total: pagos.length,
       montoTotal: pagos.reduce((sum, p) => sum + (p.cantidad || 0), 0),
-      promedio: pagos.length > 0 
-        ? pagos.reduce((sum, p) => sum + (p.cantidad || 0), 0) / pagos.length 
+      promedio: pagos.length > 0
+        ? pagos.reduce((sum, p) => sum + (p.cantidad || 0), 0) / pagos.length
         : 0,
       pendientes: pagos.filter(p => p._syncStatus === 'pending').length
     };

@@ -113,6 +113,16 @@ export interface Metadata {
   updated_at: number;
 }
 
+export interface LogEntry {
+  id?: number;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  details?: string;
+  timestamp: number;
+  userAgent?: string;
+  url?: string;
+}
+
 // ============================================
 // DATABASE CLASS
 // ============================================
@@ -126,6 +136,7 @@ export class HermandadDatabase extends Dexie {
   mutations!: Table<MutationQueueItem>;
   syncLog!: Table<SyncLog>;
   metadata!: Table<Metadata>;
+  system_logs!: Table<LogEntry>;
 
   constructor() {
     super('HermandadOfflineDB-v3');
@@ -138,7 +149,8 @@ export class HermandadDatabase extends Dexie {
       gastos: 'id, fecha, categoria, _syncStatus, _lastModified',
       mutations: '++id, timestamp, status, priority, table',
       syncLog: '++id, timestamp, operation, status',
-      metadata: 'key'
+      metadata: 'key',
+      system_logs: '++id, timestamp, level'
     });
 
     // Hooks para auto-actualizar timestamps y status

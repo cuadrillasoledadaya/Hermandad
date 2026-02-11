@@ -1,21 +1,9 @@
-import { initDB } from './db';
+import { db, LogEntry } from './db/database';
 
 export type LogLevel = 'info' | 'warn' | 'error';
 
-export interface LogEntry {
-    id?: number;
-    level: LogLevel;
-    message: string;
-    details?: string | object;
-    timestamp: number;
-    userAgent?: string;
-    url?: string;
-}
-
 export async function logSystem(level: LogLevel, message: string, details?: unknown) {
     try {
-        const db = await initDB();
-
         let detailsStr = '';
         if (details) {
             if (details instanceof Error) {
@@ -44,19 +32,15 @@ export async function logSystem(level: LogLevel, message: string, details?: unkn
             url: typeof window !== 'undefined' ? window.location.href : ''
         };
 
-        await db.add('system_logs', entry);
+        await db.table('system_logs').add(entry);
 
-        // Mantener solo los últimos 1000 logs para no llenar IndexedDB
-        // Esto es una optimización simple
-        const count = await db.count('system_logs');
+        // Mantener solo los últimos 1000 logs
+        const count = await db.table('system_logs').count();
         if (count > 1000) {
-            const tx = db.transaction('system_logs', 'readwrite');
-            const cursor = await tx.store.openCursor(null, 'next'); // oldest first
-            if (cursor) {
-                await cursor.delete();
-                // Podríamos borrar más en bloque, pero esto borra al menos uno cada vez
+            const first = await db.table('system_logs').toCollection().first();
+            if (first && first.id) {
+                await db.table('system_logs').delete(first.id);
             }
-            await tx.done;
         }
 
     } catch (e) {
@@ -66,9 +50,12 @@ export async function logSystem(level: LogLevel, message: string, details?: unkn
 
 export async function getSystemLogs(limit = 100): Promise<LogEntry[]> {
     try {
-        const db = await initDB();
-        const logs = await db.getAllFromIndex('system_logs', 'timestamp');
-        return logs.reverse().slice(0, limit);
+        const logs = await db.table('system_logs')
+            .orderBy('timestamp')
+            .reverse()
+            .limit(limit)
+            .toArray();
+        return logs;
     } catch (e) {
         console.error('Failed to read system logs:', e);
         return [];
@@ -77,8 +64,7 @@ export async function getSystemLogs(limit = 100): Promise<LogEntry[]> {
 
 export async function clearSystemLogs() {
     try {
-        const db = await initDB();
-        await db.clear('system_logs');
+        await db.table('system_logs').clear();
     } catch (e) {
         console.error('Failed to clear system logs:', e);
     }

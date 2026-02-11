@@ -2,19 +2,18 @@
 // EXPORTACIONES PRINCIPALES DE LA BASE DE DATOS
 // ============================================
 
-export { 
-  db, 
-  HermandadDatabase, 
-  migrateFromOldDB 
+export {
+  db,
+  HermandadDatabase
 } from './database';
 
-export type { 
-  Hermano, 
-  Pago, 
-  Papeleta, 
+export type {
+  Hermano,
+  Pago,
+  Papeleta,
   Configuracion,
-  MutationQueueItem, 
-  SyncLog 
+  MutationQueueItem,
+  SyncLog
 } from './database';
 
 // Repositorios (se crearán en pasos siguientes)
