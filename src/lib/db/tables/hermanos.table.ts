@@ -43,9 +43,9 @@ export const hermanosRepo = {
     const existing = await db.hermanos.get(id);
     if (!existing) throw new Error('Hermano no encontrado');
 
-    const updated = { 
-      ...existing, 
-      ...changes, 
+    const updated = {
+      ...existing,
+      ...changes,
       _syncStatus: 'pending' as const,
       _lastModified: Date.now(),
       _version: (existing._version || 0) + 1
@@ -72,8 +72,8 @@ export const hermanosRepo = {
   async delete(id: string): Promise<void> {
     await db.transaction('rw', [db.hermanos, db.mutations], async () => {
       // Soft delete: marcar como inactivo
-      await db.hermanos.update(id, { 
-        activo: false, 
+      await db.hermanos.update(id, {
+        activo: false,
         _syncStatus: 'pending',
         _lastModified: Date.now()
       });
@@ -140,15 +140,15 @@ export const hermanosRepo = {
           .toLowerCase()
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
-        
+
         const email = (h.email || '').toLowerCase();
         const telefono = (h.telefono || '').toLowerCase();
         const numero = String(h.numero_hermano || '');
 
-        return fullName.includes(normalized) || 
-               email.includes(normalized) || 
-               telefono.includes(normalized) ||
-               numero.includes(normalized);
+        return fullName.includes(normalized) ||
+          email.includes(normalized) ||
+          telefono.includes(normalized) ||
+          numero.includes(normalized);
       })
       .limit(limit)
       .toArray();
@@ -157,13 +157,13 @@ export const hermanosRepo = {
     return results.sort((a, b) => {
       const nameA = `${a.nombre} ${a.apellidos}`.toLowerCase();
       const nameB = `${b.nombre} ${b.apellidos}`.toLowerCase();
-      
+
       const startsWithA = nameA.startsWith(normalized);
       const startsWithB = nameB.startsWith(normalized);
-      
+
       if (startsWithA && !startsWithB) return -1;
       if (!startsWithA && startsWithB) return 1;
-      
+
       return nameA.localeCompare(nameB);
     });
   },
@@ -187,14 +187,15 @@ export const hermanosRepo = {
   // ============================================
 
   async markAsSynced(id: string): Promise<void> {
-    await db.hermanos.update(id, { 
+    await db.hermanos.update(id, {
       _syncStatus: 'synced',
       _lastModified: Date.now()
     });
+    this.notifyMutationChange();
   },
 
   async markAsConflict(id: string): Promise<void> {
-    await db.hermanos.update(id, { 
+    await db.hermanos.update(id, {
       _syncStatus: 'conflict',
       _lastModified: Date.now()
     });
@@ -204,7 +205,7 @@ export const hermanosRepo = {
     await db.transaction('rw', db.hermanos, async () => {
       for (const hermano of hermanos) {
         const existing = await db.hermanos.get(hermano.id);
-        
+
         // Solo actualizar si no hay cambios locales pendientes
         if (!existing || existing._syncStatus === 'synced') {
           await db.hermanos.put({

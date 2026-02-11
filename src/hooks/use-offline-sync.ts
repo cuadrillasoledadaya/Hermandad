@@ -289,8 +289,15 @@ export function useOfflineSync() {
             ]).catch(() => ({ data: null, error: null }));
 
             if (!configError && config) {
-                await db.configuracion.put({ ...config, id: '1', _syncStatus: 'synced', _lastModified: Date.now() });
+                await db.configuracion.put({ ...config, id: 1, _syncStatus: 'synced', _lastModified: Date.now() });
             }
+
+            // Invalidad queries tras sincronización exitosa
+            queryClient.invalidateQueries({ queryKey: ['hermanos'] });
+            queryClient.invalidateQueries({ queryKey: ['pagos'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_cortejo'] });
+            queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
+
             console.log('✅ [SYNC] Sincronización maestra completada');
         } catch (err) {
             console.warn('⚠️ [SYNC] Error en sincronización maestra:', err);
@@ -352,8 +359,6 @@ export function useOfflineSync() {
         if (isOnline) {
             syncMasterData();
         }
-        // Solo ejecutar una vez al montar
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Limpiar cola manualmente

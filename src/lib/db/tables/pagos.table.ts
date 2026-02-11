@@ -154,6 +154,7 @@ export const pagosRepo = {
       ...additionalChanges
     };
     await db.pagos.update(id, updates);
+    this.notifyMutationChange();
   },
 
   async markAsConflict(id: string): Promise<void> {

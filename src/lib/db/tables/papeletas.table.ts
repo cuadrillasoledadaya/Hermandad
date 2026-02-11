@@ -101,6 +101,7 @@ export const papeletasRepo = {
 
   async saveAll(papeletas: Papeleta[]): Promise<void> {
     await this.bulkSync(papeletas);
+    this.notifyMutationChange();
   },
 
   async getByHermano(idHermano: string, options?: { anio?: number }): Promise<Papeleta[]> {
@@ -195,6 +196,7 @@ export const papeletasRepo = {
     }
 
     await db.papeletas.update(id, updates);
+    this.notifyMutationChange();
   },
 
   async markAsConflict(id: string): Promise<void> {

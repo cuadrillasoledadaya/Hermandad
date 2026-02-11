@@ -30,13 +30,14 @@ export async function getPreciosConfig(): Promise<PreciosConfig> {
             setTimeout(() => reject(new Error('timeout')), 2000);
         });
 
+        // Supabase query
         const supabaseQuery = supabase
             .from('configuracion_precios')
             .select('*')
             .eq('id', 1)
             .single();
 
-        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]);
+        const { data, error } = await Promise.race([supabaseQuery, timeoutPromise]) as any;
 
         if (error) {
             throw error;
@@ -45,11 +46,15 @@ export async function getPreciosConfig(): Promise<PreciosConfig> {
         // Si se obtuvo correctamente, guardar en IndexedDB para uso offline (SOLO CLIENTE)
         if (data && typeof window !== 'undefined') {
             try {
-                await db.configuracion.put({
-                    ...data,
-                    _syncStatus: 'synced',
-                    _lastModified: Date.now()
-                });
+                // Asegurar que db y db.configuracion existen (Dexie singleton)
+                if (db && db.configuracion) {
+                    await db.configuracion.put({
+                        ...data,
+                        id: 1,
+                        _syncStatus: 'synced',
+                        _lastModified: Date.now()
+                    });
+                }
             } catch (dbError) {
                 console.warn('Could not cache config to IndexedDB:', dbError);
             }
@@ -61,21 +66,20 @@ export async function getPreciosConfig(): Promise<PreciosConfig> {
 
         // Intentar leer de IndexedDB (SOLO CLIENTE)
         if (typeof window === 'undefined') {
-            console.log('Using default prices (SSR)');
             return PRECIOS_DEFAULTS;
         }
 
         try {
-            const cachedConfig = await db.configuracion.get(1);
-            if (cachedConfig) {
-                console.log('Using cached configuration from IndexedDB');
-                return cachedConfig as unknown as PreciosConfig;
+            if (db && db.configuracion) {
+                const cachedConfig = await db.configuracion.get(1);
+                if (cachedConfig) {
+                    return cachedConfig as unknown as PreciosConfig;
+                }
             }
         } catch (dbError) {
             console.error('IndexedDB also failed:', dbError);
         }
 
-        console.warn('Falling back to default prices');
         return PRECIOS_DEFAULTS;
     }
 }
