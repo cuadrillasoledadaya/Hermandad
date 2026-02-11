@@ -183,12 +183,14 @@ export class SyncManager {
                       await db.hermanos.put(updatedRecord);
 
                       // Corregir mutaciones dependientes
-                      const pendingCount = await db.mutations.where('data').notEqual(null).modify(m => {
-                        let changed = false;
-                        if (m.data && m.data.id === data.id) { m.data.id = existing.id; changed = true; }
-                        if (m.data && m.data.id_hermano === data.id) { m.data.id_hermano = existing.id; changed = true; }
-                        return changed;
-                      });
+                      const pendingCount = await db.mutations
+                        .filter(m => m.data !== null && m.data !== undefined)
+                        .modify(m => {
+                          let changed = false;
+                          if (m.data && m.data.id === data.id) { m.data.id = existing.id; changed = true; }
+                          if (m.data && m.data.id_hermano === data.id) { m.data.id_hermano = existing.id; changed = true; }
+                          return changed;
+                        });
                       console.log(`📦 [SYNC] Actualizadas ${pendingCount} mutaciones dependientes`);
                     });
                   } else if (localRecord) {

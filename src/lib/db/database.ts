@@ -119,6 +119,10 @@ export interface LogEntry {
   timestamp: number;
   userAgent?: string;
   url?: string;
+  sessionId?: string;
+  userId?: string;
+  networkStatus?: string;
+  breadcrumbs?: string;
 }
 
 // ============================================

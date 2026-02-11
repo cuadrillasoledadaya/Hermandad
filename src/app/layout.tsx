@@ -8,6 +8,7 @@ import { SidebarWrapper } from "@/components/layout/sidebar-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { VersionMonitor } from "@/components/providers/version-monitor";
+import { LoggerInitializer } from "@/components/providers/logger-initializer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -54,6 +55,7 @@ export default function RootLayout({
               <OfflineBanner />
               <Toaster />
               <VersionMonitor />
+              <LoggerInitializer />
             </SyncProvider>
           </AuthProvider>
         </QueryProvider>
