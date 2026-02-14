@@ -22,21 +22,33 @@ export function PapeletaImprimible({ papeleta }: PapeletaImprimibleProps) {
                         size: A5 landscape;
                         margin: 0;
                     }
+                    
+                    /* Ocultar TODO lo que esté en el body */
                     body * {
-                        visibility: hidden;
+                        display: none !important;
                     }
+                    
+                    /* Mostrar SOLO la papeleta y sus descendientes */
                     .papeleta-root, .papeleta-root * {
-                        visibility: visible;
+                        display: block !important;
                     }
+
                     .papeleta-root {
-                        position: fixed;
-                        left: 0;
-                        top: 0;
-                        width: 210mm;
-                        height: 148mm;
-                        padding: 8mm;
-                        border: none;
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 210mm !important;
+                        height: 148mm !important;
+                        margin: 0 !important;
+                        padding: 10mm !important;
                         background: white !important;
+                        visibility: visible !important;
+                        overflow: hidden !important;
+                        box-shadow: none !important;
+                    }
+
+                    .papeleta-border-outer {
+                        box-shadow: none !important;
                     }
                 }
                 
