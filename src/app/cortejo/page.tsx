@@ -35,7 +35,11 @@ export default function CortejoPage() {
     const [selectedPosicion, setSelectedPosicion] = useState<{ id: string, nombre: string, tipo: PosicionTipo, tramo: number } | null>(null);
     const [showUnassignDialog, setShowUnassignDialog] = useState(false);
     const [selectedPapeletaId, setSelectedPapeletaId] = useState<string | null>(null);
-    const [isEstacionActiva, setIsEstacionActiva] = useState(false);
+
+    const { data: isEstacionActiva = false } = useQuery({
+        queryKey: ['estacion-penitencia-estado'],
+        queryFn: () => getEstadoEstacionPenitencia(),
+    });
 
     const quitarAsignacionMutation = useMutation({
         mutationFn: quitarAsignacion,
@@ -67,20 +71,11 @@ export default function CortejoPage() {
         queryFn: () => getCortejoCompleto(),
     });
 
-    // Cargar estado de la estación de penitencia
-    useQuery({
-        queryKey: ['estacion-penitencia-estado'],
-        queryFn: async () => {
-            const activa = await getEstadoEstacionPenitencia();
-            setIsEstacionActiva(activa);
-            return activa;
-        },
-    });
 
     const toggleEstacionMutation = useMutation({
         mutationFn: (activa: boolean) => setEstadoEstacionPenitencia(activa),
         onSuccess: (_, activa) => {
-            setIsEstacionActiva(activa);
+            queryClient.invalidateQueries({ queryKey: ['estacion-penitencia-estado'] });
             queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
             toast.success(activa ? 'Estación de penitencia iniciada' : 'Estación de penitencia finalizada');
         }
@@ -116,7 +111,8 @@ export default function CortejoPage() {
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'papeletas_cortejo' },
                 () => {
-                    console.log('🔔 [REALTIME] Cambio en papeletas, refrescando stats...');
+                    console.log('🔔 [REALTIME] Cambio en papeletas, refrescando todo...');
+                    queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
                     queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] });
                     queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] });
                 }
@@ -127,6 +123,14 @@ export default function CortejoPage() {
                 () => {
                     console.log('🔔 [REALTIME] Cambio en estructura, refrescando vista...');
                     queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'configuracion_global' },
+                () => {
+                    console.log('🔔 [REALTIME] Cambio en configuración global...');
+                    queryClient.invalidateQueries({ queryKey: ['estacion-penitencia-estado'] });
                 }
             )
             .subscribe();
