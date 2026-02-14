@@ -184,6 +184,15 @@ export default function PreciosPage() {
                                     disabled={isLoading}
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <Label>Farol (€)</Label>
+                                <Input
+                                    type="number" step="0.01"
+                                    value={getValue('papeleta_farol')}
+                                    onChange={(e) => handleChange('papeleta_farol', e.target.value)}
+                                    disabled={isLoading}
+                                />
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
