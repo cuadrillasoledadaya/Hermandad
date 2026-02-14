@@ -503,77 +503,16 @@ export async function asignarPosicionAPapeleta(
     id_papeleta: string,
     id_posicion: string
 ): Promise<void> {
-    // 1. Verificar que la papeleta está en estado 'pagada'
-    const { data: papeleta, error: papError } = await supabase
-        .from('papeletas_cortejo')
-        .select('estado, tipo')
-        .eq('id', id_papeleta)
-        .single();
+    const { error } = await supabase.rpc('asignar_papeleta_cortejo', {
+        p_id_papeleta: id_papeleta,
+        p_id_posicion: id_posicion
+    });
 
-    if (papError) throw papError;
-
-    if (papeleta.estado !== 'pagada') {
-        throw new Error('La papeleta ya está asignada o cancelada');
+    if (error) {
+        // Mapear errores de PostgreSQL a mensajes legibles si es necesario
+        const message = error.message.includes('P0001') ? error.message.split('P0001: ')[1] : error.message;
+        throw new Error(message || 'Error al asignar la posición');
     }
-
-    // 2. Verificar que la posición está libre
-    const { data: posicion, error: posError } = await supabase
-        .from('cortejo_estructura')
-        .select('tipo, tipo_insignia')
-        .eq('id', id_posicion)
-        .single();
-
-    if (posError) throw posError;
-
-    // 3. Verificar que el tipo coincide (1:1 Estricto)
-    const matchesType = papeleta.tipo === (posicion.tipo as TipoPapeleta);
-
-    if (!matchesType) {
-        const tipoLabel = TIPOS_PAPELETA[papeleta.tipo as keyof typeof TIPOS_PAPELETA] || papeleta.tipo;
-        throw new Error(`El tipo de papeleta (${tipoLabel}) no coincide con el tipo de posición (${posicion.tipo})`);
-    }
-
-    // 4. Verificar que no está ya ocupada
-    const { data: asignacionExistente, error: asigError } = await supabase
-        .from('cortejo_asignaciones')
-        .select('id')
-        .eq('id_posicion', id_posicion)
-        .eq('anio', new Date().getFullYear())
-        .single();
-
-    if (asigError && asigError.code !== 'PGRST116') throw asigError;
-
-    if (asignacionExistente) {
-        throw new Error('Esta posición ya está ocupada');
-    }
-
-    // 5. Obtener datos de la papeleta para crear la asignación
-    const papeletaCompleta = await getPapeleta(id_papeleta);
-
-    // 6. Crear la asignación en cortejo_asignaciones
-    const { error: createError } = await supabase
-        .from('cortejo_asignaciones')
-        .insert({
-            id_hermano: papeletaCompleta.id_hermano,
-            id_posicion,
-            anio: papeletaCompleta.anio,
-            numero_papeleta: papeletaCompleta.numero,
-            id_papeleta: id_papeleta
-        });
-
-    if (createError) throw createError;
-
-    // 7. Actualizar la papeleta
-    const { error: updateError } = await supabase
-        .from('papeletas_cortejo')
-        .update({
-            estado: 'asignada',
-            id_posicion_asignada: id_posicion,
-            fecha_asignacion: new Date().toISOString()
-        })
-        .eq('id', id_papeleta);
-
-    if (updateError) throw updateError;
 }
 
 /**
