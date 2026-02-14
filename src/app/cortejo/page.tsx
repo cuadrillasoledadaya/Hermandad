@@ -31,7 +31,7 @@ export default function CortejoPage() {
     const queryClient = useQueryClient();
 
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-    const [selectedPosicion, setSelectedPosicion] = useState<{ id: string, nombre: string, tipo: PosicionTipo } | null>(null);
+    const [selectedPosicion, setSelectedPosicion] = useState<{ id: string, nombre: string, tipo: PosicionTipo, tramo: number } | null>(null);
     const [papeletaToUnassign, setPapeletaToUnassign] = useState<string | null>(null);
 
     const quitarAsignacionMutation = useMutation({
@@ -48,7 +48,7 @@ export default function CortejoPage() {
         }
     });
 
-    const handleAssignClick = (pos: { id: string, nombre: string, tipo: PosicionTipo }) => {
+    const handleAssignClick = (pos: { id: string, nombre: string, tipo: PosicionTipo, tramo: number }) => {
         setSelectedPosicion(pos);
         setAssignDialogOpen(true);
     };
@@ -237,7 +237,7 @@ export default function CortejoPage() {
                                                         </button>
                                                     ) : (
                                                         <button
-                                                            onClick={() => handleAssignClick(pos)}
+                                                            onClick={() => handleAssignClick({ id: pos.id, nombre: pos.nombre, tipo: pos.tipo, tramo: pos.tramo })}
                                                             className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition"
                                                         >
                                                             Asignar
@@ -263,6 +263,7 @@ export default function CortejoPage() {
                         posicionId={selectedPosicion.id}
                         posicionNombre={selectedPosicion.nombre}
                         posicionTipo={selectedPosicion.tipo}
+                        posicionTramo={selectedPosicion.tramo}
                     />
                 )
             }

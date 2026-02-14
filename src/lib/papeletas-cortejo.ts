@@ -370,6 +370,7 @@ export async function getPapeletasDelAnio(anio?: number): Promise<PapeletaConDet
  */
 export async function getPapeletasPendientes(
     tipo?: TipoPapeleta,
+    tramo?: number,
     anio?: number
 ): Promise<PapeletaConDetalles[]> {
     const year = anio || new Date().getFullYear();
@@ -386,6 +387,10 @@ export async function getPapeletasPendientes(
 
     if (tipo) {
         query = query.eq('tipo', tipo);
+    }
+
+    if (tramo !== undefined && tramo !== null) {
+        query = query.eq('tramo', tramo);
     }
 
     const { data, error } = await query;

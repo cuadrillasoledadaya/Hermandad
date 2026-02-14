@@ -16,6 +16,7 @@ interface AsignarPapeletaDialogProps {
     posicionId: string
     posicionNombre: string
     posicionTipo: PosicionTipo
+    posicionTramo: number
 }
 
 export function AsignarPapeletaDialog({
@@ -23,10 +24,12 @@ export function AsignarPapeletaDialog({
     onOpenChange,
     posicionId,
     posicionNombre,
-    posicionTipo
+    posicionTipo,
+    posicionTramo
 }: AsignarPapeletaDialogProps) {
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedPapeletaId, setSelectedPapeletaId] = useState<string | null>(null)
+    const [showAllTramos, setShowAllTramos] = useState(false)
     const queryClient = useQueryClient()
 
     // Mapear tipo de posición a tipo de papeleta
@@ -42,8 +45,11 @@ export function AsignarPapeletaDialog({
     const tipoPapeleta = mapTipoPosicionToPapeleta(posicionTipo)
 
     const { data: papeletas, isLoading } = useQuery({
-        queryKey: ['papeletas_pendientes', tipoPapeleta],
-        queryFn: () => getPapeletasPendientes(tipoPapeleta || undefined),
+        queryKey: ['papeletas_pendientes', tipoPapeleta, showAllTramos ? null : posicionTramo],
+        queryFn: () => getPapeletasPendientes(
+            tipoPapeleta || undefined,
+            showAllTramos ? undefined : posicionTramo
+        ),
         enabled: open && (!!tipoPapeleta || posicionTipo === 'cruz_guia')
     })
 
@@ -89,14 +95,32 @@ export function AsignarPapeletaDialog({
                         </div>
                     ) : (
                         <>
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Buscar hermano o número..."
-                                    className="pl-9"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                            <div className="flex flex-col gap-3">
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Buscar por nombre o número..."
+                                        className="pl-9"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="flex items-center space-x-2 px-1">
+                                    <input
+                                        type="checkbox"
+                                        id="showAll"
+                                        checked={showAllTramos}
+                                        onChange={(e) => setShowAllTramos(e.target.checked)}
+                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <label
+                                        htmlFor="showAll"
+                                        className="text-sm font-medium leading-none cursor-pointer"
+                                    >
+                                        Mostrar hermanos de otros tramos
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="border rounded-md min-h-[200px] max-h-[300px] overflow-y-auto p-2 space-y-1">
