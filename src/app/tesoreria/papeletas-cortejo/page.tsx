@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { TIPOS_PAPELETA } from '@/lib/papeletas-cortejo';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -378,11 +379,14 @@ export default function PapeletasPage() {
                     <DialogHeader>
                         <DialogTitle>Previsualización de Papeleta</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4 space-y-6">
-                        <div className="overflow-hidden border rounded-lg scale-[0.7] origin-top -mb-32 max-h-[300px] shadow-inner bg-slate-50">
-                            {papeletaToPrint && <PapeletaImprimible papeleta={papeletaToPrint} />}
-                        </div>
-                        <div className="flex flex-col gap-2 pt-4">
+                    <div className="py-2">
+                        <ScrollArea className="max-h-[400px] border rounded-lg bg-zinc-50/50 p-4">
+                            <div className="scale-[0.8] origin-top">
+                                {papeletaToPrint && <PapeletaImprimible papeleta={papeletaToPrint} />}
+                            </div>
+                        </ScrollArea>
+
+                        <div className="flex flex-col gap-2 pt-6">
                             <Button
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 h-12 text-lg font-bold"
                                 onClick={() => window.print()}

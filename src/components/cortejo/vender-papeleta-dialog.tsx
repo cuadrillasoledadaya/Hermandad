@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Search, Receipt, UserPlus, Printer, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { showError, showSuccess } from '@/lib/error-handler';
 import { PapeletaImprimible } from './papeleta-imprimible';
 
@@ -301,9 +302,11 @@ export function VenderPapeletaDialog() {
                                 <p className="text-sm text-muted-foreground">La papeleta se ha generado correctamente.</p>
                             </div>
 
-                            <div className="overflow-hidden border rounded-lg scale-[0.6] origin-top -mb-32 max-h-[250px] shadow-inner bg-slate-50">
-                                {lastPapeleta && <PapeletaImprimible papeleta={lastPapeleta} />}
-                            </div>
+                            <ScrollArea className="max-h-[350px] border rounded-lg bg-slate-50/50 p-4">
+                                <div className="scale-[0.85] origin-top">
+                                    {lastPapeleta && <PapeletaImprimible papeleta={lastPapeleta} />}
+                                </div>
+                            </ScrollArea>
 
                             <div className="flex flex-col gap-2 pt-4">
                                 <Button
