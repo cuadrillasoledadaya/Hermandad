@@ -118,7 +118,7 @@ export async function logSystem(level: LogLevel, message: string, details?: unkn
         await db.table('system_logs').add(entry);
 
         // También enviamos a consola en desarrollo
-        if (process.env.NODE_ENV === 'development') {
+        if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
             const consoleMethod = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'info';
             console[consoleMethod](`[LOG:${level.toUpperCase()}] ${message}`, details || '');
         }

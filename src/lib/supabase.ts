@@ -6,7 +6,7 @@ export const createClient = () =>
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookieOptions: {
-                secure: process.env.NODE_ENV === 'production',
+                secure: typeof process !== 'undefined' && process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 path: '/',
                 maxAge: 60 * 60 * 24 * 7, // 7 días

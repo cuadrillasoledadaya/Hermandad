@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
                         name,
                         value,
                         ...options,
-                        secure: process.env.NODE_ENV === 'production',
+                        secure: typeof process !== 'undefined' && process.env.NODE_ENV === 'production',
                         httpOnly: true,
                         sameSite: 'lax',
                         path: '/',
@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
                         name,
                         value: '',
                         ...options,
-                        secure: process.env.NODE_ENV === 'production',
+                        secure: typeof process !== 'undefined' && process.env.NODE_ENV === 'production',
                         httpOnly: true,
                         sameSite: 'lax',
                         path: '/',
@@ -118,7 +118,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
-    const isDev = process.env.NODE_ENV === 'development';
+    const isDev = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
     const securityHeaders = {
         'Content-Security-Policy': isDev ? "" : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com; img-src 'self' data: https: blob:;",
         'X-Frame-Options': 'DENY',

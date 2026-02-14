@@ -31,7 +31,7 @@ export default function Error({
                     Ir al inicio
                 </Button>
             </div>
-            {process.env.NODE_ENV === 'development' && (
+            {typeof process !== 'undefined' && process.env.NODE_ENV === 'development' && (
                 <pre className="mt-4 p-4 bg-gray-100 rounded text-xs overflow-auto max-w-full">
                     {error.message}
                     {error.stack}
