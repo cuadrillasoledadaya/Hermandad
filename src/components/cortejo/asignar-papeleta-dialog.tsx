@@ -149,7 +149,11 @@ export function AsignarPapeletaDialog({
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
                                                     Papeleta {papeleta.numero > 0 ? `#${papeleta.numero}` : '(OFFLINE)'}
-                                                    {papeleta.tramo !== null && ` • Tramo ${papeleta.tramo}`}
+                                                    {papeleta.tramo !== null && (
+                                                        papeleta.tramo === 0
+                                                            ? ` • Cruz de Guía`
+                                                            : ` • Tramo ${papeleta.tramo}`
+                                                    )}
                                                     • {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(papeleta.importe)}
                                                 </p>
                                             </div>
