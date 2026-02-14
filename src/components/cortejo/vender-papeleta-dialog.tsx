@@ -302,29 +302,31 @@ export function VenderPapeletaDialog() {
                                 <p className="text-sm text-muted-foreground">La papeleta se ha generado correctamente.</p>
                             </div>
 
-                            <ScrollArea className="max-h-[350px] border rounded-lg bg-slate-50/50 p-4">
-                                <div className="scale-[0.85] origin-top">
-                                    {lastPapeleta && <PapeletaImprimible papeleta={lastPapeleta} />}
+                            <ScrollArea className="h-[450px] w-full border rounded-xl bg-slate-50/50 p-6 shadow-inner">
+                                <div className="min-w-[500px] flex justify-center pb-8">
+                                    <div className="scale-[0.8] origin-top">
+                                        {lastPapeleta && <PapeletaImprimible papeleta={lastPapeleta} />}
+                                    </div>
                                 </div>
                             </ScrollArea>
 
-                            <div className="flex flex-col gap-2 pt-4">
+                            <div className="grid grid-cols-2 gap-3 pt-2">
                                 <Button
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 h-12 text-lg font-bold"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-12 text-lg font-bold shadow-lg shadow-blue-200"
                                     onClick={() => window.print()}
                                 >
                                     <Printer className="w-5 h-5" />
-                                    Imprimir Papeleta
+                                    Imprimir ahora
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    className="w-full h-12"
                                     onClick={() => {
                                         setOpen(false);
                                         resetForm();
                                     }}
+                                    className="h-12 text-lg"
                                 >
-                                    Finalizar y Cerrar
+                                    Cerrar ventana
                                 </Button>
                             </div>
                         </div>

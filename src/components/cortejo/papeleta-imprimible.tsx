@@ -13,8 +13,10 @@ export function PapeletaImprimible({ papeleta }: PapeletaImprimibleProps) {
     const validationUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/validar/${papeleta.id}`
 
     return (
-        <div className="papeleta-root bg-white p-4 sm:p-8 w-full max-w-[210mm] mx-auto overflow-hidden">
+        <div className="papeleta-root bg-white p-2 sm:p-6 w-full max-w-[210mm] mx-auto overflow-hidden">
             <style jsx global>{`
+                @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Sorts+Mill+Goudy:ital@0;1&display=swap');
+
                 @media print {
                     @page {
                         size: A5 landscape;
@@ -32,144 +34,215 @@ export function PapeletaImprimible({ papeleta }: PapeletaImprimibleProps) {
                         top: 0;
                         width: 210mm;
                         height: 148mm;
-                        padding: 10mm;
+                        padding: 8mm;
                         border: none;
                         background: white !important;
                     }
                 }
                 
-                .papeleta-border {
-                    border: 8px double #1e293b;
+                .papeleta-border-outer {
+                    border: 2px solid #0f172a;
+                    padding: 4px;
+                    height: 100%;
+                }
+
+                .papeleta-border-inner {
+                    border: 1px solid #0f172a;
                     padding: 1.5rem;
                     background: #fff;
                     position: relative;
-                    min-height: 120mm;
+                    min-height: 115mm;
                     display: flex;
                     flex-direction: column;
+                    z-index: 10;
+                }
+
+                /* Ornamentos en las esquinas */
+                .corner-decoration {
+                    position: absolute;
+                    width: 40px;
+                    height: 40px;
+                    border: 2px solid #0f172a;
+                    z-index: 20;
+                }
+                .top-left { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
+                .top-right { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
+                .bottom-left { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
+                .bottom-right { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+
+                .papeleta-font-serif {
+                    font-family: 'Sorts Mill Goudy', serif;
+                }
+                
+                .papeleta-font-accent {
+                    font-family: 'Cinzel', serif;
                 }
 
                 .papeleta-watermark {
                     position: absolute;
                     top: 50%;
                     left: 50%;
-                    transform: translate(-50%, -50%) rotate(-30deg);
-                    font-size: 8rem;
-                    opacity: 0.03;
+                    transform: translate(-50%, -50%);
+                    width: 300px;
+                    height: 300px;
+                    opacity: 0.04;
                     pointer-events: none;
-                    font-weight: 900;
-                    white-space: nowrap;
                     z-index: 0;
+                    background-image: url('https://files.insforge.com/hermandad/escudo_watermark.png'); /* Fallback pattern if image not exists */
+                    background-size: contain;
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }
+
+                .divider-classic {
+                    height: 2px;
+                    background: linear-gradient(to right, transparent, #0f172a, transparent);
+                    margin: 1rem 0;
+                    opacity: 0.3;
                 }
             `}</style>
 
-            <div className="papeleta-border shadow-inner">
-                <div className="papeleta-watermark uppercase font-serif">
-                    Hermandad
-                </div>
+            <div className="papeleta-border-outer shadow-2xl">
+                <div className="papeleta-border-inner">
+                    {/* Esquinas Ornamentales */}
+                    <div className="corner-decoration top-left" />
+                    <div className="corner-decoration top-right" />
+                    <div className="corner-decoration bottom-left" />
+                    <div className="corner-decoration bottom-right" />
 
-                {/* Cabecera */}
-                <div className="relative z-10 flex justify-between items-start mb-6">
-                    <div className="flex gap-4 items-center">
-                        <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center p-2">
-                            {/* Escudo simbólico con CSS */}
-                            <div className="w-full h-full border-2 border-white/50 rounded-full flex items-center justify-center">
-                                <span className="text-[10px] text-white font-black text-center leading-none">PONTIFICIA<br />Y REAL</span>
-                            </div>
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-1 font-serif">
-                                Pontificia y Real Hermandad
+                    <div className="papeleta-watermark" />
+
+                    {/* Cabecera */}
+                    <div className="relative z-10 flex justify-between items-center mb-4">
+                        <div className="flex-1 text-center">
+                            <h3 className="papeleta-font-accent text-xs tracking-[0.4em] uppercase text-slate-500 mb-1">
+                                Pontificia y Real
+                            </h3>
+                            <h1 className="papeleta-font-accent text-2xl font-black uppercase tracking-[0.1em] text-slate-900 leading-none mb-1">
+                                Hermandad de la Soledad
                             </h1>
-                            <p className="text-sm font-serif italic text-slate-600 uppercase tracking-widest">
+                            <p className="papeleta-font-serif italic text-[11px] text-slate-600 uppercase tracking-[0.3em]">
                                 Estación de Penitencia • Viernes Santo
                             </p>
                         </div>
                     </div>
-                    <div className="text-right flex flex-col items-end">
-                        <div className="text-4xl font-black text-slate-900 leading-none mb-1">
-                            № {papeleta.numero > 0 ? papeleta.numero : '---'}
-                        </div>
-                        <div className="bg-slate-900 text-white px-4 py-1.5 font-bold text-sm tracking-[0.2em] uppercase">
-                            Año {papeleta.anio}
-                        </div>
-                    </div>
-                </div>
 
-                {/* Título */}
-                <div className="relative z-10 text-center mb-8">
-                    <div className="h-px bg-slate-300 w-full mb-2"></div>
-                    <h2 className="text-4xl font-serif uppercase tracking-[0.25em] py-2 text-slate-800">
-                        Papeleta de Sitio
-                    </h2>
-                    <div className="h-px bg-slate-300 w-full mt-2"></div>
-                </div>
+                    <div className="divider-classic" />
 
-                {/* Contenido Principal */}
-                <div className="relative z-10 flex-1 grid grid-cols-3 gap-8 items-center">
-                    <div className="col-span-2 space-y-8">
-                        <div className="space-y-1">
-                            <span className="text-[11px] uppercase font-black text-slate-400 tracking-[0.2em]">Hermano / Hermanos</span>
-                            <div className="text-3xl font-black text-slate-900 uppercase leading-snug break-words">
-                                {papeleta.hermano?.nombre} {papeleta.hermano?.apellidos}
+                    {/* Fila superior: Número y Año */}
+                    <div className="relative z-10 flex justify-between items-end mb-8 px-4">
+                        <div className="text-left">
+                            <span className="papeleta-font-accent text-[10px] uppercase tracking-widest text-slate-400">Papeleta Número</span>
+                            <div className="papeleta-font-serif text-4xl font-bold text-slate-900">
+                                № {papeleta.numero > 0 ? papeleta.numero : '---'}
                             </div>
                         </div>
+                        <div className="text-center bg-slate-100 border border-slate-200 px-6 py-2 rounded">
+                            <span className="papeleta-font-accent text-[10px] uppercase tracking-widest text-slate-400 block mb-1">Ejercicio</span>
+                            <div className="papeleta-font-serif text-2xl font-black text-slate-900 leading-none">
+                                {papeleta.anio}
+                            </div>
+                        </div>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-8">
-                            <div>
-                                <span className="text-[11px] uppercase font-black text-slate-400 tracking-[0.2em]">Tipo de Sitio</span>
-                                <div className="text-xl font-bold text-slate-700 uppercase border-b-2 border-slate-100 pb-1">
-                                    {TIPOS_PAPELETA[papeleta.tipo as keyof typeof TIPOS_PAPELETA] || papeleta.tipo}
+                    {/* Título Central */}
+                    <div className="relative z-10 text-center mb-10">
+                        <h2 className="papeleta-font-serif text-5xl font-normal italic tracking-wide text-slate-800">
+                            Papeleta de Sitio
+                        </h2>
+                    </div>
+
+                    {/* Cuerpo de Información */}
+                    <div className="relative z-10 flex-1 px-4">
+                        <div className="grid grid-cols-12 gap-6 items-start">
+                            <div className="col-span-12 mb-6">
+                                <span className="papeleta-font-accent text-[10px] uppercase tracking-[0.3em] text-slate-400 block mb-2">Hermano de Pleno Derecho</span>
+                                <div className="papeleta-font-serif text-3xl font-medium text-slate-900 border-b border-slate-100 pb-2">
+                                    {papeleta.hermano?.nombre} {papeleta.hermano?.apellidos}
                                 </div>
                             </div>
-                            <div>
-                                <span className="text-[11px] uppercase font-black text-slate-400 tracking-[0.2em]">Tramo / Posición</span>
-                                <div className="text-xl font-bold text-slate-700 border-b-2 border-slate-100 pb-1">
-                                    {papeleta.tramo !== null ? `Tramo ${papeleta.tramo}` : 'General'}
-                                    {papeleta.posicion && ` - ${papeleta.posicion.nombre}`}
+
+                            <div className="col-span-8 space-y-8">
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div>
+                                        <span className="papeleta-font-accent text-[10px] uppercase tracking-[0.3em] text-slate-400 block mb-2">Tipo de Sitio</span>
+                                        <div className="papeleta-font-serif text-xl font-bold text-slate-800 bg-slate-50 px-3 py-2 border-l-4 border-slate-900">
+                                            {TIPOS_PAPELETA[papeleta.tipo as keyof typeof TIPOS_PAPELETA] || papeleta.tipo}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="papeleta-font-accent text-[10px] uppercase tracking-[0.3em] text-slate-400 block mb-2">Tramo de Cortejo</span>
+                                        <div className="papeleta-font-serif text-xl font-bold text-slate-800 bg-slate-50 px-3 py-2 border-l-4 border-slate-400">
+                                            {papeleta.tramo !== null ? `Tramo ${papeleta.tramo}` : 'Tramo General'}
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {papeleta.posicion && (
+                                    <div>
+                                        <span className="papeleta-font-accent text-[10px] uppercase tracking-[0.3em] text-slate-400 block mb-2">Puesto Asignado</span>
+                                        <div className="papeleta-font-serif text-lg font-medium italic text-slate-700">
+                                            {papeleta.posicion.nombre}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="col-span-4 flex flex-col items-center justify-center">
+                                <div className="bg-white p-3 border-2 border-slate-200 shadow-xl rounded-sm relative">
+                                    <div className="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-slate-900"></div>
+                                    <div className="absolute -top-2 -right-2 w-4 h-4 border-t-2 border-r-2 border-slate-900"></div>
+                                    <div className="absolute -bottom-2 -left-2 w-4 h-4 border-b-2 border-l-2 border-slate-900"></div>
+                                    <div className="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-slate-900"></div>
+
+                                    <QRCodeSVG
+                                        value={validationUrl}
+                                        size={120}
+                                        level="H"
+                                        includeMargin={false}
+                                    />
+                                </div>
+                                <span className="papeleta-font-accent text-[8px] font-bold mt-4 text-slate-400 tracking-widest uppercase">
+                                    Verificación Digital
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center">
-                        <div className="bg-white p-2 border-2 border-slate-200 shadow-sm rounded-lg hover:shadow-md transition-shadow">
-                            <QRCodeSVG
-                                value={validationUrl}
-                                size={140}
-                                level="H"
-                                includeMargin={false}
-                            />
+                    {/* Pie de Página */}
+                    <div className="relative z-10 mt-6 pt-6 border-t border-slate-100 flex justify-between items-end px-4">
+                        <div className="text-left">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div>
+                                    <span className="papeleta-font-accent text-[9px] uppercase tracking-widest text-slate-400 block">Expedición</span>
+                                    <span className="papeleta-font-serif font-bold text-slate-700 text-sm">
+                                        {format(new Date(papeleta.fecha_pago), "d 'de' MMMM 'de' yyyy", { locale: es })}
+                                    </span>
+                                </div>
+                                <div className="w-px h-8 bg-slate-200"></div>
+                                <div>
+                                    <span className="papeleta-font-accent text-[9px] uppercase tracking-widest text-slate-400 block">Limosna</span>
+                                    <span className="papeleta-font-serif font-black text-slate-900 text-base">
+                                        {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(papeleta.importe)}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <span className="text-[9px] font-mono mt-3 text-slate-400 font-bold tracking-tighter">
-                            CERT: {papeleta.id.slice(0, 18).toUpperCase()}
-                        </span>
-                    </div>
-                </div>
 
-                {/* Footer */}
-                <div className="relative z-10 mt-8 pt-6 border-t border-slate-200 flex justify-between items-end">
-                    <div className="text-xs space-y-2 text-slate-600">
-                        <p className="flex items-center gap-2">
-                            <span className="font-black text-slate-400">EMISIÓN:</span>
-                            <span className="font-bold text-slate-800 uppercase">{format(new Date(papeleta.fecha_pago), "d 'de' MMMM 'de' yyyy", { locale: es })}</span>
-                        </p>
-                        <p className="flex items-center gap-2">
-                            <span className="font-black text-slate-400">IMPORTE:</span>
-                            <span className="text-lg font-black text-emerald-700">{new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(papeleta.importe)}</span>
-                        </p>
-                    </div>
-
-                    <div className="text-right">
-                        <div className="mb-1 italic font-serif text-slate-400 text-[10px]">Firma y Sello Digital:</div>
-                        <div className="px-8 py-2 border border-slate-200 rounded italic font-serif text-slate-400 text-sm">
-                            Secretaría / Tesorería
+                        <div className="text-center opacity-50 space-y-2">
+                            <div className="papeleta-font-serif italic text-slate-400 text-[10px] mb-8">Sello de la Secretaría</div>
+                            <div className="w-24 h-24 border-2 border-slate-300 rounded-full flex items-center justify-center p-2 mx-auto">
+                                <div className="w-full h-full border border-slate-200 rounded-full border-dashed flex items-center justify-center">
+                                    <span className="papeleta-font-accent text-[7px] text-slate-300 font-bold leading-none text-center">SIGILLUM<br />HERMANDAD</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-4 text-[9px] text-center text-slate-300 uppercase tracking-widest font-black">
-                Esta certificación es personal e intransferible • Documento Oficial de la Hermandad
+            <div className="mt-4 text-[10px] text-center text-slate-400 uppercase tracking-[0.4em] papeleta-font-accent opacity-50">
+                Potius Mori Quam Foedari
             </div>
         </div>
     )
