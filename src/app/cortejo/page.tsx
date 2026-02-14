@@ -354,24 +354,16 @@ export default function CortejoPage() {
                 )
             }
 
-            {/* Diálogo de confirmación para quitar asignación */}
-            <AlertDialog open={!!papeletaToUnassign} onOpenChange={(open) => !open && setPapeletaToUnassign(null)}>
-                <AlertDialogContent className="bg-white">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Quitar asignación?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción liberará la posición. La papeleta del hermano volverá a estar en estado &quot;Pagada&quot; y podrá ser asignada de nuevo.
-                        </AlertDialogDescription>
-                        {showUnassignDialog && selectedPapeletaId && (
-                            <ConfirmDialog
-                                isOpen={showUnassignDialog}
-                                onClose={() => setShowUnassignDialog(false)}
-                                onConfirm={() => quitarAsignacionMutation.mutate(selectedPapeletaId)}
-                                title="Quitar Asignación"
-                                description="¿Estás seguro de que quieres quitar esta asignación? La papeleta volverá a estar disponible para asignar."
-                                isLoading={quitarAsignacionMutation.isPending}
-                            />
-                        )}
-                    </div>
-                    );
+            {showUnassignDialog && selectedPapeletaId && (
+                <ConfirmDialog
+                    isOpen={showUnassignDialog}
+                    onClose={() => setShowUnassignDialog(false)}
+                    onConfirm={() => quitarAsignacionMutation.mutate(selectedPapeletaId)}
+                    title="Quitar Asignación"
+                    description="¿Estás seguro de que quieres quitar esta asignación? La papeleta volverá a estar disponible para asignar."
+                    isLoading={quitarAsignacionMutation.isPending}
+                />
+            )}
+        </div>
+    );
 }
