@@ -3,9 +3,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPapeletasDelAnio, getEstadisticasPapeletas } from '@/lib/papeletas-cortejo';
 import { Card } from '@/components/ui/card';
-import { Loader2, Search, Filter } from 'lucide-react';
+import { Loader2, Search, Filter, Printer } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { VenderPapeletaDialog } from '@/components/cortejo/vender-papeleta-dialog';
+import { PapeletaImprimible } from '@/components/cortejo/papeleta-imprimible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect } from 'react';
@@ -39,6 +41,11 @@ export default function PapeletasPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [papeletaToDelete, setPapeletaToDelete] = useState<{ id: string, numero: number } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Print state
+    const [papeletaToPrint, setPapeletaToPrint] = useState<any | null>(null);
+    const [printDialogOpen, setPrintDialogOpen] = useState(false);
+
     const queryClient = useQueryClient(); // Need queryClient for invalidation
 
     const { data: papeletas, isLoading } = useQuery({
@@ -128,6 +135,11 @@ export default function PapeletasPage() {
             setIsDeleting(false);
             setPapeletaToDelete(null);
         }
+    };
+
+    const handlePrintClick = (papeleta: any) => {
+        setPapeletaToPrint(papeleta);
+        setPrintDialogOpen(true);
     };
 
     return (
@@ -232,6 +244,7 @@ export default function PapeletasPage() {
                                 <th className="px-4 py-3 font-medium">Tramo</th>
                                 <th className="px-4 py-3 font-medium">Posición Asignada</th>
                                 <th className="px-4 py-3 font-medium">Fecha</th>
+                                <th className="px-4 py-3 font-medium text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -306,14 +319,26 @@ export default function PapeletasPage() {
                                         </td>
                                         {canManage && (
                                             <td className="px-4 py-3 text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleDeleteClick(papeleta.id, papeleta.numero)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                        onClick={() => handlePrintClick(papeleta)}
+                                                        title="Imprimir"
+                                                    >
+                                                        <Printer className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => handleDeleteClick(papeleta.id, papeleta.numero)}
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         )}
                                     </tr>
@@ -346,6 +371,36 @@ export default function PapeletasPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Diálogo de Impresión */}
+            <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+                <DialogContent className="sm:max-w-[600px] bg-white">
+                    <DialogHeader>
+                        <DialogTitle>Previsualización de Papeleta</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-6">
+                        <div className="overflow-hidden border rounded-lg scale-[0.7] origin-top -mb-32 max-h-[300px] shadow-inner bg-slate-50">
+                            {papeletaToPrint && <PapeletaImprimible papeleta={papeletaToPrint} />}
+                        </div>
+                        <div className="flex flex-col gap-2 pt-4">
+                            <Button
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 h-12 text-lg font-bold"
+                                onClick={() => window.print()}
+                            >
+                                <Printer className="w-5 h-5" />
+                                Imprimir ahora
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="w-full h-12"
+                                onClick={() => setPrintDialogOpen(false)}
+                            >
+                                Cerrar
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

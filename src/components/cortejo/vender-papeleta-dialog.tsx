@@ -9,18 +9,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Search, Receipt, UserPlus } from 'lucide-react';
+import { Loader2, Search, Receipt, UserPlus, Printer, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showError, showSuccess } from '@/lib/error-handler';
+import { PapeletaImprimible } from './papeleta-imprimible';
 
 export function VenderPapeletaDialog() {
     const [open, setOpen] = useState(false);
-    const [step, setStep] = useState<'hermano' | 'detalles'>('hermano');
+    const [step, setStep] = useState<'hermano' | 'detalles' | 'exito'>('hermano');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedHermano, setSelectedHermano] = useState<{ id: string; nombre: string; apellidos: string } | null>(null);
     const [tipo, setTipo] = useState<TipoPapeleta>('nazareno');
     const [tramo, setTramo] = useState<string>('1');
     const [importe, setImporte] = useState(PRECIO_PAPELETA_DEFAULT);
+    const [lastPapeleta, setLastPapeleta] = useState<any | null>(null);
 
     // Update price and tramo when type changes
     useEffect(() => {
@@ -89,10 +91,11 @@ export function VenderPapeletaDialog() {
             const numeroDisplay = papeleta.numero > 0 ? `#${papeleta.numero}` : 'PENDIENTE (Offline)';
             showSuccess(`¡Vendido!`, `Papeleta ${numeroDisplay} creada correctamente`);
 
-            setOpen(false);
+            setLastPapeleta(papeleta);
+            setStep('exito');
+
             // Asegurar que las estadísticas se invaliden para que el panel superior se actualice
             queryClient.invalidateQueries({ queryKey: ['papeletas_stats'] });
-            resetForm();
         },
         onError: (error: Error) => {
             showError('No se pudo vender la papeleta', error);
@@ -106,6 +109,7 @@ export function VenderPapeletaDialog() {
         setTipo('nazareno');
         setTramo('1');
         setImporte(PRECIO_PAPELETA_DEFAULT);
+        setLastPapeleta(null);
     };
 
     const handleSelectHermano = (hermano: { id: string; nombre: string; apellidos: string }) => {
@@ -145,7 +149,7 @@ export function VenderPapeletaDialog() {
                 </DialogHeader>
 
                 <div className="py-4 space-y-6">
-                    {step === 'hermano' ? (
+                    {step === 'hermano' && (
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Buscar Hermano</Label>
@@ -170,7 +174,7 @@ export function VenderPapeletaDialog() {
                                     <p className="text-sm text-center text-muted-foreground p-4">
                                         No se encontraron hermanos con ese nombre.
                                     </p>
-                                ) : (hermanos as (BrotherSearchResult & { tiene_papeleta: boolean })[])?.map((item) => (
+                                ) : (hermanos as any[])?.map((item) => (
                                     <button
                                         key={item.id}
                                         onClick={() => !item.tiene_papeleta && handleSelectHermano(item)}
@@ -203,7 +207,9 @@ export function VenderPapeletaDialog() {
                                 )}
                             </div>
                         </div>
-                    ) : (
+                    )}
+
+                    {step === 'detalles' && (
                         <div className="space-y-4">
                             <div className="p-3 bg-slate-50 rounded-md border flex justify-between items-center">
                                 <div>
@@ -280,6 +286,42 @@ export function VenderPapeletaDialog() {
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                     )}
                                     Confirmar Venta
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'exito' && (
+                        <div className="space-y-6">
+                            <div className="flex flex-col items-center text-center space-y-2 py-4">
+                                <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center mb-2">
+                                    <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900">¡Venta Realizada!</h3>
+                                <p className="text-sm text-muted-foreground">La papeleta se ha generado correctamente.</p>
+                            </div>
+
+                            <div className="overflow-hidden border rounded-lg scale-[0.6] origin-top -mb-32 max-h-[250px] shadow-inner bg-slate-50">
+                                {lastPapeleta && <PapeletaImprimible papeleta={lastPapeleta} />}
+                            </div>
+
+                            <div className="flex flex-col gap-2 pt-4">
+                                <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 h-12 text-lg font-bold"
+                                    onClick={() => window.print()}
+                                >
+                                    <Printer className="w-5 h-5" />
+                                    Imprimir Papeleta
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="w-full h-12"
+                                    onClick={() => {
+                                        setOpen(false);
+                                        resetForm();
+                                    }}
+                                >
+                                    Finalizar y Cerrar
                                 </Button>
                             </div>
                         </div>
