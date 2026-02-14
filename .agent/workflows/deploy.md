@@ -6,7 +6,7 @@ description: Cómo subir cambios a producción con etiqueta de versión y despli
 
 Este workflow asegura que cada subida a producción tenga su correspondiente etiqueta (tag) en GitHub para mantener un historial claro de versiones.
 
-### Pasos para el Despliegue
+## Pasos para el Despliegue
 
 1. **Actualizar Versión**: Incrementar el número de versión en `package.json`.
 2. **Git Commit**: Realizar el commit con un mensaje descriptivo.
