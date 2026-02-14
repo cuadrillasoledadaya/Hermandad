@@ -59,14 +59,8 @@ const serwist = new Serwist({
         plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 604800 })],
       }),
     },
-    // 5. API de Supabase
-    {
-      matcher: ({ url }) => url.pathname.includes('/rest/v1/') && !url.pathname.includes('/auth/'),
-      handler: new StaleWhileRevalidate({
-        cacheName: 'api-cache',
-        plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 604800 })],
-      }),
-    },
+    // 5. API de Supabase - ELIMINADO CACHÉ DE SW PARA EVITAR DATOS OBSOLETOS
+    // Dejamos que React Query gestione la persistencia y frescura de datos
     // 6. Imágenes
     {
       matcher: ({ request }) => request.destination === 'image',
