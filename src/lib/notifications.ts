@@ -8,7 +8,7 @@ export interface NotificationPayload {
 }
 
 export async function sendToSocialMedia(payload: NotificationPayload) {
-    const webhookUrl = process.env.NEXT_PUBLIC_MAKE_WEBHOOK_URL;
+    const webhookUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_MAKE_WEBHOOK_URL : null;
 
     if (!webhookUrl) {
         console.warn('MAKE_WEBHOOK_URL is not defined in .env');

@@ -52,7 +52,7 @@ class NetworkMonitor {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_URL : null;
       if (!supabaseUrl) {
         throw new Error('Supabase URL not configured');
       }
@@ -62,7 +62,7 @@ class NetworkMonitor {
         signal: controller.signal,
         cache: 'no-store',
         headers: {
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+          'apikey': (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : null) || ''
         }
       });
 
