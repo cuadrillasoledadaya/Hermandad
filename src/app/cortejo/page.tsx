@@ -355,14 +355,29 @@ export default function CortejoPage() {
             }
 
             {showUnassignDialog && selectedPapeletaId && (
-                <ConfirmDialog
-                    isOpen={showUnassignDialog}
-                    onClose={() => setShowUnassignDialog(false)}
-                    onConfirm={() => quitarAsignacionMutation.mutate(selectedPapeletaId)}
-                    title="Quitar Asignación"
-                    description="¿Estás seguro de que quieres quitar esta asignación? La papeleta volverá a estar disponible para asignar."
-                    isLoading={quitarAsignacionMutation.isPending}
-                />
+                <AlertDialog open={showUnassignDialog} onOpenChange={setShowUnassignDialog}>
+                    <AlertDialogContent className="bg-white">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Quitar asignación?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                ¿Estás seguro de que quieres quitar esta asignación? La papeleta volverá a estar disponible para asignar.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={() => quitarAsignacionMutation.mutate(selectedPapeletaId)}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                                disabled={quitarAsignacionMutation.isPending}
+                            >
+                                {quitarAsignacionMutation.isPending && (
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                )}
+                                Confirmar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             )}
         </div>
     );
