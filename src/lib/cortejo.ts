@@ -453,12 +453,12 @@ export async function getEstadisticasCortejo(anio?: number): Promise<CortejoStat
 
     if (ocupError) throw ocupError;
 
-    // Hermanos con papeleta
+    // Hermanos con papeleta (Pagadas o ya Asignadas)
     const { count: conPapeleta, error: papError } = await supabase
-        .from('cortejo_asignaciones')
+        .from('papeletas_cortejo')
         .select('*', { count: 'exact', head: true })
         .eq('anio', year)
-        .not('numero_papeleta', 'is', null);
+        .in('estado', ['pagada', 'asignada']);
 
     if (papError) throw papError;
 
