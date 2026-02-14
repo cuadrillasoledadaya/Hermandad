@@ -1,17 +1,18 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getCortejoCompleto, getEstadisticasCortejo } from '@/lib/cortejo';
+import { getCortejoCompleto, getEstadisticasCortejo, quitarAsignacion } from '@/lib/cortejo';
+import { getEstadoEstacionPenitencia, setEstadoEstacionPenitencia, setPresenciaConfirmada } from '@/lib/papeletas-cortejo';
+import './presencia.css';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Church, User, Users, Shield } from 'lucide-react';
+import { Loader2, Church, User, Users, Shield, Play, XCircle, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { AsignarPapeletaDialog } from '@/components/cortejo/asignar-papeleta-dialog';
 import { useState, useEffect } from 'react';
 import { PosicionTipo } from '@/lib/cortejo';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { quitarAsignacionDePapeleta } from '@/lib/papeletas-cortejo';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
@@ -32,16 +33,19 @@ export default function CortejoPage() {
 
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
     const [selectedPosicion, setSelectedPosicion] = useState<{ id: string, nombre: string, tipo: PosicionTipo, tramo: number } | null>(null);
-    const [papeletaToUnassign, setPapeletaToUnassign] = useState<string | null>(null);
+    const [showUnassignDialog, setShowUnassignDialog] = useState(false);
+    const [selectedPapeletaId, setSelectedPapeletaId] = useState<string | null>(null);
+    const [isEstacionActiva, setIsEstacionActiva] = useState(false);
 
     const quitarAsignacionMutation = useMutation({
-        mutationFn: quitarAsignacionDePapeleta,
+        mutationFn: quitarAsignacion,
         onSuccess: () => {
             toast.success("Asignación eliminada correctamente");
-            queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] });
+            queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
             queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] });
             queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] });
-            setPapeletaToUnassign(null);
+            setSelectedPapeletaId(null);
+            setShowUnassignDialog(false);
         },
         onError: (error: Error) => {
             toast.error(error.message || "Error al eliminar asignación");
@@ -54,12 +58,39 @@ export default function CortejoPage() {
     };
 
     const handleUnassignClick = (papeletaId: string) => {
-        setPapeletaToUnassign(papeletaId);
+        setSelectedPapeletaId(papeletaId);
+        setShowUnassignDialog(true);
     };
 
-    const { data: cortejo, isLoading: loadingCortejo } = useQuery({
-        queryKey: ['cortejo_completo'],
+    const { data: cortejo, isLoading: isLoadingCortejo } = useQuery({
+        queryKey: ['cortejo-completo'],
         queryFn: () => getCortejoCompleto(),
+    });
+
+    // Cargar estado de la estación de penitencia
+    useQuery({
+        queryKey: ['estacion-penitencia-estado'],
+        queryFn: async () => {
+            const activa = await getEstadoEstacionPenitencia();
+            setIsEstacionActiva(activa);
+            return activa;
+        },
+    });
+
+    const toggleEstacionMutation = useMutation({
+        mutationFn: (activa: boolean) => setEstadoEstacionPenitencia(activa),
+        onSuccess: (_, activa) => {
+            setIsEstacionActiva(activa);
+            queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
+            toast.success(activa ? 'Estación de penitencia iniciada' : 'Estación de penitencia finalizada');
+        }
+    });
+
+    const confirmarPresenciaMutation = useMutation({
+        mutationFn: ({ id, confirmada }: { id: string, confirmada: boolean }) => setPresenciaConfirmada(id, confirmada),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
+        }
     });
 
     const { data: stats } = useQuery({
@@ -76,7 +107,7 @@ export default function CortejoPage() {
                 { event: '*', schema: 'public', table: 'cortejo_asignaciones' },
                 () => {
                     console.log('🔔 [REALTIME] Cambio en asignaciones, refrescando cortejo...');
-                    queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] });
+                    queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
                     queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] });
                     queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] });
                 }
@@ -95,7 +126,7 @@ export default function CortejoPage() {
                 { event: '*', schema: 'public', table: 'cortejo_estructura' },
                 () => {
                     console.log('🔔 [REALTIME] Cambio en estructura, refrescando vista...');
-                    queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] });
+                    queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
                 }
             )
             .subscribe();
@@ -105,7 +136,7 @@ export default function CortejoPage() {
         };
     }, [queryClient]);
 
-    if (loadingCortejo) {
+    if (isLoadingCortejo) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -134,6 +165,44 @@ export default function CortejoPage() {
                     </div>
                 )}
             </div>
+
+            {/* Controles Estación de Penitencia */}
+            {canManage && (
+                <div className="flex flex-wrap gap-4 items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${isEstacionActiva ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                        <span className="text-sm font-semibold text-slate-700">
+                            Modo: {isEstacionActiva ? 'Estación de Penitencia Activa' : 'Preparación'}
+                        </span>
+                    </div>
+                    <div className="flex gap-2">
+                        {!isEstacionActiva ? (
+                            <Button
+                                onClick={() => toggleEstacionMutation.mutate(true)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                                disabled={toggleEstacionMutation.isPending}
+                            >
+                                <Play className="w-4 h-4" />
+                                Iniciar Estación de Penitencia
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={() => {
+                                    if (confirm("¿Estás seguro de finalizar la estación de penitencia? Se resetearán todas las confirmaciones de llegada.")) {
+                                        toggleEstacionMutation.mutate(false);
+                                    }
+                                }}
+                                variant="outline"
+                                className="border-red-200 text-red-600 hover:bg-red-50 gap-2"
+                                disabled={toggleEstacionMutation.isPending}
+                            >
+                                <XCircle className="w-4 h-4" />
+                                Finalizar y Resetear
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Estadísticas */}
             {stats && (
@@ -191,8 +260,20 @@ export default function CortejoPage() {
                                 return (
                                     <Card
                                         key={pos.id}
-                                        className={`p-4 ${tieneAsignacion
-                                            ? 'bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-300'
+                                        onClick={() => {
+                                            if (isEstacionActiva && tieneAsignacion && pos.asignacion?.id_papeleta) {
+                                                confirmarPresenciaMutation.mutate({
+                                                    id: pos.asignacion.id_papeleta,
+                                                    confirmada: !pos.asignacion.presencia_confirmada
+                                                });
+                                            }
+                                        }}
+                                        className={`p-4 transition-all duration-300 ${isEstacionActiva && tieneAsignacion && pos.asignacion?.id_papeleta ? 'cursor-pointer active:scale-95' : ''} ${tieneAsignacion
+                                            ? pos.asignacion?.presencia_confirmada
+                                                ? 'bg-gradient-to-r from-emerald-100 to-emerald-200 border-emerald-400 shadow-sm ring-2 ring-emerald-500/20'
+                                                : isEstacionActiva
+                                                    ? 'bg-amber-50 border-amber-300 animate-presence-pulse'
+                                                    : 'bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-300'
                                             : 'bg-gradient-to-r from-slate-50 to-slate-100/50 border-slate-300'
                                             }`}
                                     >
@@ -210,6 +291,11 @@ export default function CortejoPage() {
                                                             {pos.asignacion?.numero_papeleta && (
                                                                 <span className="ml-2 text-emerald-600">
                                                                     📄 #{pos.asignacion.numero_papeleta}
+                                                                </span>
+                                                            )}
+                                                            {pos.asignacion?.presencia_confirmada && (
+                                                                <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase">
+                                                                    <Check className="w-3 h-3" /> Presente
                                                                 </span>
                                                             )}
                                                         </p>
@@ -276,25 +362,16 @@ export default function CortejoPage() {
                         <AlertDialogDescription>
                             Esta acción liberará la posición. La papeleta del hermano volverá a estar en estado &quot;Pagada&quot; y podrá ser asignada de nuevo.
                         </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            onClick={() => {
-                                if (papeletaToUnassign) {
-                                    quitarAsignacionMutation.mutate(papeletaToUnassign);
-                                }
-                            }}
-                        >
-                            {quitarAsignacionMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            ) : null}
-                            Confirmar
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </div>
-    );
+                        {showUnassignDialog && selectedPapeletaId && (
+                            <ConfirmDialog
+                                isOpen={showUnassignDialog}
+                                onClose={() => setShowUnassignDialog(false)}
+                                onConfirm={() => quitarAsignacionMutation.mutate(selectedPapeletaId)}
+                                title="Quitar Asignación"
+                                description="¿Estás seguro de que quieres quitar esta asignación? La papeleta volverá a estar disponible para asignar."
+                                isLoading={quitarAsignacionMutation.isPending}
+                            />
+                        )}
+                    </div>
+                    );
 }

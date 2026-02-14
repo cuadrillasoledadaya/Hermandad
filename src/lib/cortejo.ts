@@ -47,6 +47,7 @@ export interface CortejoAsignacion {
     fecha_asignacion: string;
     notas: string | null;
     id_papeleta?: string; // Nuevo campo para vincular con la papeleta real
+    presencia_confirmada?: boolean;
 }
 
 export interface PosicionConAsignacion extends CortejoEstructura {
@@ -98,23 +99,30 @@ export async function getCortejoCompleto(anio?: number): Promise<TramoData[]> {
     // Obtener papeletas asignadas para vincular IDs
     const { data: papeletas, error: papError } = await supabase
         .from('papeletas_cortejo')
-        .select('id, id_posicion_asignada')
+        .select('id, id_posicion_asignada, presencia_confirmada')
         .eq('anio', year)
         .not('id_posicion_asignada', 'is', null);
 
     if (papError) throw papError;
 
-    // Mapa de papeleta por posicion
+    // Mapa de papeleta por posicion (incluyendo presencia)
     const papeletasMap = new Map(
-        papeletas?.map(p => [p.id_posicion_asignada, p.id]) || []
+        papeletas?.map(p => [p.id_posicion_asignada, { id: p.id, presencia_confirmada: p.presencia_confirmada }]) || []
     );
 
-    // Mapear asignaciones por id_posicion e inyectar id_papeleta
+    // Mapear asignaciones por id_posicion e inyectar id_papeleta y presencia
     const asignacionesMap = new Map(
-        asignaciones?.map(a => [
-            a.id_posicion,
-            { ...a, id_papeleta: papeletasMap.get(a.id_posicion) }
-        ]) || []
+        asignaciones?.map(a => {
+            const papInfo = papeletasMap.get(a.id_posicion);
+            return [
+                a.id_posicion,
+                {
+                    ...a,
+                    id_papeleta: papInfo?.id,
+                    presencia_confirmada: papInfo?.presencia_confirmada || false
+                }
+            ];
+        }) || []
     );
 
     // Combinar estructura con asignaciones

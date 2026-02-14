@@ -97,6 +97,57 @@ export async function getPrecioPapeleta(tipo: TipoPapeleta): Promise<number> {
 }
 
 /**
+ * Confirma o revierte la presencia de un hermano en el templo
+ */
+export async function setPresenciaConfirmada(idPapeleta: string, confirmada: boolean): Promise<void> {
+    const { error } = await supabase
+        .from('papeletas_cortejo')
+        .update({ presencia_confirmada: confirmada })
+        .eq('id', idPapeleta);
+
+    if (error) throw error;
+}
+
+/**
+ * Obtiene el estado global de la estación de penitencia
+ */
+export async function getEstadoEstacionPenitencia(): Promise<boolean> {
+    const { data, error } = await supabase
+        .from('configuracion_global')
+        .select('valor')
+        .eq('clave', 'estacion_penitencia_activa')
+        .single();
+
+    if (error) {
+        if (error.code === 'PGRST116') return false;
+        throw error;
+    }
+    return data.valor as boolean;
+}
+
+/**
+ * Activa o desactiva el modo estación de penitencia globalmente
+ */
+export async function setEstadoEstacionPenitencia(activa: boolean): Promise<void> {
+    const { error } = await supabase
+        .from('configuracion_global')
+        .upsert({ clave: 'estacion_penitencia_activa', valor: activa, updated_at: new Date().toISOString() });
+
+    if (error) throw error;
+
+    // Si se desactiva, opcionalmente podríamos resetear todas las presencias de ese año
+    // Pero el usuario pidió "ir al estado inicial todas las papeletas vendidas sin más"
+    if (!activa) {
+        const year = new Date().getFullYear();
+        const { error: resetError } = await supabase
+            .from('papeletas_cortejo')
+            .update({ presencia_confirmada: false })
+            .eq('anio', year);
+        if (resetError) throw resetError;
+    }
+}
+
+/**
  * Vende una papeleta de cortejo y crea el pago asociado
  */
 export async function venderPapeleta(input: VenderPapeletaInput): Promise<PapeletaCortejo> {
