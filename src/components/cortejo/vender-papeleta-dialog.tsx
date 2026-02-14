@@ -28,8 +28,8 @@ export function VenderPapeletaDialog() {
             const price = await getPrecioPapeleta(tipo);
             setImporte(price);
 
-            // Si es Cruz de Guía, poner tramo 0 por defecto
-            if (tipo === 'cruz_guia') {
+            // Si es Cruz de Guía o Farol, poner tramo 0 por defecto
+            if (tipo === 'cruz_guia' || tipo === 'farol') {
                 setTramo('0');
             } else if (tramo === '0') {
                 // Si cambiamos de Cruz de Guía a cualquier otro que use tramo, volver a tramo 1
@@ -123,7 +123,7 @@ export function VenderPapeletaDialog() {
                 apellidos: selectedHermano.apellidos
             },
             tipo,
-            tramo: (tipo === 'nazareno' || tipo === 'vara' || tipo === 'insignia' || tipo === 'bocina' || tipo === 'cruz_guia') ? Number(tramo) : undefined,
+            tramo: (tipo === 'nazareno' || tipo === 'vara' || tipo === 'insignia' || tipo === 'bocina' || tipo === 'cruz_guia' || tipo === 'farol') ? Number(tramo) : undefined,
             importe: Number(importe)
         });
     };
@@ -235,7 +235,7 @@ export function VenderPapeletaDialog() {
                                     </Select>
                                 </div>
 
-                                {(tipo === 'nazareno' || tipo === 'vara' || tipo === 'insignia' || tipo === 'bocina' || tipo === 'cruz_guia') && (
+                                {(tipo === 'nazareno' || tipo === 'vara' || tipo === 'insignia' || tipo === 'bocina' || tipo === 'cruz_guia' || tipo === 'farol') && (
                                     <div className="space-y-2">
                                         <Label>Tramo</Label>
                                         <Select

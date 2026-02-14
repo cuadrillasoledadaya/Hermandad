@@ -20,6 +20,7 @@ interface PreciosConfig {
     papeleta_vara: number;
     papeleta_bocina: number;
     papeleta_cruz_guia: number;
+    papeleta_farol: number;
 }
 
 export default function PreciosPage() {

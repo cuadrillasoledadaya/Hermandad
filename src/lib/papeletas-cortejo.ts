@@ -13,7 +13,8 @@ export const TIPOS_PAPELETA = {
     insignia: 'Insignia',
     bocina: 'Bocina',
     nazareno: 'Nazareno',
-    costalero: 'Costalero'
+    costalero: 'Costalero',
+    farol: 'Farol'
 } as const;
 
 export const ESTADOS_PAPELETA = {
@@ -90,6 +91,7 @@ export async function getPrecioPapeleta(tipo: TipoPapeleta): Promise<number> {
         case 'vara': return config.papeleta_vara;
         case 'bocina': return config.papeleta_bocina;
         case 'cruz_guia': return config.papeleta_cruz_guia;
+        case 'farol': return config.papeleta_farol;
         default: return PRECIO_PAPELETA_DEFAULT;
     }
 }

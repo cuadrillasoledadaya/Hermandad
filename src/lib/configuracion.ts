@@ -10,6 +10,7 @@ export interface PreciosConfig {
     papeleta_vara: number;
     papeleta_bocina: number;
     papeleta_cruz_guia: number;
+    papeleta_farol: number;
 }
 
 export const PRECIOS_DEFAULTS: PreciosConfig = {
@@ -21,6 +22,7 @@ export const PRECIOS_DEFAULTS: PreciosConfig = {
     papeleta_vara: 15,
     papeleta_bocina: 15,
     papeleta_cruz_guia: 15,
+    papeleta_farol: 15,
 };
 
 export async function getPreciosConfig(): Promise<PreciosConfig> {
