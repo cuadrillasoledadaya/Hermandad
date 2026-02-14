@@ -39,6 +39,7 @@ export function AsignarPapeletaDialog({
         if (tipo === 'nazareno') return 'nazareno'
         if (tipo === 'bocina') return 'bocina'
         if (tipo === 'cruz_guia') return 'cruz_guia'
+        if (tipo === 'farol') return 'farol'
         return null
     }
 
