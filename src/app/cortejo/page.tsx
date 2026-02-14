@@ -69,6 +69,7 @@ export default function CortejoPage() {
     const { data: cortejo, isLoading: isLoadingCortejo } = useQuery({
         queryKey: ['cortejo-completo'],
         queryFn: () => getCortejoCompleto(),
+        refetchInterval: isEstacionActiva ? 30000 : false, // Cada 30s si está la estación activa
     });
 
 
@@ -131,14 +132,22 @@ export default function CortejoPage() {
                 () => {
                     console.log('🔔 [REALTIME] Cambio en configuración global...');
                     queryClient.invalidateQueries({ queryKey: ['estacion-penitencia-estado'] });
+                    queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] });
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ [REALTIME] Suscrito correctamente a cambios del cortejo');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error('❌ [REALTIME] Error en canal de suscripción');
+                }
+            });
 
         return () => {
+            console.log('👋 [REALTIME] Limpiando suscripciones...');
             supabase.removeChannel(channel);
         };
-    }, [queryClient]);
+    }, [queryClient, isEstacionActiva]);
 
     if (isLoadingCortejo) {
         return (

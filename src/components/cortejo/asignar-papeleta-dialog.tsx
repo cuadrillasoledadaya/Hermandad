@@ -61,7 +61,7 @@ export function AsignarPapeletaDialog({
         },
         onSuccess: () => {
             toast.success("Posición asignada correctamente")
-            queryClient.invalidateQueries({ queryKey: ['cortejo_completo'] })
+            queryClient.invalidateQueries({ queryKey: ['cortejo-completo'] })
             queryClient.invalidateQueries({ queryKey: ['cortejo_stats'] })
             queryClient.invalidateQueries({ queryKey: ['papeletas_pendientes'] })
             onOpenChange(false)
