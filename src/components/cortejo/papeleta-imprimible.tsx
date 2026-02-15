@@ -23,14 +23,17 @@ export function PapeletaImprimible({ papeleta }: PapeletaImprimibleProps) {
                         margin: 0;
                     }
                     
-                    /* Ocultar TODO lo que esté en el body */
-                    body * {
+                    /* Ocultar elementos estructurales de la web */
+                    header, nav, footer, main, [role="dialog"]:not(:has(.papeleta-root)), [data-radix-portal]:not(:has(.papeleta-root)) {
                         display: none !important;
                     }
-                    
-                    /* Mostrar SOLO la papeleta y sus descendientes */
-                    .papeleta-root, .papeleta-root * {
-                        display: block !important;
+
+                    html, body {
+                        background: white !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                     }
 
                     .papeleta-root {
@@ -42,8 +45,9 @@ export function PapeletaImprimible({ papeleta }: PapeletaImprimibleProps) {
                         margin: 0 !important;
                         padding: 10mm !important;
                         background: white !important;
+                        display: block !important;
                         visibility: visible !important;
-                        overflow: hidden !important;
+                        z-index: 99999 !important;
                         box-shadow: none !important;
                     }
 
