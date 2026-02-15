@@ -379,27 +379,29 @@ export default function PapeletasPage() {
                     <DialogHeader>
                         <DialogTitle>Previsualización de Papeleta</DialogTitle>
                     </DialogHeader>
-                    <div className="py-2">
-                        <ScrollArea className="h-[450px] w-full border rounded-xl bg-zinc-50/50 p-6 shadow-inner">
-                            <div className="min-w-[500px] flex justify-center pb-8">
-                                <div className="scale-[0.8] origin-top">
+                    <div className="py-2 space-y-6">
+                        <ScrollArea className="h-[430px] w-full border rounded-xl bg-zinc-100/30 p-4 shadow-inner relative z-0">
+                            <div className="min-w-[500px] flex justify-center pb-20">
+                                <div className="scale-[0.8] origin-top transition-transform">
                                     {papeletaToPrint && <PapeletaImprimible papeleta={papeletaToPrint} />}
                                 </div>
                             </div>
                         </ScrollArea>
 
-                        <div className="grid grid-cols-2 gap-3 pt-6">
+                        <div className="grid grid-cols-2 gap-4 pt-2 relative z-10">
                             <Button
-                                className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-12 text-lg font-bold shadow-lg shadow-blue-200"
+                                className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-14 text-lg font-bold shadow-xl shadow-blue-200/50"
                                 onClick={() => window.print()}
+                                type="button"
                             >
-                                <Printer className="w-5 h-5" />
+                                <Printer className="w-6 h-6" />
                                 Imprimir ahora
                             </Button>
                             <Button
                                 variant="outline"
-                                className="h-12 text-lg"
+                                className="h-14 text-lg bg-white hover:bg-slate-50 border-2"
                                 onClick={() => setPrintDialogOpen(false)}
+                                type="button"
                             >
                                 Cerrar ventana
                             </Button>

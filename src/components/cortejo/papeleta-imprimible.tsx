@@ -23,23 +23,32 @@ export function PapeletaImprimible({ papeleta }: PapeletaImprimibleProps) {
                         margin: 0;
                     }
                     
-                    /* Ocultar elementos estructurales de la web */
-                    header, nav, footer, main, [role="dialog"]:not(:has(.papeleta-root)), [data-radix-portal]:not(:has(.papeleta-root)) {
+                    /* Ocultar absolutamente todo excepto el portal de la papeleta */
+                    body > *:not([data-radix-portal]),
+                    [role="dialog"] > *:not(:has(.papeleta-root)),
+                    header, nav, footer, main, button, .no-print {
                         display: none !important;
                     }
 
-                    html, body {
+                    /* Resetear el contenedor del diálogo para que no estorbe */
+                    [role="dialog"] {
+                        position: absolute !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        height: 100% !important;
                         background: white !important;
-                        height: auto !important;
-                        overflow: visible !important;
-                        margin: 0 !important;
+                        border: none !important;
                         padding: 0 !important;
+                        margin: 0 !important;
+                        box-shadow: none !important;
+                        transform: none !important;
                     }
 
                     .papeleta-root {
-                        position: absolute !important;
-                        left: 0 !important;
+                        position: fixed !important;
                         top: 0 !important;
+                        left: 0 !important;
                         width: 210mm !important;
                         height: 148mm !important;
                         margin: 0 !important;
@@ -47,7 +56,7 @@ export function PapeletaImprimible({ papeleta }: PapeletaImprimibleProps) {
                         background: white !important;
                         display: block !important;
                         visibility: visible !important;
-                        z-index: 99999 !important;
+                        z-index: 9999999 !important;
                         box-shadow: none !important;
                     }
 

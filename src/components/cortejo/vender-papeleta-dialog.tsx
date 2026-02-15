@@ -302,20 +302,21 @@ export function VenderPapeletaDialog() {
                                 <p className="text-sm text-muted-foreground">La papeleta se ha generado correctamente.</p>
                             </div>
 
-                            <ScrollArea className="h-[450px] w-full border rounded-xl bg-slate-50/50 p-6 shadow-inner">
-                                <div className="min-w-[500px] flex justify-center pb-8">
-                                    <div className="scale-[0.8] origin-top">
+                            <ScrollArea className="h-[430px] w-full border rounded-xl bg-slate-100/30 p-4 shadow-inner relative z-0">
+                                <div className="min-w-[500px] flex justify-center pb-20">
+                                    <div className="scale-[0.8] origin-top transition-transform">
                                         {lastPapeleta && <PapeletaImprimible papeleta={lastPapeleta} />}
                                     </div>
                                 </div>
                             </ScrollArea>
 
-                            <div className="grid grid-cols-2 gap-3 pt-2">
+                            <div className="grid grid-cols-2 gap-4 pt-4 relative z-10">
                                 <Button
-                                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-12 text-lg font-bold shadow-lg shadow-blue-200"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-14 text-lg font-bold shadow-xl shadow-blue-200/50"
                                     onClick={() => window.print()}
+                                    type="button"
                                 >
-                                    <Printer className="w-5 h-5" />
+                                    <Printer className="w-6 h-6" />
                                     Imprimir ahora
                                 </Button>
                                 <Button
@@ -324,7 +325,8 @@ export function VenderPapeletaDialog() {
                                         setOpen(false);
                                         resetForm();
                                     }}
-                                    className="h-12 text-lg"
+                                    className="h-14 text-lg bg-white hover:bg-slate-50 border-2"
+                                    type="button"
                                 >
                                     Cerrar ventana
                                 </Button>
